@@ -13,11 +13,18 @@
 # limitations under the License.
 """gRPC Python's Admin interface."""
 
+from grpc import Server
 from grpc_channelz.v1 import channelz
 import grpc_csds
 
+class B:
+    def __init__(self):
+        self._num = 0
 
-def add_admin_servicers(server):
+    def foo(self) -> str:
+        return self._num
+
+def add_admin_servicers(server: Server) -> None:
     """Register admin servicers to a server.
 
     gRPC provides some predefined admin services to make debugging easier by
