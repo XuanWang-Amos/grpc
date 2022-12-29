@@ -19,6 +19,12 @@ from grpc._cython import cygrpc
 import grpc_channelz.v1.channelz_pb2 as _channelz_pb2
 import grpc_channelz.v1.channelz_pb2_grpc as _channelz_pb2_grpc
 
+class B:
+    def __init__(self):
+        self._num = 0
+
+    def foo(self) -> str:
+        return self._num
 
 class ChannelzServicer(_channelz_pb2_grpc.ChannelzServicer):
     """Servicer handling RPCs for service statuses."""
