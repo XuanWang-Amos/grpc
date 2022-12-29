@@ -13,13 +13,20 @@
 # limitations under the License.
 """Base implementation of reflection servicer."""
 
-from google.protobuf import descriptor_pb2
+from google.protobuf import descriptor_pb2  # pytype: disable=pyi-error
 from google.protobuf import descriptor_pool
 import grpc
 from grpc_reflection.v1alpha import reflection_pb2 as _reflection_pb2
 from grpc_reflection.v1alpha import reflection_pb2_grpc as _reflection_pb2_grpc
 
 _POOL = descriptor_pool.Default()
+
+class B:
+    def __init__(self):
+        self._num = 0
+
+    def foo(self) -> str:
+        return self._num
 
 
 def _not_found_error():

@@ -15,9 +15,15 @@
 
 from envoy.service.status.v3 import csds_pb2
 from envoy.service.status.v3 import csds_pb2_grpc
-from google.protobuf import json_format
+from google.protobuf import json_format  # pytype: disable=pyi-error
 from grpc._cython import cygrpc
 
+class B:
+    def __init__(self):
+        self._num = 0
+
+    def foo(self) -> str:
+        return self._num
 
 class ClientStatusDiscoveryServiceServicer(
         csds_pb2_grpc.ClientStatusDiscoveryServiceServicer):

@@ -30,6 +30,12 @@ SERVICE_NAME = _health_pb2.DESCRIPTOR.services_by_name['Health'].full_name
 # The entry of overall health for the entire server.
 OVERALL_HEALTH = ''
 
+class B:
+    def __init__(self):
+        self._num = 0
+
+    def foo(self) -> str:
+        return self._num
 
 class _Watcher():
 

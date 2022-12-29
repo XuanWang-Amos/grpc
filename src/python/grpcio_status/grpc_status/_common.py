@@ -15,6 +15,14 @@
 
 import grpc
 
+class B:
+    def __init__(self):
+        self._num = 0
+
+    def foo(self) -> str:
+        return self._num
+
+
 _CODE_TO_GRPC_CODE_MAPPING = {x.value[0]: x for x in grpc.StatusCode}
 
 GRPC_DETAILS_METADATA_KEY = 'grpc-status-details-bin'
