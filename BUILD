@@ -1164,6 +1164,7 @@ grpc_cc_library(
     name = "census",
     srcs = [
         "//src/core:ext/filters/census/grpc_context.cc",
+        "//src/core:ext/filters/census/grpc_tracer.cc",
     ],
     language = "c++",
     public_hdrs = [
@@ -1175,6 +1176,7 @@ grpc_cc_library(
         "grpc_base",
         "grpc_public_hdrs",
         "grpc_trace",
+        "//src/core:context",
     ],
 )
 
@@ -2204,6 +2206,28 @@ grpc_cc_library(
         "grpc++",
         "grpc_base",
     ],
+)
+
+grpc_cc_library(
+    name = "grpc_rpc_encoding",
+    srcs = [
+        "src/cpp/ext/filters/census/rpc_encoding.cc",
+    ],
+    hdrs = [
+        "src/cpp/ext/filters/census/rpc_encoding.h",
+    ],
+    external_deps = [
+        "absl/base",
+        "absl/base:core_headers",
+        "absl/meta:type_traits",
+        "absl/status",
+        "absl/strings",
+        "absl/time",
+    ],
+    language = "c++",
+    tags = ["nofixdeps"],
+    visibility = ["//visibility:public"],
+    deps = ["gpr_platform"],
 )
 
 grpc_cc_library(

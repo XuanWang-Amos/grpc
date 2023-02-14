@@ -34,5 +34,6 @@ pyx_library(
     data = [":copy_roots_pem"],
     deps = [
         "//:grpc",
+        "//:grpc_opencensus_plugin", # For RegisterOpenCensusPlugin
     ],
 )

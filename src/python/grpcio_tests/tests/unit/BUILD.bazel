@@ -153,3 +153,19 @@ internal_py_grpc_test(
         "//tools/distrib/python/grpcio_tools:grpc_tools",
     ],
 )
+
+internal_py_grpc_test(
+    name = "_observability_test",
+    size = "small",
+    srcs = ["_observability_test.py"],
+    imports = ["../../"],
+    main = "_observability_test.py",
+    deps = [
+        ":test_common",
+        "//src/python/grpcio/grpc:grpcio",
+        "//src/python/grpcio_tests/tests/testing",
+        "//src/python/grpcio_observability/grpc_observability",
+        requirement("opencensus"),
+        requirement("opencensus-ext-stackdriver"),
+    ],
+)

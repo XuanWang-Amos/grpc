@@ -266,6 +266,12 @@ struct census_context;
 GRPCAPI void grpc_census_call_set_context(grpc_call* call,
                                           struct census_context* context);
 
+GRPCAPI void grpc_call_set_call_tracer(grpc_call* call, const void* call_tracer);
+
+GRPCAPI void grpc_register_server_call_tracer_factory(const void* call_tracer_factory);
+
+GRPCAPI void* grpc_call_get_call_tracer(grpc_call* call);
+
 /** Retrieve the calls current census context. */
 GRPCAPI struct census_context* grpc_census_call_get_context(grpc_call* call);
 
