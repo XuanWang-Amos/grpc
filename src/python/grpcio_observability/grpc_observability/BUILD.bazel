@@ -57,7 +57,7 @@ py_library(
     srcs = [
         "__init__.py",
         "observability.py",
-        "_open_census.py",
+        "open_census.py",
         "views.py",
         "measures.py",
     ],

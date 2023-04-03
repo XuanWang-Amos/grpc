@@ -20,7 +20,7 @@ import logging
 from threading import Thread
 from typing import Tuple
 
-from grpc_observability import _open_census
+from grpc_observability import open_census
 from grpc_observability import measures
 
 cdef const char* CLIENT_CALL_TRACER = "client_call_tracer"
@@ -117,7 +117,7 @@ def _read_gcp_observability_config() -> None:
     monitoring_enabled = True
     os.environ['GRPC_GCP_OPEN_CENSUS_STATS_ENABLED'] = 'True'
 
-  py_config = _open_census.gcpObservabilityConfig.get()
+  py_config = open_census.gcpObservabilityConfig.get()
   py_config.set_configuration(_decode(c_config.project_id), sampling_rate, py_labels, tracing_enabled, monitoring_enabled)
 
 def create_client_call_tracer_capsule(bytes method, bytes trace_id, bytes parent_span_id=b'') -> cpython.PyObject:
@@ -207,8 +207,8 @@ cdef void FlushSensusData():
       py_spans_batch.append(py_span)
     kSensusDataBuffer.pop()
 
-  _open_census.export_metric_batch(py_metrics_batch)
-  _open_census.export_span_batch(py_spans_batch)
+  open_census.export_metric_batch(py_metrics_batch)
+  open_census.export_span_batch(py_spans_batch)
 
 cdef void _shutdown_exporting_thread():
   with nogil:

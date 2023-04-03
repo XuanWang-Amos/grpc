@@ -64,7 +64,7 @@ void GenerateServerContext(absl::string_view header, absl::string_view method,
   std::cout << "----SSSS Getting SpanContext FromGrpcTraceBinHeader" << std::endl;
   SpanContext parent_ctx = FromGrpcTraceBinHeader(header);
   if (parent_ctx.IsValid()) {
-    std::cout << "----SSSS STARTING SPAN with parent with name: " << method  << " trace_id: " << parent_ctx.TraceId() << " should_sample: " << parent_ctx.is_sampled() << std::endl;
+    std::cout << "----SSSS STARTING SPAN with parent with name: " << method  << " trace_id: " << parent_ctx.TraceId() << " should_sample: " << parent_ctx.IsSampled() << std::endl;
     new (context) PythonCensusContext(method, parent_ctx);
   } else {
     new (context) PythonCensusContext(method);
@@ -88,7 +88,7 @@ void ToGrpcTraceBinHeader(PythonCensusContext& ctx, uint8_t* out) {
 
   out[kTraceOptionsOfs] = kTraceOptionsField;
   uint8_t trace_options_rep_[kSizeTraceOptions];
-  trace_options_rep_[0] = ctx.Span().context().is_sampled() ? 1 : 0;
+  trace_options_rep_[0] = ctx.Span().context().IsSampled() ? 1 : 0;
   memcpy(reinterpret_cast<uint8_t*>(&out[kTraceOptionsOfs + 1]), trace_options_rep_, kSizeTraceOptions);
 }
 
@@ -155,6 +155,95 @@ uint64_t GetIncomingDataSize(const grpc_call_final_info* final_info) {
 
 uint64_t GetOutgoingDataSize(const grpc_call_final_info* final_info) {
   return final_info->stats.transport_stream_stats.outgoing.data_bytes;
+}
+
+namespace {
+// span_id is a 16-character hexadecimal encoded string.
+std::string generateSpanId() {
+  uint64_t span_id = absl::Uniform<uint64_t>(absl::BitGen());
+  std::stringstream hex_string;
+  hex_string << std::setfill('0') << std::setw(16) << std::hex << span_id;
+  return std::string(hex_string.str());
+}
+
+// trace_id is a 32-character hexadecimal encoded string
+std::string generateTraceId() {
+  absl::uint128 trace_id = absl::Uniform<absl::uint128>(absl::BitGen());
+  std::stringstream hex_string;
+  hex_string << std::setfill('0') << std::setw(32) << std::hex << trace_id;
+  return std::string(hex_string.str());
+}
+
+} // namespace
+
+
+Span Span::StartSpan(absl::string_view name, Span* parent) {
+  SpanContext context;
+  std::string span_id = generateSpanId();
+  std::string trace_id;
+  std::string parent_span_id;
+  bool should_sample;
+  auto start_time = absl::Now();
+
+  if (parent != nullptr) {
+    parent_span_id = parent->context().SpanId();
+    trace_id = parent->context().TraceId();
+    should_sample = parent->context().IsSampled();
+  } else {
+    trace_id = generateTraceId();
+    should_sample = ShouldSample(trace_id);
+  }
+
+  context = SpanContext(trace_id, span_id, should_sample);
+  return Span(std::string(name), parent_span_id, start_time, context);
+}
+
+Span Span::StartSpan(absl::string_view name, SpanContext parent_context) {
+  std::string trace_id = parent_context.TraceId();
+  std::string parent_span_id = parent_context.SpanId();
+  std::string span_id = generateSpanId();
+  bool should_sample = parent_context.IsSampled();
+  auto start_time = absl::Now();
+  SpanContext context(trace_id, span_id, should_sample);
+  return Span(std::string(name), parent_span_id, start_time, context);
+}
+
+Span Span::StartSpan(absl::string_view name, absl::string_view trace_id) {
+  std::string span_id = generateSpanId();
+  auto start_time = absl::Now();
+  bool should_sample = ShouldSample(std::string(trace_id));
+  SpanContext context(std::string(trace_id), span_id, should_sample);
+  return Span(std::string(name), "", start_time, context);
+}
+
+void Span::SetStatus(absl::string_view status) {
+  status_ = std::string(status);
+}
+
+void Span::AddAttribute(std::string key, std::string value) {
+  span_labels_.emplace_back(Label{key, value});
+}
+
+void Span::AddAnnotation(absl::string_view description) {
+  std::string time_stamp = absl::FormatTime("%Y-%m-%d %H:%M:%E3S", absl::Now(), absl::UTCTimeZone());
+  span_annotations_.emplace_back(Annotation{time_stamp, std::string(description)});
+}
+
+SpanSensusData Span::ToSensusData() {
+  SpanSensusData sensus_data;
+  absl::TimeZone utc =  absl::UTCTimeZone();
+  sensus_data.name = name_;
+  sensus_data.start_time = absl::FormatTime("%Y-%m-%dT%H:%M:%E6SZ", start_time_, utc);
+  sensus_data.end_time = absl::FormatTime("%Y-%m-%dT%H:%M:%E6SZ", end_time_, utc);
+  sensus_data.trace_id = context().TraceId();
+  sensus_data.span_id = context().SpanId();
+  sensus_data.should_sample = context().IsSampled();
+  sensus_data.parent_span_id = parent_span_id_;
+  sensus_data.status = status_;
+  sensus_data.span_labels = span_labels_;
+  sensus_data.span_annotations = span_annotations_;
+  sensus_data.child_span_count = child_span_count_;
+  return sensus_data;
 }
 
 }  // namespace grpc_observability

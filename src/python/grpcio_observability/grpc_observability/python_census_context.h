@@ -136,7 +136,7 @@ struct SpanSensusData {
 };
 
 class SpanContext final {
-  public:
+ public:
   SpanContext() : is_valid_(false) {}
 
   SpanContext(std::string trace_id, std::string span_id, bool should_sample)
@@ -148,7 +148,7 @@ class SpanContext final {
   // Returns the SpanId associated with this SpanContext.
   std::string SpanId() const { return span_id_; }
 
-  bool is_sampled() const { return should_sample_; }
+  bool IsSampled() const { return should_sample_; }
 
   bool IsValid() const { return is_valid_; }
 
@@ -160,7 +160,7 @@ class SpanContext final {
 };
 
 class Span final {
-  public:
+ public:
   explicit Span(std::string name, std::string parent_span_id, absl::Time start_time, SpanContext context)
     : name_(name), parent_span_id_(parent_span_id), start_time_(start_time),
       context_(context) {}
@@ -173,115 +173,34 @@ class Span final {
     ++child_span_count_;
   }
 
-  static Span StartSpan(absl::string_view name, Span* parent) {
-    SpanContext context;
-    std::string span_id = generateSpanId();
-    std::string trace_id;
-    std::string parent_span_id;
-    bool should_sample;
-    auto start_time = absl::Now();
-    if (parent != nullptr) {
-      parent_span_id = parent->context().SpanId();
-      trace_id = parent->context().TraceId();
-      should_sample = parent->context().is_sampled();
-    } else {
-      trace_id = generateTraceId();
-      should_sample = ShouldSample(trace_id);
-    }
+  static Span StartSpan(absl::string_view name, Span* parent);
 
-    context = SpanContext(trace_id,
-                          span_id,
-                          should_sample);
-    return Span(std::string(name), parent_span_id, start_time, context);
-  }
+  static Span StartSpan(absl::string_view name, SpanContext parent_context);
 
-  static Span StartSpan(absl::string_view name, SpanContext parent_context) {
-    std::string trace_id = parent_context.TraceId();
-    std::string parent_span_id = parent_context.SpanId();
-    std::string span_id = generateSpanId();
-    bool should_sample = parent_context.is_sampled();
-    auto start_time = absl::Now();
-    SpanContext context(trace_id, span_id, should_sample);
-    return Span(std::string(name), parent_span_id, start_time, context);
-  }
-
-  static Span StartSpan(absl::string_view name, absl::string_view trace_id) {
-    std::string span_id = generateSpanId();
-    auto start_time = absl::Now();
-    bool should_sample = ShouldSample(std::string(trace_id));
-    SpanContext context(std::string(trace_id), span_id, should_sample);
-    return Span(std::string(name), "", start_time, context);
-  }
+  static Span StartSpan(absl::string_view name, absl::string_view trace_id);
 
   static Span BlankSpan() { return StartSpan("", ""); }
 
-  // std::string SpanId() const { return span_id_; }
-  // std::string TraceId() const { return trace_id_; }
-  // bool isSampled() { return should_sample_; }
   SpanContext& context() { return context_; }
 
-  void SetStatus(absl::string_view status) {
-    status_ = std::string(status);
-  }
+  void SetStatus(absl::string_view status);
 
-  void AddAttribute(std::string key, std::string value) {
-    span_labels_.emplace_back(Label{key, value});
-  }
+  void AddAttribute(std::string key, std::string value);
 
-  void AddAnnotation(absl::string_view description) {
-    std::string time_stamp = absl::FormatTime("%Y-%m-%d %H:%M:%E3S", absl::Now(), absl::UTCTimeZone());
-    span_annotations_.emplace_back(Annotation{time_stamp, std::string(description)});
-  }
+  void AddAnnotation(absl::string_view description);
 
-  SpanSensusData ToSensusData() {
-    SpanSensusData sensus_data;
-    absl::TimeZone utc =  absl::UTCTimeZone();
-    sensus_data.name = name_;
-    sensus_data.start_time = absl::FormatTime("%Y-%m-%dT%H:%M:%E6SZ", start_time_, utc);
-    sensus_data.end_time = absl::FormatTime("%Y-%m-%dT%H:%M:%E6SZ", end_time_, utc);
-    sensus_data.trace_id = context().TraceId();
-    sensus_data.span_id = context().SpanId();
-    sensus_data.should_sample = context().is_sampled();
-    sensus_data.parent_span_id = parent_span_id_;
-    sensus_data.status = status_;
-    sensus_data.span_labels = span_labels_;
-    sensus_data.span_annotations = span_annotations_;
-    sensus_data.child_span_count = child_span_count_;
-    return sensus_data;
-  }
+  SpanSensusData ToSensusData();
 
-  private:
-
-  // span_id is a 16-character hexadecimal encoded string.
-  static std::string generateSpanId() {
-    uint64_t span_id = absl::Uniform<uint64_t>(absl::BitGen());
-    std::stringstream hex_string;
-    hex_string << std::setfill('0') << std::setw(16) << std::hex << span_id;
-    // std::cout << "----SSSS generateSpanId: " << hex_string.str() << std::endl;
-    return std::string(hex_string.str());
-  }
-
-  // trace_id is a 32-character hexadecimal encoded string
-  static std::string generateTraceId() {
-    absl::uint128 trace_id = absl::Uniform<absl::uint128>(absl::BitGen());
-    std::stringstream hex_string;
-    hex_string << std::setfill('0') << std::setw(32) << std::hex << trace_id;
-    // std::cout << "----SSSS generateTraceId: " << hex_string.str() << std::endl;
-    return std::string(hex_string.str());
-  }
-
+ private:
   static bool ShouldSample(std::string trace_id) {
     return ProbabilitySampler::Get().ShouldSample(trace_id);
   }
 
   std::string name_;
   std::string parent_span_id_;
-  // std::string trace_id_;
-  // std::string span_id_;
   absl::Time start_time_;
   absl::Time end_time_;
   std::string status_;
-  // bool should_sample_;
   std::vector<Label> span_labels_;
   std::vector<Annotation> span_annotations_;
   SpanContext context_;
@@ -292,13 +211,6 @@ class Span final {
 class PythonCensusContext {
  public:
   PythonCensusContext() : span_(Span::BlankSpan()), labels_({}) {}
-
-  // PythonCensusContext(absl::string_view name)
-  //     : span_(Span::StartSpan(name)) {}
-
-  // explicit PythonCensusContext(absl::string_view name,
-  //                       std::vector<Label>& labels)
-  //     : span_(Span::BlankSpan()), labels_(labels) {}
 
   PythonCensusContext(absl::string_view name, absl::string_view trace_id)
       : span_(Span::StartSpan(name, trace_id)), labels_({}) {}

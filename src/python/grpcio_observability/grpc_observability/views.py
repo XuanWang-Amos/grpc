@@ -17,7 +17,7 @@ from opencensus.stats import aggregation as aggregation_module
 from opencensus.tags.tag_key import TagKey
 
 from grpc_observability import measures
-from grpc_observability import _open_census
+from grpc_observability import open_census
 
 # These measure definitions should be kept in sync across opencensus
 # implementations--see
@@ -173,5 +173,5 @@ def _get_exponential_boundaries(num_finite_buckets: int, scale: float,
 
 # Default columns inlcudes user provided labels as TagKey.
 def default_coulmns():
-    config = _open_census.gcpObservabilityConfig.get()
+    config = open_census.gcpObservabilityConfig.get()
     return [label.tag_key for label in config.labels]

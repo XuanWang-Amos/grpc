@@ -100,7 +100,7 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
     return absl::BytesToHexString(absl::string_view(context_.Context().SpanId()));
   }
 
-  bool IsSampled() override { return context_.Context().is_sampled(); }
+  bool IsSampled() override { return context_.Context().IsSampled(); }
 
   // Please refer to `grpc_transport_stream_op_batch_payload` for details on
   // arguments.

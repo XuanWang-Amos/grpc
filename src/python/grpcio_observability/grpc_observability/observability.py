@@ -21,7 +21,7 @@ from opencensus.trace import span_context as span_context_module
 from opencensus.trace import trace_options as trace_options_module
 
 from grpc_observability import _cyobservability
-from grpc_observability import _open_census
+from grpc_observability import open_census
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class Observability:
         # TODO(xuanwn): Errors out if config is invalid.
         _cyobservability.observability_init()
 
-        config = _open_census.gcpObservabilityConfig.get()
+        config = open_census.gcpObservabilityConfig.get()
         sys.stderr.write(f"------->>> Found Config:\n{config}\n")
         sys.stderr.flush()
 

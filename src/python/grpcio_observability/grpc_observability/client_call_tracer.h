@@ -55,7 +55,7 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
       return absl::BytesToHexString(absl::string_view(context_.Context().SpanId()));
     }
 
-    bool IsSampled() override { return context_.Context().is_sampled(); }
+    bool IsSampled() override { return context_.Context().IsSampled(); }
 
     void RecordSendInitialMetadata(
         grpc_metadata_batch* send_initial_metadata) override;
@@ -112,7 +112,7 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
     return absl::BytesToHexString(absl::string_view(context_.Context().SpanId()));
   }
 
-  bool IsSampled() override { return context_.Context().is_sampled(); }
+  bool IsSampled() override { return context_.Context().IsSampled(); }
 
   void GenerateContext();
   PythonOpenCensusCallAttemptTracer* StartNewAttempt(
@@ -126,10 +126,7 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
   const grpc_call_context_element* call_context_;
   // Client method.
   absl::string_view method_;
-  // absl::string_view trace_id_;
   PythonCensusContext context_;
-  // bool should_sample_;
-//   grpc_core::Arena* arena_;
   bool tracing_enabled_;
   mutable absl::Mutex mu_;
   // Non-transparent attempts per call
