@@ -12,16 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
-
 import sys
-import time
 import grpc
 import logging
 
-from opencensus.trace import execution_context, samplers
-from opencensus.trace.tracer import Tracer
-from opencensus.trace.tracers import context_tracer, noop_tracer
+from opencensus.trace import execution_context
 from opencensus.trace import span_context as span_context_module
 from opencensus.trace import trace_options as trace_options_module
 
@@ -34,27 +29,17 @@ _LOGGER = logging.getLogger(__name__)
 class Observability:
 
     def __init__(self):
-        sys.stderr.write("\nPY: Calling Observability.__init__\n")
-        sys.stderr.flush()
+        pass
 
     def __enter__(self):
-        sys.stderr.write("\nPY: Calling Observability.__enter__\n")
-        sys.stderr.flush()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         sys.stderr.write("\nPY: Calling Observability.__exit__\n")
         sys.stderr.flush()
         _cyobservability.at_observability_exit()
-        return False
 
-    def __del__(self):
-        pass
-
-    def init(self):
-        sys.stderr.write(f"\nPY: Calling Observability.init\n")
-        sys.stderr.flush()
-
+    def init(self) -> None:
         # 1. Read config
         # 2. Creating measures and register views
         # 3. Create and Saves Tracer and Sampler to ContextVar
@@ -86,15 +71,11 @@ def _create_client_call_tracer_capsule(**kwargs) -> object:
         trace_id = span_context_module.generate_trace_id().encode('utf8')
         capsule = _cyobservability.create_client_call_tracer_capsule(
             method, trace_id)
-    sys.stderr.write(f"PY: created client tracer capsule: {capsule}\n")
-    sys.stderr.flush()
     return capsule
 
 
-def _create_server_call_tracer_factory_capsule(**kwargs) -> object:
+def _create_server_call_tracer_factory_capsule() -> object:
     capsule = _cyobservability.create_server_call_tracer_factory_capsule()
-    sys.stderr.write(f"PY: created server factory capsule: {capsule}\n")
-    sys.stderr.flush()
     return capsule
 
 

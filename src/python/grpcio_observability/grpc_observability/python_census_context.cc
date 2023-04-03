@@ -38,11 +38,11 @@ void GenerateClientContext(absl::string_view method, absl::string_view trace_id,
   // overwriting it below.
   ctxt->~PythonCensusContext();
   if (method.empty()) {
-    new (ctxt) PythonCensusContext(PythonCensusContext());
+    new (ctxt) PythonCensusContext();
     return;
   }
   if (!parent_span_id.empty()) {
-    // Note that parent_span_id exist also means it was marked as sampled at Python OC, we'll respect that deicison.
+    // Note that parent_span_id exist also means it was marked as sampled at Python OC, we'll respect that decision.
     SpanContext parent_context = SpanContext(std::string(trace_id), std::string(parent_span_id), true);
     new (ctxt) PythonCensusContext(method, parent_context);
     return;
@@ -64,7 +64,7 @@ void GenerateServerContext(absl::string_view header, absl::string_view method,
   std::cout << "----SSSS Getting SpanContext FromGrpcTraceBinHeader" << std::endl;
   SpanContext parent_ctx = FromGrpcTraceBinHeader(header);
   if (parent_ctx.IsValid()) {
-    std::cout << "----SSSS STARTING SPAN with parent with name: " << method  << " trace_id: " << parent_ctx.trace_id() << " should_sample: " << parent_ctx.is_sampled() << std::endl;
+    std::cout << "----SSSS STARTING SPAN with parent with name: " << method  << " trace_id: " << parent_ctx.TraceId() << " should_sample: " << parent_ctx.is_sampled() << std::endl;
     new (context) PythonCensusContext(method, parent_ctx);
   } else {
     new (context) PythonCensusContext(method);
@@ -75,15 +75,15 @@ void ToGrpcTraceBinHeader(PythonCensusContext& ctx, uint8_t* out) {
   out[kVersionOfs] = kVersionId;
   out[kTraceIdOfs] = kTraceIdField;
 
-  std::cout << "Saving tracerId to header: " << ctx.Span().context().trace_id() << std::endl;
+  std::cout << "Saving tracerId to header: " << ctx.Span().context().TraceId() << std::endl;
   memcpy(reinterpret_cast<uint8_t*>(&out[kTraceIdOfs + 1]),
-         absl::HexStringToBytes(absl::string_view(ctx.Span().context().trace_id())).c_str(),
+         absl::HexStringToBytes(absl::string_view(ctx.Span().context().TraceId())).c_str(),
          kSizeTraceID);
 
   out[kSpanIdOfs] = kSpanIdField;
-  std::cout << "Saving spanId to header: " << ctx.Span().context().span_id() << std::endl;
+  std::cout << "Saving spanId to header: " << ctx.Span().context().SpanId() << std::endl;
   memcpy(reinterpret_cast<uint8_t*>(&out[kSpanIdOfs + 1]),
-         absl::HexStringToBytes(absl::string_view(ctx.Span().context().span_id())).c_str(),
+         absl::HexStringToBytes(absl::string_view(ctx.Span().context().SpanId())).c_str(),
          kSizeSpanID);
 
   out[kTraceOptionsOfs] = kTraceOptionsField;
@@ -118,8 +118,8 @@ SpanContext FromGrpcTraceBinHeader(absl::string_view header) {
                       trace_option_rep_[0] & kIsSampled);
 
   std::cout << "----SSSS: SpanContext from header: " << std::endl;
-  std::cout << "          trace_id: " << context.trace_id() << std::endl;
-  std::cout << "          span_id: " << context.span_id() << std::endl;
+  std::cout << "          trace_id: " << context.TraceId() << std::endl;
+  std::cout << "          span_id: " << context.SpanId() << std::endl;
   return context;
 }
 

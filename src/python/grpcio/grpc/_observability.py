@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 import types
 import logging
-from typing import Tuple, Union
 
 from grpc._cython import cygrpc as _cygrpc
 

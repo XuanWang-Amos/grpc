@@ -5,7 +5,6 @@ import logging
 import os
 import time
 import random
-from pprint import pprint
 
 import grpc
 
@@ -202,12 +201,6 @@ class ObservabilityTest(unittest.TestCase):
         # Keep the thread alive long enough for the exporter to export at least
         # once.
         time.sleep(15)
-        # Get aggregated stats and print it to console.
-        # view_data = view_manager.get_view(view_name)
-        # pprint(vars(view_data))
-        # for k, v in view_data._tag_value_aggregation_data_map.items():
-        #     pprint(k)
-        #     pprint(vars(v))
 
     def test_sunny_day(self):
         sys.stderr.write("\nPY: trying to import grpc_observability\n")

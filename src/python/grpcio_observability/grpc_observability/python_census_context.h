@@ -143,10 +143,10 @@ class SpanContext final {
       : trace_id_(trace_id), span_id_(span_id), should_sample_(should_sample), is_valid_(true) {}
 
   // Returns the TraceId associated with this SpanContext.
-  std::string trace_id() const { return trace_id_; }
+  std::string TraceId() const { return trace_id_; }
 
   // Returns the SpanId associated with this SpanContext.
-  std::string span_id() const { return span_id_; }
+  std::string SpanId() const { return span_id_; }
 
   bool is_sampled() const { return should_sample_; }
 
@@ -181,8 +181,8 @@ class Span final {
     bool should_sample;
     auto start_time = absl::Now();
     if (parent != nullptr) {
-      parent_span_id = parent->context().span_id();
-      trace_id = parent->context().trace_id();
+      parent_span_id = parent->context().SpanId();
+      trace_id = parent->context().TraceId();
       should_sample = parent->context().is_sampled();
     } else {
       trace_id = generateTraceId();
@@ -196,8 +196,8 @@ class Span final {
   }
 
   static Span StartSpan(absl::string_view name, SpanContext parent_context) {
-    std::string trace_id = parent_context.trace_id();
-    std::string parent_span_id = parent_context.span_id();
+    std::string trace_id = parent_context.TraceId();
+    std::string parent_span_id = parent_context.SpanId();
     std::string span_id = generateSpanId();
     bool should_sample = parent_context.is_sampled();
     auto start_time = absl::Now();
@@ -239,8 +239,8 @@ class Span final {
     sensus_data.name = name_;
     sensus_data.start_time = absl::FormatTime("%Y-%m-%dT%H:%M:%E6SZ", start_time_, utc);
     sensus_data.end_time = absl::FormatTime("%Y-%m-%dT%H:%M:%E6SZ", end_time_, utc);
-    sensus_data.trace_id = context().trace_id();
-    sensus_data.span_id = context().span_id();
+    sensus_data.trace_id = context().TraceId();
+    sensus_data.span_id = context().SpanId();
     sensus_data.should_sample = context().is_sampled();
     sensus_data.parent_span_id = parent_span_id_;
     sensus_data.status = status_;
@@ -354,7 +354,7 @@ void GenerateClientContext(absl::string_view method, absl::string_view trace_id,
 // Deserialize the incoming SpanContext and generate a new server context based
 // on that. This new span will never be a root span. This should only be called
 // with a blank CensusContext as it overwrites it.
-void GenerateServerContext(absl::string_view tracing, absl::string_view method,
+void GenerateServerContext(absl::string_view header, absl::string_view method,
                            PythonCensusContext* context);
 
 inline absl::string_view GetMethod(char* method) {

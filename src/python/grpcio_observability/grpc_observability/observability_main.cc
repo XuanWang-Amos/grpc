@@ -28,22 +28,16 @@ namespace grpc_observability {
 std::queue<CensusData> kSensusDataBuffer;
 std::mutex kSensusDataBufferMutex;
 std::condition_variable SensusDataBufferCV;
+constexpr int kExportThreshold = 2;
 
 void RecordMetricSensusData(Measurement measurement, std::vector<Label> labels) {
-  // std::cout << "------ Record Start ------ " << std::endl;
-  // std::cout << "measurement.name: " << measurement.name << std::endl;
-  // std::cout << "measurement.type: " << measurement.type << std::endl;
-  // std::cout << "measurement.value.value_double: " << measurement.value.value_double << std::endl;
-  // std::cout << "measurement.value.value_int: " << measurement.value.value_int << std::endl;
-  // std::cout << "&measurement: " << &measurement << std::endl;
-  // std::cout << "------ Record End ------ " << std::endl;
   CensusData data = CensusData(measurement, labels);
   AddCensusDataToBuffer(data);
 }
 
-void RecordSpanSensusData(SpanSensusData spanSensusData) {
-  CensusData data = CensusData(spanSensusData);
-  std::cout << " ________Record SPAN: " << spanSensusData.name << " with id: " << spanSensusData.span_id << std::endl;
+void RecordSpanSensusData(SpanSensusData span_sensus_data) {
+  CensusData data = CensusData(span_sensus_data);
+  std::cout << " ________Record SPAN: " << span_sensus_data.name << " with id: " << span_sensus_data.span_id << std::endl;
   AddCensusDataToBuffer(data);
 }
 
@@ -63,9 +57,6 @@ Measurement CreateDoubleMeasurement(MetricsName name, double value) {
   return single_measurement;
 }
 
-//
-// Others
-//
 
 void gcpObservabilityInit() {
     setbuf(stdout, nullptr);
@@ -114,56 +105,10 @@ void UnlockSensusDataBuffer() {
 }
 
 void AddCensusDataToBuffer(CensusData data) {
-  // std::cout << ">>>>>>>> Trying to get LOCK before adding to queue <<<<<<<<<<" << std::endl;
   std::unique_lock<std::mutex> lk(kSensusDataBufferMutex);
-  // std::cout << ">>>>>>>> LOCKED QUEUE Adding <<<<<<<<<<" << std::endl;
   kSensusDataBuffer.push(data);
-  if (kSensusDataBuffer.size() >= 2) {
+  if (kSensusDataBuffer.size() >= kExportThreshold) {
       SensusDataBufferCV.notify_all();
-  }
-  // std::cout << ">>>>>>>> UN-LOCKING QUEUE Adding <<<<<<<<<<" << std::endl;
-}
-
-absl::string_view StatusCodeToString(grpc_status_code code) {
-  switch (code) {
-    case GRPC_STATUS_OK:
-      return "OK";
-    case GRPC_STATUS_CANCELLED:
-      return "CANCELLED";
-    case GRPC_STATUS_UNKNOWN:
-      return "UNKNOWN";
-    case GRPC_STATUS_INVALID_ARGUMENT:
-      return "INVALID_ARGUMENT";
-    case GRPC_STATUS_DEADLINE_EXCEEDED:
-      return "DEADLINE_EXCEEDED";
-    case GRPC_STATUS_NOT_FOUND:
-      return "NOT_FOUND";
-    case GRPC_STATUS_ALREADY_EXISTS:
-      return "ALREADY_EXISTS";
-    case GRPC_STATUS_PERMISSION_DENIED:
-      return "PERMISSION_DENIED";
-    case GRPC_STATUS_UNAUTHENTICATED:
-      return "UNAUTHENTICATED";
-    case GRPC_STATUS_RESOURCE_EXHAUSTED:
-      return "RESOURCE_EXHAUSTED";
-    case GRPC_STATUS_FAILED_PRECONDITION:
-      return "FAILED_PRECONDITION";
-    case GRPC_STATUS_ABORTED:
-      return "ABORTED";
-    case GRPC_STATUS_OUT_OF_RANGE:
-      return "OUT_OF_RANGE";
-    case GRPC_STATUS_UNIMPLEMENTED:
-      return "UNIMPLEMENTED";
-    case GRPC_STATUS_INTERNAL:
-      return "INTERNAL";
-    case GRPC_STATUS_UNAVAILABLE:
-      return "UNAVAILABLE";
-    case GRPC_STATUS_DATA_LOSS:
-      return "DATA_LOSS";
-    default:
-      // gRPC wants users of this enum to include a default branch so that
-      // adding values is not a breaking change.
-      return "UNKNOWN_STATUS";
   }
 }
 
@@ -220,6 +165,49 @@ GcpObservabilityConfig ReadObservabilityConfig() {
   }
 
   return GcpObservabilityConfig(cloud_monitoring_config, cloud_trace_config, cloud_logging_config, project_id, labels);
+}
+
+absl::string_view StatusCodeToString(grpc_status_code code) {
+  switch (code) {
+    case GRPC_STATUS_OK:
+      return "OK";
+    case GRPC_STATUS_CANCELLED:
+      return "CANCELLED";
+    case GRPC_STATUS_UNKNOWN:
+      return "UNKNOWN";
+    case GRPC_STATUS_INVALID_ARGUMENT:
+      return "INVALID_ARGUMENT";
+    case GRPC_STATUS_DEADLINE_EXCEEDED:
+      return "DEADLINE_EXCEEDED";
+    case GRPC_STATUS_NOT_FOUND:
+      return "NOT_FOUND";
+    case GRPC_STATUS_ALREADY_EXISTS:
+      return "ALREADY_EXISTS";
+    case GRPC_STATUS_PERMISSION_DENIED:
+      return "PERMISSION_DENIED";
+    case GRPC_STATUS_UNAUTHENTICATED:
+      return "UNAUTHENTICATED";
+    case GRPC_STATUS_RESOURCE_EXHAUSTED:
+      return "RESOURCE_EXHAUSTED";
+    case GRPC_STATUS_FAILED_PRECONDITION:
+      return "FAILED_PRECONDITION";
+    case GRPC_STATUS_ABORTED:
+      return "ABORTED";
+    case GRPC_STATUS_OUT_OF_RANGE:
+      return "OUT_OF_RANGE";
+    case GRPC_STATUS_UNIMPLEMENTED:
+      return "UNIMPLEMENTED";
+    case GRPC_STATUS_INTERNAL:
+      return "INTERNAL";
+    case GRPC_STATUS_UNAVAILABLE:
+      return "UNAVAILABLE";
+    case GRPC_STATUS_DATA_LOSS:
+      return "DATA_LOSS";
+    default:
+      // gRPC wants users of this enum to include a default branch so that
+      // adding values is not a breaking change.
+      return "UNKNOWN_STATUS";
+  }
 }
 
 }  // namespace grpc_observability

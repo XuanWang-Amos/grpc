@@ -13,13 +13,11 @@
 # limitations under the License.
 
 from opencensus.stats import view as view_module
-from opencensus.stats import bucket_boundaries
 from opencensus.stats import aggregation as aggregation_module
 from opencensus.tags.tag_key import TagKey
 
-# from _open_census import gcpObservabilityConfig
-import measures
-
+from grpc_observability import measures
+from grpc_observability import _open_census
 
 # These measure definitions should be kept in sync across opencensus
 # implementations--see
@@ -63,18 +61,18 @@ def millis_distribution_aggregation(
     ])
 
 
-def client_started_rpcs(config_labels) -> view_module.View:
+def client_started_rpcs() -> view_module.View:
     view = view_module.View("grpc.io/client/started_rpcs", "MOCK Description",
-                            [label.tag_key for label in config_labels] +
+                            default_coulmns() +
                             [client_method_tag_key()],
                             measures.rpc_client_started_rpcs(),
                             aggregation_module.CountAggregation())
     return view
 
 
-def client_completed_rpcs(config_labels) -> view_module.View:
+def client_completed_rpcs() -> view_module.View:
     view = view_module.View("grpc.io/client/completed_rpcs", "MOCK Description",
-                            [label.tag_key for label in config_labels] +
+                            default_coulmns() +
                             [client_method_tag_key(),
                              client_status_tag_key()],
                             measures.rpc_client_roundtrip_latency(),
@@ -82,31 +80,29 @@ def client_completed_rpcs(config_labels) -> view_module.View:
     return view
 
 
-def client_roundtrip_latency(config_labels) -> view_module.View:
+def client_roundtrip_latency() -> view_module.View:
     view = view_module.View(
         "grpc.io/client/roundtrip_latency", "MOCK Description",
-        [label.tag_key for label in config_labels] + [client_method_tag_key()],
+        default_coulmns() + [client_method_tag_key()],
         measures.rpc_client_roundtrip_latency(),
         millis_distribution_aggregation())
     return view
 
 
-def client_sent_compressed_message_bytes_per_rpc(
-        config_labels) -> view_module.View:
+def client_sent_compressed_message_bytes_per_rpc() -> view_module.View:
     view = view_module.View(
         "grpc.io/client/sent_compressed_message_bytes_per_rpc",
-        "MOCK Description", [label.tag_key for label in config_labels] +
+        "MOCK Description", default_coulmns() +
         [client_method_tag_key(),
          client_status_tag_key()], measures.rpc_client_send_bytes_per_prc(),
         bytes_distribution_aggregation())
     return view
 
 
-def client_received_compressed_message_bytes_per_rpc(
-        config_labels) -> view_module.View:
+def client_received_compressed_message_bytes_per_rpc() -> view_module.View:
     view = view_module.View(
         "grpc.io/client/received_compressed_message_bytes_per_rpc",
-        "MOCK Description", [label.tag_key for label in config_labels] +
+        "MOCK Description", default_coulmns() +
         [client_method_tag_key(),
          client_status_tag_key()], measures.rpc_client_received_bytes_per_rpc(),
         bytes_distribution_aggregation())
@@ -114,18 +110,18 @@ def client_received_compressed_message_bytes_per_rpc(
 
 
 # Server
-def server_started_rpcs(config_labels) -> view_module.View:
+def server_started_rpcs() -> view_module.View:
     view = view_module.View("grpc.io/server/started_rpcs", "MOCK Description",
-                            [label.tag_key for label in config_labels] +
+                            default_coulmns() +
                             [server_method_tag_key()],
                             measures.rpc_server_started_rpcs(),
                             aggregation_module.CountAggregation())
     return view
 
 
-def server_completed_rpcs(config_labels) -> view_module.View:
+def server_completed_rpcs() -> view_module.View:
     view = view_module.View("grpc.io/server/completed_rpcs", "MOCK Description",
-                            [label.tag_key for label in config_labels] +
+                            default_coulmns() +
                             [server_method_tag_key(),
                              server_status_tag_key()],
                             measures.rpc_server_server_latency(),
@@ -133,139 +129,34 @@ def server_completed_rpcs(config_labels) -> view_module.View:
     return view
 
 
-def server_sent_compressed_message_bytes_per_rpc(
-        config_labels) -> view_module.View:
+def server_sent_compressed_message_bytes_per_rpc() -> view_module.View:
     view = view_module.View(
         "grpc.io/server/sent_compressed_message_bytes_per_rpc",
-        "MOCK Description", [label.tag_key for label in config_labels] +
+        "MOCK Description", default_coulmns() +
         [server_method_tag_key(),
          server_status_tag_key()], measures.rpc_server_sent_bytes_per_rpc(),
         bytes_distribution_aggregation())
     return view
 
 
-def server_received_compressed_message_bytes_per_rpc(
-        config_labels) -> view_module.View:
+def server_received_compressed_message_bytes_per_rpc() -> view_module.View:
     view = view_module.View(
         "grpc.io/server/received_compressed_message_bytes_per_rpc",
-        "MOCK Description", [label.tag_key for label in config_labels] +
+        "MOCK Description", default_coulmns() +
         [server_method_tag_key(),
          server_status_tag_key()], measures.rpc_server_received_bytes_per_rpc(),
         bytes_distribution_aggregation())
     return view
 
 
-def server_server_latency(config_labels) -> view_module.View:
+def server_server_latency() -> view_module.View:
     view = view_module.View("grpc.io/server/server_latency", "MOCK Description",
-                            [label.tag_key for label in config_labels] +
+                            default_coulmns() +
                             [server_method_tag_key(),
                              server_status_tag_key()],
                             measures.rpc_server_server_latency(),
                             millis_distribution_aggregation())
     return view
-
-
-# Client
-# def client_sent_messages_per_rpc_cumulative() -> view_module.View:
-#     view = view_module.View(
-#         "grpc.io/client/received_messages_per_rpc/cumulative",
-#         "MOCK Description",
-#         default_coulmns() + [client_method_tag_key()],
-#         measures.rpc_client_sent_messages_per_rpc(),
-#         count_distribution_aggregation())
-#     return view
-
-# def client_sent_bytes_per_rpc_cumulative() -> view_module.View:
-#     view = view_module.View(
-#         "grpc.io/client/sent_bytes_per_rpc/cumulative",
-#         "MOCK Description",
-#         default_coulmns() + [client_method_tag_key()],
-#         measures.rpc_client_send_bytes_per_prc(),
-#         bytes_distribution_aggregation())
-#     return view
-
-# def client_received_messages_per_rpc_cumulative() -> view_module.View:
-#     view = view_module.View(
-#         "grpc.io/client/sent_messages_per_rpc/cumulative",
-#         "MOCK Description",
-#         default_coulmns() + [client_method_tag_key()],
-#         measures.rpc_client_received_messages_per_rpc(),
-#         count_distribution_aggregation())
-#     return view
-
-# def client_received_bytes_per_rpc_cumulative() -> view_module.View:
-#     view = view_module.View(
-#         "grpc.io/client/received_bytes_per_rpc/cumulative",
-#         "MOCK Description",
-#         default_coulmns() + [client_method_tag_key()],
-#         measures.rpc_client_received_bytes_per_rpc(),
-#         bytes_distribution_aggregation())
-#     return view
-
-# def client_roundtrip_latency_cumulative() -> view_module.View:
-#     view = view_module.View(
-#         "grpc.io/client/roundtrip_latency/cumulative",
-#         "MOCK Description",
-#         default_coulmns() + [client_method_tag_key()],
-#         measures.rpc_client_roundtrip_latency(),
-#         millis_distribution_aggregation())
-#     return view
-
-# def client_server_latency_cumulative(config_labels) -> view_module.View:
-#     view = view_module.View(
-#         "grpc.io/client/server_latency/cumulative",
-#         "MOCK Description",
-#          [label.tag_key for label in config_labels] + [client_method_tag_key()],
-#         measures.rpc_client_server_latency(),
-#         millis_distribution_aggregation())
-#     return view
-
-# Server
-# def server_sent_messages_per_rpc_cumulative() -> view_module.View:
-#     view = view_module.View(
-#         "grpc.io/server/sent_messages_per_rpc/cumulative",
-#         "MOCK Description",
-#         default_coulmns() + [server_method_tag_key()],
-#         measures.rpc_server_sent_messages_per_rpc(),
-#         count_distribution_aggregation())
-#     return view
-
-# def server_sent_bytes_per_rpc_cumulative() -> view_module.View:
-#     view = view_module.View(
-#         "grpc.io/server/received_bytes_per_rpc/cumulative",
-#         "MOCK Description",
-#         default_coulmns() + [server_method_tag_key()],
-#         measures.rpc_server_sent_bytes_per_rpc(),
-#         bytes_distribution_aggregation())
-#     return view
-
-# def server_received_messages_per_rpc_cumulative() -> view_module.View:
-#     view = view_module.View(
-#         "grpc.io/server/received_bytes_per_rpc/cumulative",
-#         "MOCK Description",
-#         default_coulmns() + [server_method_tag_key()],
-#         measures.rpc_server_received_messages_per_rpc(),
-#         count_distribution_aggregation())
-#     return view
-
-# def server_received_bytes_per_rpc_cumulative() -> view_module.View:
-#     view = view_module.View(
-#         "grpc.io/server/received_messages_per_rpc/cumulative",
-#         "MOCK Description",
-#         default_coulmns() + [server_method_tag_key()],
-#         measures.rpc_server_received_bytes_per_rpc(),
-#         bytes_distribution_aggregation())
-#     return view
-
-# def server_server_latency_cumulative() -> view_module.View:
-#     view = view_module.View(
-#         "grpc.io/server/elapsed_time/cumulative",
-#         "MOCK Description",
-#         default_coulmns() + [server_method_tag_key()],
-#         measures.rpc_server_server_latency(),
-#         millis_distribution_aggregation())
-#     return view
-
 
 def _get_exponential_boundaries(num_finite_buckets: int, scale: float,
                                 grrowth_factor: float) -> list:
@@ -281,6 +172,6 @@ def _get_exponential_boundaries(num_finite_buckets: int, scale: float,
 
 
 # Default columns inlcudes user provided labels as TagKey.
-# def default_coulmns():
-#     config = gcpObservabilityConfig.get()
-#     return [label.tag_key for label in config.get_labels()]
+def default_coulmns():
+    config = _open_census.gcpObservabilityConfig.get()
+    return [label.tag_key for label in config.labels]

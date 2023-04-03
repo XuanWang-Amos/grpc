@@ -12,25 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cython.operator cimport dereference
-from cpython cimport Py_INCREF, Py_DECREF
 from libcpp.string cimport string
-from libcpp.utility cimport pair
 from libcpp.vector cimport vector
-from libcpp.map cimport map
 from libc.stdio cimport printf
 
 ctypedef   signed long long int64_t
-
-cdef extern from "<thread>" namespace "std" nogil:
-    # Since we are using the C++ thread constructor, Cython forces us
-    # to define how many arguments will take the constructor.
-    cdef cppclass thread:
-        thread()
-        void thread[A](A)
-        void join()
-        void detach()
-
 
 cdef extern from "<queue>" namespace "std" nogil:
     cdef cppclass queue[T]:
@@ -41,24 +27,6 @@ cdef extern from "<queue>" namespace "std" nogil:
         void pop()
         void push(T&)
         size_t size()
-
-cdef extern from "<mutex>" namespace "std" nogil:
-    cdef cppclass mutex:
-        mutex()
-        void lock()
-        void unlock()
-
-    cdef cppclass unique_lock[Mutex]:
-      unique_lock(Mutex&)
-
-cdef extern from "<condition_variable>" namespace "std" nogil:
-  cdef cppclass condition_variable:
-    condition_variable()
-    void notify_all()
-    void wait(unique_lock[mutex]&)
-
-cdef extern from "Python.h":
-  int PyGILState_Check()
 
 cdef extern from "python_census_context.h" namespace "grpc_observability":
   union MeasurementValue:
@@ -96,19 +64,17 @@ cdef extern from "python_census_context.h" namespace "grpc_observability":
     bint should_sample
 
 cdef extern from "observability_main.h" namespace "grpc_observability":
+  cdef cGcpObservabilityConfig ReadObservabilityConfig() nogil
+  cdef void gcpObservabilityInit() except +
   cdef void* CreateClientCallTracer(char* method, char* trace_id, char* parent_span_id) except +
   cdef void* CreateServerCallTracerFactory() except +
-  cdef void gcpObservabilityInit() except +
   cdef queue[cCensusData] kSensusDataBuffer
-  cdef mutex kSensusDataBufferMutex
-  cdef condition_variable SensusDataBufferCV
   cdef void AwaitNextBatch(int) nogil
   cdef void LockSensusDataBuffer() nogil
   cdef void UnlockSensusDataBuffer() nogil
-  cdef void validate_sensus_data() nogil
-  cdef cGcpObservabilityConfig ReadObservabilityConfig() nogil
   cdef bint OpenCensusStatsEnabled() nogil
   cdef bint OpenCensusTracingEnabled() nogil
+
   cppclass cCensusData "::grpc_observability::CensusData":
     int64_t a_value
     DataType type

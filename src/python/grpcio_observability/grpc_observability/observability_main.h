@@ -44,38 +44,30 @@
 namespace grpc_observability {
 
 struct CensusData {
-  public:
   CensusData() {}
-  CensusData(int value)
-      : a_value(value) {}
   CensusData(Measurement mm, std::vector<Label> labels)
-      : a_value(mm.value.value_int), type(kMetricData), labels(std::move(labels)), single_measurement(mm)  {}
+      : type(kMetricData), labels(std::move(labels)), single_measurement(mm)  {}
   CensusData(SpanSensusData sd)
-      :  a_value(321), type(kSpanData), span_data(sd) {}
+      : type(kSpanData), span_data(sd) {}
 
-  int64_t a_value = -1;
   DataType type;
   std::vector<Label> labels;
-//   union {
+  // TODO(xuanwn): Use union here
   SpanSensusData span_data;
   Measurement single_measurement;
-//   };
 };
 
 struct CloudMonitoring {
-  public:
   CloudMonitoring() {}
 };
 
 struct CloudTrace {
-  public:
   CloudTrace() {}
   CloudTrace(double sr) : sampling_rate(sr) {}
   float sampling_rate = 0.0;
 };
 
 struct CloudLogging {
-  public:
   CloudLogging() {}
 };
 
@@ -91,7 +83,6 @@ struct GcpObservabilityConfig {
   std::vector<Label> labels;
 };
 
-
 extern std::queue<CensusData> kSensusDataBuffer;
 extern std::mutex kSensusDataBufferMutex;
 extern std::condition_variable SensusDataBufferCV;
@@ -102,8 +93,6 @@ void* CreateServerCallTracerFactory();
 
 void gcpObservabilityInit();
 
-void wait_for_ready(std::unique_lock<std::mutex>* lock, int delay);
-
 void AwaitNextBatch(int delay);
 
 void LockSensusDataBuffer();
@@ -112,15 +101,13 @@ void UnlockSensusDataBuffer();
 
 void AddCensusDataToBuffer(CensusData buffer);
 
-void validate_sensus_data();
-
 Measurement CreateIntMeasurement(MetricsName name, int64_t value);
 
 Measurement CreateDoubleMeasurement(MetricsName name, double value);
 
 void RecordMetricSensusData(Measurement measurement, std::vector<Label> labels);
 
-void RecordSpanSensusData(SpanSensusData spanSensusData);
+void RecordSpanSensusData(SpanSensusData span_sensus_data);
 
 GcpObservabilityConfig ReadObservabilityConfig();
 

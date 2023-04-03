@@ -14,15 +14,14 @@
 
 cimport cpython
 
-# from typing import Callable
 import sys
 import os
-import time
 import logging
 from threading import Thread
+from typing import Tuple
+
 from grpc_observability import _open_census
 from grpc_observability import measures
-from typing import Tuple
 
 cdef const char* CLIENT_CALL_TRACER = "client_call_tracer"
 cdef const char* SERVER_CALL_TRACER_FACTORY = "server_call_tracer_factory"
@@ -31,7 +30,7 @@ cdef object global_export_thread
 
 _LOGGER = logging.getLogger(__name__)
 
-class Metric:
+class PyMetric:
     def __init__(self, measurement, labels):
         self.name = measurement['name']
         self.labels = labels
@@ -43,14 +42,7 @@ class Metric:
           self.measure_double = False
           self.measure_value = measurement['value']['value_int']
 
-    def __repr__(self):
-        str = f"Metric(name=\"{self.name}\"measure_double=\"{self.measure_double}\"value=\"{self.measure_value}\""
-        str += f"labels=\"{self.labels}\")"
-        return str
-
-    __str__ = __repr__
-
-class Span:
+class PySpan:
     def __init__(self, span_data, span_labels, span_annotations):
         self.name = _decode(span_data['name'])
         self.start_time = _decode(span_data['start_time'])
@@ -63,15 +55,6 @@ class Span:
         self.span_annotations = span_annotations
         self.should_sample = span_data['should_sample']
         self.child_span_count = span_data['child_span_count']
-
-
-    def __repr__(self):
-        str = f"Span(name=\"{self.name}\"start_time=\"{self.start_time}\"end_time=\"{self.end_time}\")"
-        str += f"trace_id=\"{self.trace_id}\"span_id=\"{self.span_id}\"parent_span_id=\"{self.parent_span_id}\"status=\"{self.status}\""
-        str += f"span_labels=\"{self.span_labels}\"should_sample=\"{self.should_sample}\")"
-        return str
-
-    __str__ = __repr__
 
 class MetricsName:
     CLIENT_SNET_MESSSAGES_PER_RPC = kRpcClientSentMessagesPerRpcMeasureName
@@ -112,27 +95,47 @@ METRICS_NAME_TO_MEASURE = {
     MetricsName.SERVER_STARTED_RPCS: measures.rpc_server_started_rpcs(),
 }
 
-# Happens for each call
+def _read_gcp_observability_config() -> None:
+  py_labels = {}
+  sampling_rate = 0.0
+  tracing_enabled = False
+  monitoring_enabled = False
+
+  cdef cGcpObservabilityConfig c_config = ReadObservabilityConfig()
+
+  for label in c_config.labels:
+    py_labels[_decode(label.key)] = _decode(label.value)
+
+  if OpenCensusTracingEnabled():
+    sampling_rate = c_config.cloud_trace.sampling_rate
+    tracing_enabled = True
+    os.environ['GRPC_GCP_OPEN_CENSUS_TRACING_ENABLED'] = 'True'
+    # Save sampling rate to global sampler.
+    ProbabilitySampler.Get().SetThreshold(sampling_rate)
+
+  if OpenCensusStatsEnabled():
+    monitoring_enabled = True
+    os.environ['GRPC_GCP_OPEN_CENSUS_STATS_ENABLED'] = 'True'
+
+  py_config = _open_census.gcpObservabilityConfig.get()
+  py_config.set_configuration(_decode(c_config.project_id), sampling_rate, py_labels, tracing_enabled, monitoring_enabled)
+
 def create_client_call_tracer_capsule(bytes method, bytes trace_id, bytes parent_span_id=b'') -> cpython.PyObject:
   cdef char* c_method = cpython.PyBytes_AsString(method)
   cdef char* c_trace_id = cpython.PyBytes_AsString(trace_id)
   cdef char* c_parent_span_id = cpython.PyBytes_AsString(parent_span_id)
 
   cdef void* call_tracer = CreateClientCallTracer(c_method, c_trace_id, c_parent_span_id)
-
-  sys.stderr.write(f"CPY: saving tracer address using PyCapsule_New and method: {method}\n"); sys.stderr.flush()
   capsule = cpython.PyCapsule_New(call_tracer, CLIENT_CALL_TRACER, NULL)
   return capsule
 
 def create_server_call_tracer_factory_capsule() -> cpython.PyObject:
   cdef void* call_tracer_factory = CreateServerCallTracerFactory()
 
-  sys.stderr.write(f"CPY: saving tracer factory address using PyCapsule_New\n"); sys.stderr.flush()
   capsule = cpython.PyCapsule_New(call_tracer_factory, SERVER_CALL_TRACER_FACTORY, NULL)
   return capsule
 
 def observability_init() -> None:
-  sys.stderr.write(f"CPY: Calling observability_init\n"); sys.stderr.flush()
   _read_gcp_observability_config()
   gcpObservabilityInit() # remove print buffer
   _start_exporting_thread()
@@ -142,6 +145,21 @@ def _start_exporting_thread() -> None:
   global_export_thread = Thread(target=ExportSensusData)
   printf("> Exporting Thread: ------------ STARTING Exporting Thread ------------\n")
   global_export_thread.start()
+
+def _c_label_to_labels(cLabels) -> dict[str, str]:
+  py_labels = {}
+  for label in cLabels:
+    py_labels[_decode(label['key'])] = _decode(label['value'])
+  return py_labels
+
+def _c_annotation_to_annotations(cAnnotations) -> Tuple[bytes, bytes]:
+  py_annotations = []
+  for annotation in cAnnotations:
+    py_annotations.append((_decode(annotation['time_stamp']), _decode(annotation['description'])))
+  return py_annotations
+
+def at_observability_exit() -> None:
+  _shutdown_exporting_thread()
 
 cdef void ExportSensusData():
   while True:
@@ -180,67 +198,25 @@ cdef void FlushSensusData():
     cSensusData = kSensusDataBuffer.front()
     if cSensusData.type == kMetricData:
       py_labels = _c_label_to_labels(cSensusData.labels)
-      py_metric = Metric(cSensusData.single_measurement, py_labels)
+      py_metric = PyMetric(cSensusData.single_measurement, py_labels)
       py_metrics_batch.append(py_metric)
     else:
       py_span_labels = _c_label_to_labels(cSensusData.span_data.span_labels)
       py_span_annotations = _c_annotation_to_annotations(cSensusData.span_data.span_annotations)
-      py_span = Span(cSensusData.span_data, py_span_labels, py_span_annotations)
+      py_span = PySpan(cSensusData.span_data, py_span_labels, py_span_annotations)
       py_spans_batch.append(py_span)
     kSensusDataBuffer.pop()
 
   _open_census.export_metric_batch(py_metrics_batch)
   _open_census.export_span_batch(py_spans_batch)
 
-def _c_label_to_labels(cLabels) -> dict[str, str]:
-  py_labels = {}
-  for label in cLabels:
-    py_labels[_decode(label['key'])] = _decode(label['value'])
-  return py_labels
-
-def _c_annotation_to_annotations(cAnnotations) -> Tuple[bytes, bytes]:
-  py_annotations = []
-  for annotation in cAnnotations:
-    py_annotations.append((_decode(annotation['time_stamp']), _decode(annotation['description'])))
-  return py_annotations
-
-def at_observability_exit() -> None:
-  _shutdown_exporting_thread()
-
 cdef void _shutdown_exporting_thread():
   with nogil:
     global GLOBAL_SHUTDOWN_EXPORT_THREAD
-  # sys.stderr.write("------------ shutting down exporting thread\n"); sys.stderr.flush()
     printf("------------ shutting down exporting thread\n")
     GLOBAL_SHUTDOWN_EXPORT_THREAD = True
-    # time.sleep(2)
   printf("------------ waiting export thead to end...\n")
   global_export_thread.join()
-
-def _read_gcp_observability_config() -> None:
-  py_labels = {}
-  sampling_rate = 0.0
-  tracing_enabled = False
-  monitoring_enabled = False
-
-  cdef cGcpObservabilityConfig c_config = ReadObservabilityConfig()
-
-  for label in c_config.labels:
-    py_labels[_decode(label.key)] = _decode(label.value)
-
-  if OpenCensusTracingEnabled():
-    sampling_rate = c_config.cloud_trace.sampling_rate
-    tracing_enabled = True
-    os.environ['GRPC_GCP_OPEN_CENSUS_TRACING_ENABLED'] = 'True'
-    # Save sampling rate to global sampler.
-    ProbabilitySampler.Get().SetThreshold(sampling_rate)
-
-  if OpenCensusStatsEnabled():
-    monitoring_enabled = True
-    os.environ['GRPC_GCP_OPEN_CENSUS_STATS_ENABLED'] = 'True'
-
-  py_config = _open_census.gcpObservabilityConfig.get()
-  py_config.set_configuration(_decode(c_config.project_id), sampling_rate, py_labels, tracing_enabled, monitoring_enabled)
 
 cdef str _decode(bytes bytestring):
     if isinstance(bytestring, (str,)):

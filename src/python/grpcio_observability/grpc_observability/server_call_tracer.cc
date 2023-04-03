@@ -93,20 +93,14 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
         sent_message_count_(0) {}
 
   std::string TraceId() override {
-    return absl::BytesToHexString(absl::string_view(context_.Context().trace_id()));
+    return absl::BytesToHexString(absl::string_view(context_.Context().TraceId()));
   }
 
   std::string SpanId() override {
-    return absl::BytesToHexString(absl::string_view(context_.Context().span_id()));
+    return absl::BytesToHexString(absl::string_view(context_.Context().SpanId()));
   }
 
   bool IsSampled() override { return context_.Context().is_sampled(); }
-
-  // struct census_context* CensusContext() override {
-  //   std::cout << " >> PythonPythonOpenCensusServerCallTracer::CensusContext(): " << &context_ << std::endl;
-  //   PythonCensusContext* context_ptr = &context_;
-  //   return reinterpret_cast<census_context*>(context_ptr);
-  // }
 
   // Please refer to `grpc_transport_stream_op_batch_payload` for details on
   // arguments.

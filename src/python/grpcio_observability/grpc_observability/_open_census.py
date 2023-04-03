@@ -13,22 +13,18 @@
 # limitations under the License.
 
 import sys
-from pprint import pprint
 import logging
 import views
-from typing import AnyStr, Optional, List, Tuple, Mapping
-import measures
 import collections
+from typing import AnyStr, Optional, List, Tuple, Mapping
 from datetime import datetime
 
 from google.rpc import code_pb2
 
 from opencensus.stats import stats as stats_module
-from opencensus.tags import tag_map as tag_map_module
 from opencensus.tags.tag_key import TagKey
 from opencensus.tags.tag_value import TagValue
 from opencensus.tags.tag_map import TagMap
-
 from opencensus.trace.span import SpanKind
 from opencensus.trace.status import Status
 from opencensus.trace.tracer import Tracer
@@ -37,7 +33,6 @@ from opencensus.trace import execution_context, samplers
 from opencensus.trace import span_data as span_data_module
 from opencensus.trace import time_event
 from opencensus.trace import trace_options as trace_options_module
-# from opencensus.ext.stackdriver import stats_exporter
 
 logger = logging.getLogger(__name__)
 
@@ -45,11 +40,6 @@ _Label = collections.namedtuple('_Label', (
     'key',
     'tag_key',
     'value',
-))
-
-_Span = collections.namedtuple('_Span', (
-    'span_context',
-    'span',
 ))
 
 VIEW_NAMES = [
@@ -96,44 +86,25 @@ class gcpObservabilityConfig:
         self.labels = []
         self.sampling_rate = sampling_rate
         for key, value in labels.items():
-            self.labels.append(_Label(key=key, tag_key=TagKey(key),
-                                      value=value))
+            self.labels.append(_Label(key, TagKey(key), value))
 
         view_manager = stats_module.stats.view_manager
-        self.register_open_census_views(view_manager, self.labels)
-        # self.exporter = stats_exporter.new_stats_exporter()
+        self.register_open_census_views(view_manager)
 
-    def register_open_census_views(self, view_manager, config_labels) -> None:
-        # The stats recorder
-        pass
+    def register_open_census_views(self, view_manager) -> None:
         # Client
-        # view_manager.register_view(views.client_sent_messages_per_rpc_cumulative())
-        # view_manager.register_view(views.client_sent_bytes_per_rpc_cumulative())
-        # view_manager.register_view(views.client_received_messages_per_rpc_cumulative())
-        # view_manager.register_view(views.client_received_bytes_per_rpc_cumulative())
-        # view_manager.register_view(views.client_roundtrip_latency_cumulative())
-        # view_manager.register_view(views.client_server_latency_cumulative())
+        view_manager.register_view(views.client_started_rpcs())
+        view_manager.register_view(views.client_completed_rpcs())
+        view_manager.register_view(views.client_roundtrip_latency())
+        view_manager.register_view(views.client_sent_compressed_message_bytes_per_rpc())
+        view_manager.register_view(views.client_received_compressed_message_bytes_per_rpc())
 
-        # # Server
-        # view_manager.register_view(views.server_sent_messages_per_rpc_cumulative())
-        # view_manager.register_view(views.server_sent_bytes_per_rpc_cumulative())
-        # view_manager.register_view(views.server_received_messages_per_rpc_cumulative())
-        # view_manager.register_view(views.server_received_bytes_per_rpc_cumulative())
-        # view_manager.register_view(views.server_server_latency_cumulative())
-
-        # Client
-        # view_manager.register_view(views.client_started_rpcs(config_labels))
-        # view_manager.register_view(views.client_completed_rpcs(config_labels))
-        # view_manager.register_view(views.client_roundtrip_latency(config_labels))
-        # view_manager.register_view(views.client_sent_compressed_message_bytes_per_rpc(config_labels))
-        # view_manager.register_view(views.client_received_compressed_message_bytes_per_rpc(config_labels))
-
-        # # Server
-        # view_manager.register_view(views.server_started_rpcs(config_labels))
-        # view_manager.register_view(views.server_completed_rpcs(config_labels))
-        # view_manager.register_view(views.server_sent_compressed_message_bytes_per_rpc(config_labels))
-        # view_manager.register_view(views.server_received_compressed_message_bytes_per_rpc(config_labels))
-        # view_manager.register_view(views.server_server_latency(config_labels))
+        # Server
+        view_manager.register_view(views.server_started_rpcs())
+        view_manager.register_view(views.server_completed_rpcs())
+        view_manager.register_view(views.server_sent_compressed_message_bytes_per_rpc())
+        view_manager.register_view(views.server_received_compressed_message_bytes_per_rpc())
+        view_manager.register_view(views.server_server_latency())
 
     def set_tracer(self) -> None:
         current_tracer = execution_context.get_opencensus_tracer()

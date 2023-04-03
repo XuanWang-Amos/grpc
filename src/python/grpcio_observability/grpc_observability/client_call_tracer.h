@@ -20,7 +20,6 @@
 #include <chrono>
 #include <mutex>
 #include <map>
-// #include <Python.h>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/status/status.h"
@@ -49,11 +48,11 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
                                 uint64_t attempt_num, bool is_transparent_retry,
                                 bool arena_allocated);
     std::string TraceId() override {
-      return absl::BytesToHexString(absl::string_view(context_.Context().trace_id()));
+      return absl::BytesToHexString(absl::string_view(context_.Context().TraceId()));
     }
 
     std::string SpanId() override {
-      return absl::BytesToHexString(absl::string_view(context_.Context().span_id()));
+      return absl::BytesToHexString(absl::string_view(context_.Context().SpanId()));
     }
 
     bool IsSampled() override { return context_.Context().is_sampled(); }
@@ -106,11 +105,11 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
   ~PythonOpenCensusCallTracer() override;
 
   std::string TraceId() override {
-    return absl::BytesToHexString(absl::string_view(context_.Context().trace_id()));
+    return absl::BytesToHexString(absl::string_view(context_.Context().TraceId()));
   }
 
   std::string SpanId() override {
-    return absl::BytesToHexString(absl::string_view(context_.Context().span_id()));
+    return absl::BytesToHexString(absl::string_view(context_.Context().SpanId()));
   }
 
   bool IsSampled() override { return context_.Context().is_sampled(); }

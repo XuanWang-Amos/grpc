@@ -36,12 +36,8 @@ constexpr uint32_t
 PythonOpenCensusCallTracer::PythonOpenCensusCallTracer(char* method, char* trace_id,
                                                        char* parent_span_id, bool tracing_enabled):
       method_(GetMethod(method)),
-      // trace_id_(absl::string_view(trace_id)),
-      // should_sample_(should_sample),
       tracing_enabled_(tracing_enabled) {
   std::cout << " ~~ PythonOpenCensusCallTracer::PythonOpenCensusCallTracer" << std::endl;
-  // std::cout << "getting call context" << std::endl;
-  // auto* call_context = grpc_core::GetContext<grpc_call_context_element>();
   std::cout << " Calling GenerateClientContext to STARTING SPAN with name Sent." << std::endl;
   GenerateClientContext(absl::StrCat("Sent.", method_), absl::string_view(trace_id),
                         absl::string_view(parent_span_id), &context_);

@@ -34,8 +34,6 @@ typedef enum {
   kMetricData
 } DataType;
 
-// Client
-
 typedef enum {
     kRpcClientSentMessagesPerRpcMeasureName = 0,
     kRpcClientSentBytesPerRpcMeasureName,
@@ -55,65 +53,6 @@ typedef enum {
     kRpcServerServerLatencyMeasureName,
     kRpcServerStartedRpcsMeasureName
 } MetricsName;
-
-// const std::string
-//     kRpcClientSentMessagesPerRpcMeasureName =
-//         "grpc.io/client/sent_messages_per_rpc";
-
-// const std::string kRpcClientSentBytesPerRpcMeasureName =
-//     "grpc.io/client/sent_bytes_per_rpc";
-
-// const std::string
-//     kRpcClientReceivedMessagesPerRpcMeasureName =
-//         "grpc.io/client/received_messages_per_rpc";
-
-// const std::string
-//     kRpcClientReceivedBytesPerRpcMeasureName =
-//         "grpc.io/client/received_bytes_per_rpc";
-
-// const std::string kRpcClientRoundtripLatencyMeasureName =
-//     "grpc.io/client/roundtrip_latency";
-
-// const std::string kRpcClientServerLatencyMeasureName =
-//     "grpc.io/client/server_latency";
-
-// const std::string kRpcClientStartedRpcsMeasureName =
-//     "grpc.io/client/started_rpcs";
-
-// const std::string kRpcClientRetriesPerCallMeasureName =
-//     "grpc.io/client/retries_per_call";
-
-// const std::string
-//     kRpcClientTransparentRetriesPerCallMeasureName =
-//         "grpc.io/client/transparent_retries_per_call";
-
-// const std::string kRpcClientRetryDelayPerCallMeasureName =
-//     "grpc.io/client/retry_delay_per_call";
-
-// const std::string kRpcClientTransportLatencyMeasureName =
-//     "grpc.io/client/transport_latency";
-
-// // Server
-// const std::string
-//     kRpcServerSentMessagesPerRpcMeasureName =
-//         "grpc.io/server/sent_messages_per_rpc";
-
-// const std::string kRpcServerSentBytesPerRpcMeasureName =
-//     "grpc.io/server/sent_bytes_per_rpc";
-
-// const std::string
-//     kRpcServerReceivedMessagesPerRpcMeasureName =
-//         "grpc.io/server/received_messages_per_rpc";
-
-// const std::string
-//     kRpcServerReceivedBytesPerRpcMeasureName =
-//         "grpc.io/server/received_bytes_per_rpc";
-
-// const std::string kRpcServerServerLatencyMeasureName =
-//     "grpc.io/server/server_latency";
-
-// const std::string kRpcServerStartedRpcsMeasureName =
-//     "grpc.io/server/started_rpcs";
 
 }
 
