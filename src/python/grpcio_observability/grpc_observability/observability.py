@@ -20,7 +20,6 @@ from opencensus.trace import span_context as span_context_module
 from opencensus.trace import trace_options as trace_options_module
 
 from grpc_observability import _cyobservability
-from grpc_observability import open_census
 
 class Observability:
 
@@ -45,12 +44,9 @@ class Observability:
         # 4. Start exporting thread.
         _cyobservability.observability_init()
 
-        config = open_census.gcpObservabilityConfig.get()
-        sys.stderr.write(f"------->>> Found Config:\n{config}\n")
-        sys.stderr.flush()
-
-        # 4. Inject server call tracer factory.
-        grpc.observability_init()
+        # 5. Inject server call tracer factory.
+        capsule = _cyobservability.create_server_call_tracer_factory_capsule()
+        grpc.observability_init(capsule)
 
 
 def _create_client_call_tracer_capsule(**kwargs) -> object:
@@ -70,11 +66,6 @@ def _create_client_call_tracer_capsule(**kwargs) -> object:
         trace_id = span_context_module.generate_trace_id().encode('utf8')
         capsule = _cyobservability.create_client_call_tracer_capsule(
             method, trace_id)
-    return capsule
-
-
-def _create_server_call_tracer_factory_capsule() -> object:
-    capsule = _cyobservability.create_server_call_tracer_factory_capsule()
     return capsule
 
 

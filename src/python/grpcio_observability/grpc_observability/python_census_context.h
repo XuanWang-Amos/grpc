@@ -185,7 +185,7 @@ class Span final {
 
   void SetStatus(absl::string_view status);
 
-  void AddAttribute(std::string key, std::string value);
+  void AddAttribute(absl::string_view key, absl::string_view value);
 
   void AddAnnotation(absl::string_view description);
 
@@ -235,7 +235,7 @@ class PythonCensusContext {
   std::vector<Label>& Labels() { return labels_; } // Only used for metrics
   SpanContext SpanContext() { return Span().Context(); }
 
-  void AddSpanAttribute(std::string key, std::string attribute) {
+  void AddSpanAttribute(absl::string_view key, absl::string_view attribute) {
     span_.AddAttribute(key, attribute);
   }
 

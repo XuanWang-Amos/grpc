@@ -237,12 +237,13 @@ void Span::SetStatus(absl::string_view status) {
 }
 
 
-void Span::AddAttribute(std::string key, std::string value) {
-  span_labels_.emplace_back(Label{key, value});
+void Span::AddAttribute(absl::string_view key, absl::string_view value) {
+  span_labels_.emplace_back(Label{std::string(key), std::string(value)});
 }
 
 
 void Span::AddAnnotation(absl::string_view description) {
+  // Time string here will be converted to Python datetime.datetime class.
   std::string time_stamp = absl::FormatTime("%Y-%m-%d %H:%M:%E3S", absl::Now(), absl::UTCTimeZone());
   span_annotations_.emplace_back(Annotation{time_stamp, std::string(description)});
 }
@@ -252,6 +253,8 @@ SpanSensusData Span::ToSensusData() {
   SpanSensusData sensus_data;
   absl::TimeZone utc =  absl::UTCTimeZone();
   sensus_data.name = name_;
+  // Time string here will be exported to StackDriver directly.
+  // See format details: https://cloud.google.com/trace/docs/reference/v2/rest/v2/projects.traces/batchWrite
   sensus_data.start_time = absl::FormatTime("%Y-%m-%dT%H:%M:%E6SZ", start_time_, utc);
   sensus_data.end_time = absl::FormatTime("%Y-%m-%dT%H:%M:%E6SZ", end_time_, utc);
   sensus_data.trace_id = Context().TraceId();

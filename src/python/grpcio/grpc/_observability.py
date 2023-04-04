@@ -18,7 +18,6 @@ import logging
 from grpc._cython import cygrpc as _cygrpc
 
 _REQUIRED_SYMBOLS = ("_create_client_call_tracer_capsule",
-                     "_create_server_call_tracer_factory_capsule",
                      "_save_span_context")
 _UNINSTALLED_TEMPLATE = "Install the grpc_observability package (1.xx.xx) to use the {} function."
 
@@ -63,12 +62,12 @@ def _call_with_lazy_import(fn_name: str, **kwargs) -> types.ModuleType:
         raise NotImplementedError(_UNINSTALLED_TEMPLATE.format(fn_name))
 
 
-def observability_init() -> None:
+def observability_init(server_call_tracer_factory: object) -> None:
     if not _cygrpc.observability_enabled():
         return
 
     try:
-        _cygrpc.set_server_call_tracer_factory()
+        _cygrpc.set_server_call_tracer_factory(server_call_tracer_factory)
     except Exception as e:  # pylint:disable=broad-except
         _LOGGER.exception(f"Observability initiazation failed with {e}")
 
@@ -76,11 +75,6 @@ def observability_init() -> None:
 def create_client_call_tracer_capsule(method: bytes) -> object:
     return _call_with_lazy_import("create_client_call_tracer_capsule",
                                   method=method)
-
-
-def create_server_call_tracer_factory_capsule() -> object:
-    return _call_with_lazy_import("create_server_call_tracer_factory_capsule")
-
 
 def save_span_context(trace_id: str, span_id: str, is_sampled: bool) -> None:
     return _call_with_lazy_import("save_span_context",

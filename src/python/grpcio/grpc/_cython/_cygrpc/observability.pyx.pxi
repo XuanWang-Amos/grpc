@@ -22,8 +22,7 @@ def observability_metrics_enabled() -> bool:
   return os.environ.get('GRPC_OPEN_CENSUS_STATS_ENABLED', '0') == 'True'
 
 
-def set_server_call_tracer_factory() -> None:
-  capsule = _observability.create_server_call_tracer_factory_capsule()
+def set_server_call_tracer_factory(object capsule) -> None:
   capsule_ptr = cpython.PyCapsule_GetPointer(capsule, SERVER_CALL_TRACER_FACTORY)
   grpc_register_server_call_tracer_factory(capsule_ptr)
 
