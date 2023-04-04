@@ -33,10 +33,6 @@ cdef extern from "python_census_context.h" namespace "grpc_observability":
     double value_double
     int64_t value_int
 
-  ctypedef struct Tag:
-    string key
-    string value
-
   ctypedef struct Label:
     string key
     string value
@@ -76,9 +72,8 @@ cdef extern from "observability_main.h" namespace "grpc_observability":
   cdef bint OpenCensusTracingEnabled() nogil
 
   cppclass cCensusData "::grpc_observability::CensusData":
-    int64_t a_value
     DataType type
-    Measurement single_measurement
+    Measurement measurement_data
     SpanSensusData span_data
     vector[Label] labels
 

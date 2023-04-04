@@ -46,15 +46,15 @@ namespace grpc_observability {
 struct CensusData {
   CensusData() {}
   CensusData(Measurement mm, std::vector<Label> labels)
-      : type(kMetricData), labels(std::move(labels)), single_measurement(mm)  {}
+      : type(kMetricData), labels(std::move(labels)), measurement_data(mm)  {}
   CensusData(SpanSensusData sd)
       : type(kSpanData), span_data(sd) {}
 
   DataType type;
   std::vector<Label> labels;
-  // TODO(xuanwn): Use union here
+  // TODO(xuanwn): We can use union here
   SpanSensusData span_data;
-  Measurement single_measurement;
+  Measurement measurement_data;
 };
 
 struct CloudMonitoring {
@@ -101,13 +101,11 @@ void UnlockSensusDataBuffer();
 
 void AddCensusDataToBuffer(CensusData buffer);
 
-Measurement CreateIntMeasurement(MetricsName name, int64_t value);
+void RecordIntMetric(MetricsName name, int64_t value, std::vector<Label> labels);
 
-Measurement CreateDoubleMeasurement(MetricsName name, double value);
+void RecordDoubleMetric(MetricsName name, double value, std::vector<Label> labels);
 
-void RecordMetricSensusData(Measurement measurement, std::vector<Label> labels);
-
-void RecordSpanSensusData(SpanSensusData span_sensus_data);
+void RecordSpan(SpanSensusData span_sensus_data);
 
 GcpObservabilityConfig ReadObservabilityConfig();
 

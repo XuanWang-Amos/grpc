@@ -181,7 +181,7 @@ class Span final {
 
   static Span BlankSpan() { return StartSpan("", ""); }
 
-  SpanContext& context() { return context_; }
+  SpanContext& Context() { return context_; }
 
   void SetStatus(absl::string_view status);
 
@@ -233,7 +233,7 @@ class PythonCensusContext {
 
   Span& Span() { return span_; }
   std::vector<Label>& Labels() { return labels_; } // Only used for metrics
-  SpanContext Context() { return Span().context(); }
+  SpanContext SpanContext() { return Span().Context(); }
 
   void AddSpanAttribute(std::string key, std::string attribute) {
     span_.AddAttribute(key, attribute);

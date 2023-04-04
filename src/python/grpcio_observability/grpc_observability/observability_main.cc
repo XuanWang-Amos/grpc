@@ -30,31 +30,33 @@ std::mutex kSensusDataBufferMutex;
 std::condition_variable SensusDataBufferCV;
 constexpr int kExportThreshold = 2;
 
-void RecordMetricSensusData(Measurement measurement, std::vector<Label> labels) {
-  CensusData data = CensusData(measurement, labels);
+
+void RecordIntMetric(MetricsName name, int64_t value, std::vector<Label> labels) {
+  Measurement measurement_data;
+  measurement_data.type = kMeasurementInt;
+  measurement_data.name = name;
+  measurement_data.value.value_int = value;
+
+  CensusData data = CensusData(measurement_data, labels);
   AddCensusDataToBuffer(data);
 }
 
-void RecordSpanSensusData(SpanSensusData span_sensus_data) {
+
+void RecordDoubleMetric(MetricsName name, double value, std::vector<Label> labels) {
+  Measurement measurement_data;
+  measurement_data.type = kMeasurementDouble;
+  measurement_data.name = name;
+  measurement_data.value.value_double = value;
+
+  CensusData data = CensusData(measurement_data, labels);
+  AddCensusDataToBuffer(data);
+}
+
+
+void RecordSpan(SpanSensusData span_sensus_data) {
   CensusData data = CensusData(span_sensus_data);
   std::cout << " ________Record SPAN: " << span_sensus_data.name << " with id: " << span_sensus_data.span_id << std::endl;
   AddCensusDataToBuffer(data);
-}
-
-Measurement CreateIntMeasurement(MetricsName name, int64_t value) {
-  Measurement single_measurement;
-  single_measurement.type = kMeasurementInt;
-  single_measurement.name = name;
-  single_measurement.value.value_int = value;
-  return single_measurement;
-}
-
-Measurement CreateDoubleMeasurement(MetricsName name, double value) {
-  Measurement single_measurement;
-  single_measurement.type = kMeasurementDouble;
-  single_measurement.name = name;
-  single_measurement.value.value_double = value;
-  return single_measurement;
 }
 
 
@@ -62,6 +64,7 @@ void gcpObservabilityInit() {
     setbuf(stdout, nullptr);
     std::cout << "Calling grpc::experimental::GcpObservabilityInit()"; std::cout << std::endl;
 }
+
 
 void* CreateClientCallTracer(char* method, char* trace_id, char* parent_span_id) {
     std::cout << "Inside grpc_o11y.CreateClientCallTracer" << std::endl;
@@ -75,6 +78,7 @@ void* CreateClientCallTracer(char* method, char* trace_id, char* parent_span_id)
     return client_call_tracer;
 }
 
+
 void* CreateServerCallTracerFactory() {
     std::cout << "Inside grpc_o11y.CreateServerCallTracerFactory" << std::endl;
     void* server_call_tracer_factory = new PythonOpenCensusServerCallTracerFactory();
@@ -82,6 +86,7 @@ void* CreateServerCallTracerFactory() {
     std::cout << "created server tracer factory with address in void* format:" << server_call_tracer_factory << std::endl;
     return server_call_tracer_factory;
 }
+
 
 void AwaitNextBatch(int timeout_ms) {
   std::unique_lock<std::mutex> lk(kSensusDataBufferMutex);
@@ -94,15 +99,18 @@ void AwaitNextBatch(int timeout_ms) {
   }
 }
 
+
 void LockSensusDataBuffer() {
   kSensusDataBufferMutex.lock();
   // std::cout << "> Exporting Thread: >>>>>>>> LOCKED <<<<<<<<<< at " << absl::Now() << std::endl;
 }
 
+
 void UnlockSensusDataBuffer() {
   // std::cout << "> Exporting Thread: >>>>>>>> UN-LOCKED <<<<<<<<<< at " << absl::Now() << std::endl;
   kSensusDataBufferMutex.unlock();
 }
+
 
 void AddCensusDataToBuffer(CensusData data) {
   std::unique_lock<std::mutex> lk(kSensusDataBufferMutex);
@@ -111,6 +119,7 @@ void AddCensusDataToBuffer(CensusData data) {
       SensusDataBufferCV.notify_all();
   }
 }
+
 
 GcpObservabilityConfig ReadObservabilityConfig() {
   auto config = grpc::internal::GcpObservabilityConfig::ReadFromEnv();
@@ -166,6 +175,7 @@ GcpObservabilityConfig ReadObservabilityConfig() {
 
   return GcpObservabilityConfig(cloud_monitoring_config, cloud_trace_config, cloud_logging_config, project_id, labels);
 }
+
 
 absl::string_view StatusCodeToString(grpc_status_code code) {
   switch (code) {

@@ -48,14 +48,14 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
                                 uint64_t attempt_num, bool is_transparent_retry,
                                 bool arena_allocated);
     std::string TraceId() override {
-      return absl::BytesToHexString(absl::string_view(context_.Context().TraceId()));
+      return absl::BytesToHexString(absl::string_view(context_.SpanContext().TraceId()));
     }
 
     std::string SpanId() override {
-      return absl::BytesToHexString(absl::string_view(context_.Context().SpanId()));
+      return absl::BytesToHexString(absl::string_view(context_.SpanContext().SpanId()));
     }
 
-    bool IsSampled() override { return context_.Context().IsSampled(); }
+    bool IsSampled() override { return context_.SpanContext().IsSampled(); }
 
     void RecordSendInitialMetadata(
         grpc_metadata_batch* send_initial_metadata) override;
@@ -77,8 +77,6 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
     void RecordCancel(grpc_error_handle cancel_error) override;
     void RecordEnd(const gpr_timespec& /*latency*/) override;
     void RecordAnnotation(absl::string_view annotation) override;
-
-    PythonCensusContext* context() { return &context_; }
 
    private:
     // Maximum size of trace context is sent on the wire.
@@ -105,14 +103,14 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
   ~PythonOpenCensusCallTracer() override;
 
   std::string TraceId() override {
-    return absl::BytesToHexString(absl::string_view(context_.Context().TraceId()));
+    return absl::BytesToHexString(absl::string_view(context_.SpanContext().TraceId()));
   }
 
   std::string SpanId() override {
-    return absl::BytesToHexString(absl::string_view(context_.Context().SpanId()));
+    return absl::BytesToHexString(absl::string_view(context_.SpanContext().SpanId()));
   }
 
-  bool IsSampled() override { return context_.Context().IsSampled(); }
+  bool IsSampled() override { return context_.SpanContext().IsSampled(); }
 
   void GenerateContext();
   PythonOpenCensusCallAttemptTracer* StartNewAttempt(

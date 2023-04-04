@@ -241,7 +241,7 @@ cdef void _call(
       if host_slice_ptr:
         grpc_slice_unref(host_slice)
 
-      if gcp_observability_enabled():
+      if observability_enabled():
         set_client_call_tracer_on_call(call_state, method)
 
       if context is not None:

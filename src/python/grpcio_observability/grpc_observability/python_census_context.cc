@@ -20,17 +20,21 @@ void EnableOpenCensusStats(bool enable) {
   g_open_census_stats_enabled = enable;
 }
 
+
 void EnableOpenCensusTracing(bool enable) {
   g_open_census_tracing_enabled = enable;
 }
+
 
 bool OpenCensusStatsEnabled() {
   return g_open_census_stats_enabled.load(std::memory_order_relaxed);
 }
 
+
 bool OpenCensusTracingEnabled() {
   return g_open_census_tracing_enabled.load(std::memory_order_relaxed);
 }
+
 
 void GenerateClientContext(absl::string_view method, absl::string_view trace_id, absl::string_view parent_span_id,
                            PythonCensusContext* ctxt) {
@@ -71,26 +75,28 @@ void GenerateServerContext(absl::string_view header, absl::string_view method,
   }
 }
 
+
 void ToGrpcTraceBinHeader(PythonCensusContext& ctx, uint8_t* out) {
   out[kVersionOfs] = kVersionId;
   out[kTraceIdOfs] = kTraceIdField;
 
-  std::cout << "Saving tracerId to header: " << ctx.Span().context().TraceId() << std::endl;
+  std::cout << "Saving tracerId to header: " << ctx.Span().Context().TraceId() << std::endl;
   memcpy(reinterpret_cast<uint8_t*>(&out[kTraceIdOfs + 1]),
-         absl::HexStringToBytes(absl::string_view(ctx.Span().context().TraceId())).c_str(),
+         absl::HexStringToBytes(absl::string_view(ctx.Span().Context().TraceId())).c_str(),
          kSizeTraceID);
 
   out[kSpanIdOfs] = kSpanIdField;
-  std::cout << "Saving spanId to header: " << ctx.Span().context().SpanId() << std::endl;
+  std::cout << "Saving spanId to header: " << ctx.Span().Context().SpanId() << std::endl;
   memcpy(reinterpret_cast<uint8_t*>(&out[kSpanIdOfs + 1]),
-         absl::HexStringToBytes(absl::string_view(ctx.Span().context().SpanId())).c_str(),
+         absl::HexStringToBytes(absl::string_view(ctx.Span().Context().SpanId())).c_str(),
          kSizeSpanID);
 
   out[kTraceOptionsOfs] = kTraceOptionsField;
   uint8_t trace_options_rep_[kSizeTraceOptions];
-  trace_options_rep_[0] = ctx.Span().context().IsSampled() ? 1 : 0;
+  trace_options_rep_[0] = ctx.Span().Context().IsSampled() ? 1 : 0;
   memcpy(reinterpret_cast<uint8_t*>(&out[kTraceOptionsOfs + 1]), trace_options_rep_, kSizeTraceOptions);
 }
+
 
 SpanContext FromGrpcTraceBinHeader(absl::string_view header) {
   if (header.size() < kGrpcTraceBinHeaderLen ||
@@ -123,6 +129,7 @@ SpanContext FromGrpcTraceBinHeader(absl::string_view header) {
   return context;
 }
 
+
 size_t TraceContextSerialize(PythonCensusContext& context,
                              char* tracing_buf, size_t tracing_buf_size) {
   if (tracing_buf_size < kGrpcTraceBinHeaderLen) {
@@ -132,10 +139,12 @@ size_t TraceContextSerialize(PythonCensusContext& context,
   return kGrpcTraceBinHeaderLen;
 }
 
+
 size_t StatsContextSerialize(size_t /*max_tags_len*/, grpc_slice* /*tags*/) {
   // TODO(unknown): Add implementation. Waiting on stats tagging to be added.
   return 0;
 }
+
 
 size_t ServerStatsDeserialize(const char* buf, size_t buf_size,
                               uint64_t* server_elapsed_time) {
@@ -143,19 +152,23 @@ size_t ServerStatsDeserialize(const char* buf, size_t buf_size,
       absl::string_view(buf, buf_size), server_elapsed_time);
 }
 
+
 size_t ServerStatsSerialize(uint64_t server_elapsed_time, char* buf,
                             size_t buf_size) {
   return grpc::internal::RpcServerStatsEncoding::Encode(server_elapsed_time, buf,
                                                   buf_size);
 }
 
+
 uint64_t GetIncomingDataSize(const grpc_call_final_info* final_info) {
   return final_info->stats.transport_stream_stats.incoming.data_bytes;
 }
 
+
 uint64_t GetOutgoingDataSize(const grpc_call_final_info* final_info) {
   return final_info->stats.transport_stream_stats.outgoing.data_bytes;
 }
+
 
 namespace {
 // span_id is a 16-character hexadecimal encoded string.
@@ -186,9 +199,9 @@ Span Span::StartSpan(absl::string_view name, Span* parent) {
   auto start_time = absl::Now();
 
   if (parent != nullptr) {
-    parent_span_id = parent->context().SpanId();
-    trace_id = parent->context().TraceId();
-    should_sample = parent->context().IsSampled();
+    parent_span_id = parent->Context().SpanId();
+    trace_id = parent->Context().TraceId();
+    should_sample = parent->Context().IsSampled();
   } else {
     trace_id = generateTraceId();
     should_sample = ShouldSample(trace_id);
@@ -197,6 +210,7 @@ Span Span::StartSpan(absl::string_view name, Span* parent) {
   context = SpanContext(trace_id, span_id, should_sample);
   return Span(std::string(name), parent_span_id, start_time, context);
 }
+
 
 Span Span::StartSpan(absl::string_view name, SpanContext parent_context) {
   std::string trace_id = parent_context.TraceId();
@@ -208,6 +222,7 @@ Span Span::StartSpan(absl::string_view name, SpanContext parent_context) {
   return Span(std::string(name), parent_span_id, start_time, context);
 }
 
+
 Span Span::StartSpan(absl::string_view name, absl::string_view trace_id) {
   std::string span_id = generateSpanId();
   auto start_time = absl::Now();
@@ -216,18 +231,22 @@ Span Span::StartSpan(absl::string_view name, absl::string_view trace_id) {
   return Span(std::string(name), "", start_time, context);
 }
 
+
 void Span::SetStatus(absl::string_view status) {
   status_ = std::string(status);
 }
+
 
 void Span::AddAttribute(std::string key, std::string value) {
   span_labels_.emplace_back(Label{key, value});
 }
 
+
 void Span::AddAnnotation(absl::string_view description) {
   std::string time_stamp = absl::FormatTime("%Y-%m-%d %H:%M:%E3S", absl::Now(), absl::UTCTimeZone());
   span_annotations_.emplace_back(Annotation{time_stamp, std::string(description)});
 }
+
 
 SpanSensusData Span::ToSensusData() {
   SpanSensusData sensus_data;
@@ -235,9 +254,9 @@ SpanSensusData Span::ToSensusData() {
   sensus_data.name = name_;
   sensus_data.start_time = absl::FormatTime("%Y-%m-%dT%H:%M:%E6SZ", start_time_, utc);
   sensus_data.end_time = absl::FormatTime("%Y-%m-%dT%H:%M:%E6SZ", end_time_, utc);
-  sensus_data.trace_id = context().TraceId();
-  sensus_data.span_id = context().SpanId();
-  sensus_data.should_sample = context().IsSampled();
+  sensus_data.trace_id = Context().TraceId();
+  sensus_data.span_id = Context().SpanId();
+  sensus_data.should_sample = Context().IsSampled();
   sensus_data.parent_span_id = parent_span_id_;
   sensus_data.status = status_;
   sensus_data.span_labels = span_labels_;

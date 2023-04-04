@@ -14,7 +14,6 @@
 
 import sys
 import grpc
-import logging
 
 from opencensus.trace import execution_context
 from opencensus.trace import span_context as span_context_module
@@ -22,9 +21,6 @@ from opencensus.trace import trace_options as trace_options_module
 
 from grpc_observability import _cyobservability
 from grpc_observability import open_census
-
-_LOGGER = logging.getLogger(__name__)
-
 
 class Observability:
 
@@ -40,17 +36,20 @@ class Observability:
         _cyobservability.at_observability_exit()
 
     def init(self) -> None:
-        # 1. Read config
-        # 2. Creating measures and register views
-        # 3. Create and Saves Tracer and Sampler to ContextVar
+        # 1. Read config.
+        # 2. Creating measures and register views.
+        # 3. Create and Saves Tracer and Sampler to ContextVar.
         # TODO(xuanwn): Errors out if config is invalid.
+        _cyobservability.read_gcp_observability_config()
+
+        # 4. Start exporting thread.
         _cyobservability.observability_init()
 
         config = open_census.gcpObservabilityConfig.get()
         sys.stderr.write(f"------->>> Found Config:\n{config}\n")
         sys.stderr.flush()
 
-        # 4. Inject server call tracer factory
+        # 4. Inject server call tracer factory.
         grpc.observability_init()
 
 

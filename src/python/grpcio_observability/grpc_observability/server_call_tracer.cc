@@ -93,14 +93,14 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
         sent_message_count_(0) {}
 
   std::string TraceId() override {
-    return absl::BytesToHexString(absl::string_view(context_.Context().TraceId()));
+    return absl::BytesToHexString(absl::string_view(context_.SpanContext().TraceId()));
   }
 
   std::string SpanId() override {
-    return absl::BytesToHexString(absl::string_view(context_.Context().SpanId()));
+    return absl::BytesToHexString(absl::string_view(context_.SpanContext().SpanId()));
   }
 
-  bool IsSampled() override { return context_.Context().IsSampled(); }
+  bool IsSampled() override { return context_.SpanContext().IsSampled(); }
 
   // Please refer to `grpc_transport_stream_op_batch_payload` for details on
   // arguments.
@@ -170,6 +170,7 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
   char stats_buf_[kMaxServerStatsLen];
 };
 
+
 void PythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata(
     grpc_metadata_batch* recv_initial_metadata) {
   std::cout << " >> PythonPythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata" << std::endl;
@@ -190,9 +191,10 @@ void PythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata(
   if (OpenCensusStatsEnabled()) {
     std::vector<Label> labels = context_.Labels();
     labels.emplace_back(Label{kServerMethod, std::string(method_)});
-    RecordMetricSensusData(CreateIntMeasurement(kRpcServerStartedRpcsMeasureName, 1), labels);
+    RecordIntMetric(kRpcServerStartedRpcsMeasureName, 1, labels);
   }
 }
+
 
 void PythonOpenCensusServerCallTracer::RecordSendTrailingMetadata(
     grpc_metadata_batch* send_trailing_metadata) {
@@ -211,6 +213,7 @@ void PythonOpenCensusServerCallTracer::RecordSendTrailingMetadata(
   }
 }
 
+
 void PythonOpenCensusServerCallTracer::RecordEnd(
     const grpc_call_final_info* final_info) {
   std::cout << " >> PythonPythonOpenCensusServerCallTracer::RecordEnd" << std::endl;
@@ -221,17 +224,17 @@ void PythonOpenCensusServerCallTracer::RecordEnd(
     std::vector<Label> labels = context_.Labels();
     labels.emplace_back(Label{kServerMethod, std::string(method_)});
     labels.emplace_back(Label{kServerStatus, std::string(StatusCodeToString(final_info->final_status))});
-    RecordMetricSensusData(CreateDoubleMeasurement(kRpcServerSentBytesPerRpcMeasureName, static_cast<double>(response_size)), labels);
-    RecordMetricSensusData(CreateDoubleMeasurement(kRpcServerReceivedBytesPerRpcMeasureName, static_cast<double>(request_size)), labels);
-    RecordMetricSensusData(CreateDoubleMeasurement(kRpcServerServerLatencyMeasureName, elapsed_time_ms), labels);
-    RecordMetricSensusData(CreateIntMeasurement(kRpcServerSentMessagesPerRpcMeasureName, sent_message_count_), labels);
-    RecordMetricSensusData(CreateIntMeasurement(kRpcServerReceivedMessagesPerRpcMeasureName, recv_message_count_), labels);
+    RecordDoubleMetric(kRpcServerSentBytesPerRpcMeasureName, static_cast<double>(response_size), labels);
+    RecordDoubleMetric(kRpcServerReceivedBytesPerRpcMeasureName, static_cast<double>(request_size), labels);
+    RecordDoubleMetric(kRpcServerServerLatencyMeasureName, elapsed_time_ms, labels);
+    RecordIntMetric(kRpcServerSentMessagesPerRpcMeasureName, sent_message_count_, labels);
+    RecordIntMetric(kRpcServerReceivedMessagesPerRpcMeasureName, recv_message_count_, labels);
   }
   if (OpenCensusTracingEnabled()) {
     std::cout << " __ENDDING Recv. SPAN__" << std::endl;
     context_.EndSpan();
     if (IsSampled()) {
-      RecordSpanSensusData(context_.Span().ToSensusData());
+      RecordSpan(context_.Span().ToSensusData());
     }
   }
 }
