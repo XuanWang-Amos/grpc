@@ -93,6 +93,7 @@ class gcpObservabilityConfig:
 
     def register_open_census_views(self, view_manager) -> None:
         # Client
+        view_manager.register_view(views.client_api_latency())
         view_manager.register_view(views.client_started_rpcs())
         view_manager.register_view(views.client_completed_rpcs())
         view_manager.register_view(views.client_roundtrip_latency())
@@ -147,15 +148,11 @@ def export_metric_batch(py_metrics_batch: list) -> None:
         tag_map = _get_tag_map(metric.labels, config.labels)
 
         if metric.measure_double:
-            sys.stderr.write(
-                f"---->>> PY: measure_float_put with name:{measure.name}, value: {metric.measure_value}, tags: {tag_map.map}\n"
-            )
+            sys.stderr.write(f"---->>> PY: measure_float_put with name:{measure.name}, value: {metric.measure_value}, tags: {tag_map.map}\n")
             sys.stderr.flush()
             mmap.measure_float_put(measure, metric.measure_value)
         else:
-            sys.stderr.write(
-                f"---->>> PY: measure_int_put with name:{measure.name}, value: {metric.measure_value}, tags: {tag_map.map}\n"
-            )
+            # sys.stderr.write(f"---->>> PY: measure_int_put with name:{measure.name}, value: {metric.measure_value}, tags: {tag_map.map}\n")
             sys.stderr.flush()
             mmap.measure_int_put(measure, metric.measure_value)
 
@@ -173,7 +170,7 @@ def export_span_batch(py_span_batch: list) -> None:
             span_id=span_data.span_id,
             trace_options=trace_options_module.TraceOptions(1))
         span_data = _get_span_datas(span_data, span_context, config.labels)
-        sys.stderr.write(f"---->>> PY: span_data: {span_data}\n")
+        # sys.stderr.write(f"---->>> PY: span_data: {span_data}\n")
         # self.exporter.export(span_datas)
 
 

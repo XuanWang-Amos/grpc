@@ -77,3 +77,28 @@ def _save_span_context(**kwargs) -> None:
                                                    trace_options=trace_options)
     current_tracer = execution_context.get_opencensus_tracer()
     current_tracer.span_context = span_context
+
+def _record_rpc_latency(**kwargs) -> None:
+    status_code = GRPC_STATUS_CODE_TO_STRING.get(kwargs['status_code'], "UNKNOWN")
+    sys.stderr.write(f"PY: found double_measure: {kwargs['method']}, {kwargs['rpc_latency']}, {status_code}\n"); sys.stderr.flush()
+    _cyobservability._record_rpc_latency(kwargs['method'], kwargs['rpc_latency'], status_code)
+
+GRPC_STATUS_CODE_TO_STRING = {
+    grpc.StatusCode.OK: "OK",
+    grpc.StatusCode.CANCELLED: "CANCELLED",
+    grpc.StatusCode.UNKNOWN: "UNKNOWN",
+    grpc.StatusCode.INVALID_ARGUMENT: "INVALID_ARGUMENT",
+    grpc.StatusCode.DEADLINE_EXCEEDED: "DEADLINE_EXCEEDED",
+    grpc.StatusCode.NOT_FOUND: "NOT_FOUND",
+    grpc.StatusCode.ALREADY_EXISTS: "ALREADY_EXISTS",
+    grpc.StatusCode.PERMISSION_DENIED: "PERMISSION_DENIED",
+    grpc.StatusCode.UNAUTHENTICATED: "UNAUTHENTICATED",
+    grpc.StatusCode.RESOURCE_EXHAUSTED: "RESOURCE_EXHAUSTED",
+    grpc.StatusCode.FAILED_PRECONDITION: "FAILED_PRECONDITION",
+    grpc.StatusCode.ABORTED: "ABORTED",
+    grpc.StatusCode.OUT_OF_RANGE: "OUT_OF_RANGE",
+    grpc.StatusCode.UNIMPLEMENTED: "UNIMPLEMENTED",
+    grpc.StatusCode.INTERNAL: "INTERNAL",
+    grpc.StatusCode.UNAVAILABLE: "UNAVAILABLE",
+    grpc.StatusCode.DATA_LOSS: "DATA_LOSS",
+}

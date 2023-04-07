@@ -104,6 +104,7 @@ cdef extern from "constants.h" namespace "grpc_observability":
 
   ctypedef enum cMetricsName "::grpc_observability::MetricsName":
     # Client
+    kRpcClientApiLatencyMeasureName
     kRpcClientSentMessagesPerRpcMeasureName
     kRpcClientSentBytesPerRpcMeasureName
     kRpcClientReceivedMessagesPerRpcMeasureName
@@ -123,6 +124,9 @@ cdef extern from "constants.h" namespace "grpc_observability":
     kRpcServerReceivedBytesPerRpcMeasureName
     kRpcServerServerLatencyMeasureName
     kRpcServerStartedRpcsMeasureName
+
+  string kClientMethod
+  string kClientStatus
 
 cdef extern from "sampler.h" namespace "grpc_observability":
   cdef cppclass ProbabilitySampler:

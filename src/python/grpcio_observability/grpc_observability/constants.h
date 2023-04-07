@@ -35,7 +35,8 @@ typedef enum {
 } DataType;
 
 typedef enum {
-    kRpcClientSentMessagesPerRpcMeasureName = 0,
+    kRpcClientApiLatencyMeasureName = 0,
+    kRpcClientSentMessagesPerRpcMeasureName,
     kRpcClientSentBytesPerRpcMeasureName,
     kRpcClientReceivedMessagesPerRpcMeasureName,
     kRpcClientReceivedBytesPerRpcMeasureName,

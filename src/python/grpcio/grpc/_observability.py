@@ -14,6 +14,7 @@
 
 import types
 import logging
+from typing import Any, Optional
 
 from grpc._cython import cygrpc as _cygrpc
 
@@ -81,3 +82,9 @@ def save_span_context(trace_id: str, span_id: str, is_sampled: bool) -> None:
                                   trace_id=trace_id,
                                   span_id=span_id,
                                   is_sampled=is_sampled)
+
+def record_rpc_latency(method: str, rpc_latency: float, code: Any) -> None:
+    return _call_with_lazy_import("record_rpc_latency",
+                                  method=method,
+                                  rpc_latency=rpc_latency,
+                                  status_code=code)

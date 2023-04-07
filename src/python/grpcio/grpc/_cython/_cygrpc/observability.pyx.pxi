@@ -2,6 +2,7 @@ import sys
 import time
 import os
 import codecs
+
 from libcpp.cast cimport static_cast
 from libc.stdio cimport printf
 
@@ -41,6 +42,13 @@ def set_context_from_server_call_tracer(RequestCallEvent event) -> None:
     sys.stderr.write(f"CPY: server side context from core with trace_id: {trace_id} span_id: {span_id} is_sampled: {is_sampled}\n"); sys.stderr.flush()
     _observability.save_span_context(trace_id, span_id, is_sampled)
 
+
+def record_rpc_latency(state) -> None:
+  if not observability_metrics_enabled():
+    return
+  rpc_latency = state.rpc_end_time - state.rpc_start_time
+  rpc_latency_ms = rpc_latency.total_seconds() * 1000
+  _observability.record_rpc_latency(state.method, rpc_latency_ms, state.code)
 
 cdef void set_client_call_tracer_on_call(_CallState call_state, bytes method):
   capsule = _observability.create_client_call_tracer_capsule(method)

@@ -42,7 +42,6 @@ class PyMetric:
       self.measure_double = False
       self.measure_value = measurement['value']['value_int']
 
-
 class PySpan:
   def __init__(self, span_data, span_labels, span_annotations):
       self.name = _decode(span_data['name'])
@@ -59,6 +58,7 @@ class PySpan:
 
 
 class MetricsName:
+  CLIENT_API_LATENCY = kRpcClientApiLatencyMeasureName
   CLIENT_SNET_MESSSAGES_PER_RPC = kRpcClientSentMessagesPerRpcMeasureName
   CLIENT_SEND_BYTES_PER_RPC = kRpcClientSentBytesPerRpcMeasureName
   CLIENT_RECEIVED_MESSAGES_PER_RPC = kRpcClientReceivedMessagesPerRpcMeasureName
@@ -78,6 +78,7 @@ class MetricsName:
   SERVER_STARTED_RPCS = kRpcServerStartedRpcsMeasureName
 
 METRICS_NAME_TO_MEASURE = {
+  MetricsName.CLIENT_API_LATENCY: measures.rpc_client_api_latency(),
   MetricsName.CLIENT_SNET_MESSSAGES_PER_RPC: measures.rpc_client_sent_messages_per_rpc(),
   MetricsName.CLIENT_SEND_BYTES_PER_RPC: measures.rpc_client_send_bytes_per_prc(),
   MetricsName.CLIENT_RECEIVED_MESSAGES_PER_RPC: measures.rpc_client_received_messages_per_rpc(),
@@ -171,6 +172,19 @@ def _c_annotation_to_annotations(cAnnotations) -> List[Tuple[str, str]]:
 
 def at_observability_exit() -> None:
   _shutdown_exporting_thread()
+
+
+def _record_rpc_latency(str method, float rpc_latency, status_code) -> None:
+  measurement = {}
+  measurement['name'] = kRpcClientApiLatencyMeasureName
+  measurement['type'] = kMeasurementDouble
+  measurement['value'] = {'value_double': rpc_latency}
+
+  labels = {}
+  labels[_decode(kClientMethod)] = method.strip("/")
+  labels[_decode(kClientStatus)] = status_code
+  metric = PyMetric(measurement, labels)
+  open_census.export_metric_batch([metric])
 
 
 cdef void ExportSensusData():

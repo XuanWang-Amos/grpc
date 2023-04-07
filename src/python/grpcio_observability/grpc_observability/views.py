@@ -60,6 +60,14 @@ def millis_distribution_aggregation(
         1000, 2000, 5000, 10000, 20000, 50000, 100000
     ])
 
+def client_api_latency() -> view_module.View:
+    view = view_module.View("grpc.io/client/api_latency", "MOCK Description",
+                            default_coulmns() +
+                            [client_method_tag_key(),
+                             client_status_tag_key()],
+                            measures.rpc_client_api_latency(),
+                            millis_distribution_aggregation())
+    return view
 
 def client_started_rpcs() -> view_module.View:
     view = view_module.View("grpc.io/client/started_rpcs", "MOCK Description",
