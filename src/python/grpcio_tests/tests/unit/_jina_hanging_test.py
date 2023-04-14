@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
-import unittest
-import multiprocessing
 from concurrent import futures
+import logging
+import multiprocessing
+import unittest
 
 import grpc
 
@@ -28,10 +28,10 @@ _UNARY_UNARY = '/test/UnaryUnary'
 def _handle_unary_unary(unused_request, unused_servicer_context):
     return _RESPONSE
 
+
 def run_server(port, event):
     handler = grpc.method_handlers_generic_handler('test', {
-        'UnaryUnary':
-            grpc.unary_unary_rpc_method_handler(_handle_unary_unary)
+        'UnaryUnary': grpc.unary_unary_rpc_method_handler(_handle_unary_unary)
     })
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), (handler,))
     bind_addr = f'0.0.0.0:{port}'
@@ -39,6 +39,7 @@ def run_server(port, event):
     server.start()
     event.set()
     server.wait_for_termination()
+
 
 def run_client(port):
     addr = f'0.0.0.0:{port}'
