@@ -26,7 +26,7 @@ def install_context_from_request_call_event(RequestCallEvent event):
     return
   sys.stderr.write("CPY: calling get_server_call_tracer...\n"); sys.stderr.flush()
   cdef ServerCallTracer* server_call_tracer
-  server_call_tracer = static_cast['ServerCallTracer*'](grpc_call_get_call_tracer(event.call.c_call))
+  server_call_tracer = static_cast['ServerCallTracer*'](get_call_tracer(event.call.c_call))
   if observability._tracing_enabled():
     # TraceId and SpanId is hex string, need to convert to str
     trace_id = _decode(codecs.decode(server_call_tracer.TraceId(), 'hex_codec'))

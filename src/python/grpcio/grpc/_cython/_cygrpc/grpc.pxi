@@ -70,7 +70,17 @@ cdef extern from "src/core/lib/channel/call_tracer.h" namespace "grpc_core":
         census_context *CensusContext() nogil
 
     cdef cppclass ServerCallTracerFactory:
+        @staticmethod
         void RegisterGlobal(ServerCallTracerFactory* factory) nogil
+
+cdef extern from "src/core/lib/channel/context.h":
+  ctypedef enum grpc_context_index:
+    GRPC_CONTEXT_CALL_TRACER_ANNOTATION_INTERFACE
+
+cdef extern from "src/core/lib/surface/call.h":
+  void grpc_call_context_set(grpc_call* call, grpc_context_index elem,
+                             void* value, void (*destroy)(void* value)) nogil
+  void *grpc_call_context_get(grpc_call* call, grpc_context_index elem) nogil
 
 cdef extern from "grpc/support/alloc.h":
 
@@ -115,9 +125,6 @@ cdef extern from "grpc/grpc.h":
   ctypedef struct census_context:
     pass
 
-  void grpc_call_set_call_tracer(grpc_call* call, const void* call_tracer) nogil
-  void grpc_register_server_call_tracer_factory(const void* call_tracer_factory) nogil
-  void* grpc_call_get_call_tracer(grpc_call* call) nogil
   census_context* grpc_census_call_get_context(grpc_call* call) nogil
   void grpc_census_call_set_context(grpc_call* call, census_context* context) except *
 

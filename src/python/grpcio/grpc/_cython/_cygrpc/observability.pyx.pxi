@@ -17,7 +17,7 @@ def set_server_call_tracer_factory() -> None:
   observability = get_grpc_observability()
   capsule = observability.create_server_call_tracer_factory()
   capsule_ptr = cpython.PyCapsule_GetPointer(capsule, SERVER_CALL_TRACER_FACTORY)
-  grpc_register_server_call_tracer_factory(capsule_ptr)
+  register_server_call_tracer_factory(capsule_ptr)
 
 
 def set_context_from_server_call_tracer(RequestCallEvent event) -> None:
@@ -43,5 +43,20 @@ cdef void mapbe_set_client_call_tracer_on_call(_CallState call_state, bytes meth
     return
   capsule = observability.create_client_call_tracer_capsule(method)
   capsule_ptr = cpython.PyCapsule_GetPointer(capsule, CLIENT_CALL_TRACER)
-  grpc_call_set_call_tracer(call_state.c_call, capsule_ptr)
+  set_call_tracer(call_state.c_call, capsule_ptr)
   call_state.call_tracer_capsule = capsule
+
+
+cdef void set_call_tracer(grpc_call* call, void* capsule_ptr):
+  cdef ClientCallTracer* call_tracer = <ClientCallTracer*>capsule_ptr
+  grpc_call_context_set(call, GRPC_CONTEXT_CALL_TRACER_ANNOTATION_INTERFACE, call_tracer, NULL)
+
+
+cdef void register_server_call_tracer_factory(void* capsule_ptr):
+  cdef ServerCallTracerFactory* call_tracer_factory = <ServerCallTracerFactory*>capsule_ptr
+  ServerCallTracerFactory.RegisterGlobal(call_tracer_factory)
+
+
+cdef void* get_call_tracer(grpc_call* call):
+  cdef void* call_tracer = grpc_call_context_get(call, GRPC_CONTEXT_CALL_TRACER_ANNOTATION_INTERFACE)
+  return call_tracer

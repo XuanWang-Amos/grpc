@@ -52,9 +52,6 @@ EXPORTS
     grpc_call_get_peer
     grpc_census_call_set_context
     grpc_census_call_get_context
-    grpc_call_set_call_tracer
-    grpc_call_get_call_tracer
-    grpc_register_server_call_tracer_factory
     grpc_channel_get_target
     grpc_channel_get_info
     grpc_channel_reset_connect_backoff

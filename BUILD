@@ -1164,7 +1164,6 @@ grpc_cc_library(
     name = "census",
     srcs = [
         "//src/core:ext/filters/census/grpc_context.cc",
-        "//src/core:ext/filters/census/grpc_tracer.cc",
     ],
     language = "c++",
     public_hdrs = [
