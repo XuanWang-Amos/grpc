@@ -14,77 +14,74 @@
 
 import types
 import logging
-from typing import Any, Optional
+import threading
+import abc
+import sys
+from typing import Any, Optional, TypeVar, Generic
 
+import grpc
 from grpc._cython import cygrpc as _cygrpc
-
-_REQUIRED_SYMBOLS = ("_create_client_call_tracer_capsule",
-                     "_save_span_context")
-_UNINSTALLED_TEMPLATE = "Install the grpc_observability package (1.xx.xx) to use the {} function."
 
 _LOGGER = logging.getLogger(__name__)
 
+_TRACING_ENABLED = False
+_STATS_ENABLED = False
+_O11Y_LOCK = threading.Lock()
 
-def _has_symbols(mod: types.ModuleType) -> bool:
-    return all(hasattr(mod, sym) for sym in _REQUIRED_SYMBOLS)
+PyCapsule = TypeVar('PyCapsule')
+
+class GrpcObservability(Generic[PyCapsule], metaclass=abc.ABCMeta):
+    # we need to add hooks so that the GCP observability package can register functions with
+    # the grpcio module and so can any other observability module conforming to the interface.
+
+    @abc.abstractmethod
+    def create_client_call_tracer_capsule(self, method: bytes) -> PyCapsule:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def delete_client_call_tracer(self, client_call_tracer_capsule: PyCapsule) -> None:
+        # delte client call tracer have to be called on o11y package side.
+        # Call it for both segregated and integrated call (`_process_integrated_call_tag`)
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def save_span_context(self, trace_id: str, span_id: str, is_sampled: bool) -> None:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def create_server_call_tracer_factory(self) -> PyCapsule:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def record_rpc_latency(self, method: str, rpc_latency: float, status_code: Any) -> None:
+        raise NotImplementedError()
+
+    def _enable_tracing(self) -> None:
+        global _TRACING_ENABLED
+        with _O11Y_LOCK:
+            _TRACING_ENABLED = True
+
+    def _enable_stats(self) -> None:
+        global _STATS_ENABLED
+        with _O11Y_LOCK:
+            _STATS_ENABLED = True
+
+    def _tracing_enabled(self) -> bool:
+        with _O11Y_LOCK:
+            return _TRACING_ENABLED
+
+    def _stats_enabled(self) -> bool:
+        with _O11Y_LOCK:
+            return _STATS_ENABLED
+
+    def _observability_enabled(self) -> bool:
+        return self._tracing_enabled() or self._stats_enabled()
 
 
-def _is_grpc_observability_importable() -> bool:
+def observability_init(grpc_observability: GrpcObservability) -> None:
+    setattr(grpc, "_grpc_observability", grpc_observability)
+    sys.stderr.write(f"ERROR: setattr(grpc): {type(getattr(grpc, '_grpc_observability', None))}\n"); sys.stderr.flush()
     try:
-        import grpc_observability  # pylint: disable=unused-import # pytype: disable=import-error
-        return True
-    except ImportError as e:
-        # NOTE: It's possible that we're encountering a transitive ImportError, so
-        # we check for that and re-raise if so.
-        if "grpc_observability" not in e.args[0]:
-            raise
-        return False
-
-
-def _call_with_lazy_import(fn_name: str, **kwargs) -> types.ModuleType:
-    """Calls one of the three functions, lazily importing grpc_observability.
-
-    Args:
-      fn_name: The name of the function to import from grpc_observability.observability.
-
-      **kwargs:
-        method: The keyword args used to call functions.
-
-    Returns:
-      The appropriate module object.
-    """
-    if not _is_grpc_observability_importable():
-        raise NotImplementedError(_UNINSTALLED_TEMPLATE.format(fn_name))
-    import grpc_observability.observability  # pytype: disable=import-error
-    if _has_symbols(grpc_observability.observability):
-        fn = getattr(grpc_observability.observability, '_' + fn_name)
-        return fn(**kwargs)
-    else:
-        raise NotImplementedError(_UNINSTALLED_TEMPLATE.format(fn_name))
-
-
-def observability_init(server_call_tracer_factory: object) -> None:
-    if not _cygrpc.observability_enabled():
-        return
-
-    try:
-        _cygrpc.set_server_call_tracer_factory(server_call_tracer_factory)
+        _cygrpc.set_server_call_tracer_factory()
     except Exception as e:  # pylint:disable=broad-except
         _LOGGER.exception(f"Observability initiazation failed with {e}")
-
-
-def create_client_call_tracer_capsule(method: bytes) -> object:
-    return _call_with_lazy_import("create_client_call_tracer_capsule",
-                                  method=method)
-
-def save_span_context(trace_id: str, span_id: str, is_sampled: bool) -> None:
-    return _call_with_lazy_import("save_span_context",
-                                  trace_id=trace_id,
-                                  span_id=span_id,
-                                  is_sampled=is_sampled)
-
-def record_rpc_latency(method: str, rpc_latency: float, code: Any) -> None:
-    return _call_with_lazy_import("record_rpc_latency",
-                                  method=method,
-                                  rpc_latency=rpc_latency,
-                                  status_code=code)

@@ -28,6 +28,25 @@ cdef extern from "<queue>" namespace "std" nogil:
         void push(T&)
         size_t size()
 
+cdef extern from "<mutex>" namespace "std" nogil:
+    cdef cppclass mutex:
+        mutex()
+        void lock()
+        void unlock()
+
+    cdef cppclass unique_lock[Mutex]:
+      unique_lock(Mutex&)
+
+cdef extern from "<condition_variable>" namespace "std" nogil:
+  cdef cppclass condition_variable:
+    condition_variable()
+    void notify_all()
+    void wait(unique_lock[mutex]&)
+
+cdef extern from "src/core/lib/channel/call_tracer.h" namespace "grpc_core":
+    cdef cppclass ClientCallTracer:
+        pass
+
 cdef extern from "python_census_context.h" namespace "grpc_observability":
   union MeasurementValue:
     double value_double
@@ -46,7 +65,7 @@ cdef extern from "python_census_context.h" namespace "grpc_observability":
     MeasurementType type
     MeasurementValue value
 
-  ctypedef struct SpanSensusData:
+  ctypedef struct SpanCensusData:
     string name
     string start_time
     string end_time
@@ -64,17 +83,19 @@ cdef extern from "observability_main.h" namespace "grpc_observability":
   cdef void gcpObservabilityInit() except +
   cdef void* CreateClientCallTracer(char* method, char* trace_id, char* parent_span_id) except +
   cdef void* CreateServerCallTracerFactory() except +
-  cdef queue[cCensusData] kSensusDataBuffer
-  cdef void AwaitNextBatch(int) nogil
-  cdef void LockSensusDataBuffer() nogil
-  cdef void UnlockSensusDataBuffer() nogil
-  cdef bint OpenCensusStatsEnabled() nogil
-  cdef bint OpenCensusTracingEnabled() nogil
+  cdef queue[cCensusData]* kCensusDataBuffer
+  cdef void AwaitNextBatchLocked(unique_lock[mutex]&, int) nogil
+  cdef void LockCensusDataBuffer() nogil
+  cdef void UnlockCensusDataBuffer() nogil
+  cdef bint PythonOpenCensusStatsEnabled() nogil
+  cdef bint PythonOpenCensusTracingEnabled() nogil
+  cdef mutex kCensusDataBufferMutex
+  cdef condition_variable CensusDataBufferCV
 
   cppclass cCensusData "::grpc_observability::CensusData":
     DataType type
     Measurement measurement_data
-    SpanSensusData span_data
+    SpanCensusData span_data
     vector[Label] labels
 
   ctypedef struct CloudMonitoring:

@@ -3,55 +3,45 @@ import time
 import os
 import codecs
 
+from typing import Optional
+
 from libcpp.cast cimport static_cast
 from libc.stdio cimport printf
 
-from grpc import _observability
+import grpc
 
-cdef const char* CLIENT_CALL_TRACER = "client_call_tracer"
-cdef const char* SERVER_CALL_TRACER_FACTORY = "server_call_tracer_factory"
+cdef const char* CLIENT_CALL_TRACER = "gcp_opencensus_client_call_tracer"
+cdef const char* SERVER_CALL_TRACER_FACTORY = "gcp_opencensus_server_call_tracer_factory"
 
-def observability_enabled() -> bool:
-  return observability_tracing_enabled() or observability_metrics_enabled()
-
-
-def observability_tracing_enabled() -> bool:
-  return os.environ.get('GRPC_OPEN_CENSUS_TRACING_ENABLED', '0') == 'True'
-
-
-def observability_metrics_enabled() -> bool:
-  return os.environ.get('GRPC_OPEN_CENSUS_STATS_ENABLED', '0') == 'True'
-
-
-def set_server_call_tracer_factory(object capsule) -> None:
+def set_server_call_tracer_factory() -> None:
+  observability = get_grpc_observability()
+  capsule = observability.create_server_call_tracer_factory()
   capsule_ptr = cpython.PyCapsule_GetPointer(capsule, SERVER_CALL_TRACER_FACTORY)
   grpc_register_server_call_tracer_factory(capsule_ptr)
 
 
 def set_context_from_server_call_tracer(RequestCallEvent event) -> None:
-  if not observability_enabled():
-    return
-  sys.stderr.write("CPY: calling get_server_call_tracer...\n"); sys.stderr.flush()
-  cdef ServerCallTracer* server_call_tracer
-  server_call_tracer = static_cast['ServerCallTracer*'](grpc_call_get_call_tracer(event.call.c_call))
-  if observability_tracing_enabled():
-    # TraceId and SpanId is hex string, need to convert to str
-    trace_id = _decode(codecs.decode(server_call_tracer.TraceId(), 'hex_codec'))
-    span_id = _decode(codecs.decode(server_call_tracer.SpanId(), 'hex_codec'))
-    is_sampled = server_call_tracer.IsSampled()
-    sys.stderr.write(f"CPY: server side context from core with trace_id: {trace_id} span_id: {span_id} is_sampled: {is_sampled}\n"); sys.stderr.flush()
-    _observability.save_span_context(trace_id, span_id, is_sampled)
+  pass
 
 
 def record_rpc_latency(state) -> None:
-  if not observability_metrics_enabled():
+  observability = get_grpc_observability()
+  if not (observability and observability._stats_enabled()):
     return
   rpc_latency = state.rpc_end_time - state.rpc_start_time
   rpc_latency_ms = rpc_latency.total_seconds() * 1000
-  _observability.record_rpc_latency(state.method, rpc_latency_ms, state.code)
+  observability.record_rpc_latency(state.method, rpc_latency_ms, state.code)
 
-cdef void set_client_call_tracer_on_call(_CallState call_state, bytes method):
-  capsule = _observability.create_client_call_tracer_capsule(method)
+
+def get_grpc_observability() -> Optional[grpc.GrpcObservability]:
+  return getattr(grpc, '_grpc_observability', None)
+
+
+cdef void mapbe_set_client_call_tracer_on_call(_CallState call_state, bytes method):
+  observability = get_grpc_observability()
+  if not (observability and observability._observability_enabled()):
+    return
+  capsule = observability.create_client_call_tracer_capsule(method)
   capsule_ptr = cpython.PyCapsule_GetPointer(capsule, CLIENT_CALL_TRACER)
   grpc_call_set_call_tracer(call_state.c_call, capsule_ptr)
   call_state.call_tracer_capsule = capsule

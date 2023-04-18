@@ -25,6 +25,7 @@ from grpc._runtime_protos import protos
 from grpc._runtime_protos import protos_and_services
 from grpc._runtime_protos import services
 from grpc._observability import observability_init
+from grpc._observability import GrpcObservability
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
@@ -2108,7 +2109,7 @@ __all__ = (
     'channel_ready_future', 'insecure_channel', 'secure_channel',
     'intercept_channel', 'server', 'protos', 'services', 'protos_and_services',
     'xds_channel_credentials', 'xds_server_credentials',
-    'insecure_server_credentials', 'observability_init')
+    'insecure_server_credentials', 'observability_init', 'GrpcObservability')
 
 ############################### Extension Shims ################################
 

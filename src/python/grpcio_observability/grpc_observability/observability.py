@@ -14,12 +14,16 @@
 
 import sys
 import grpc
+from typing import Any, Optional, TypeVar, Generic
 
 from opencensus.trace import execution_context
 from opencensus.trace import span_context as span_context_module
 from opencensus.trace import trace_options as trace_options_module
 
 from grpc_observability import _cyobservability
+import _open_census
+
+PyCapsule = TypeVar('PyCapsule')
 
 class Observability:
 
@@ -27,6 +31,7 @@ class Observability:
         pass
 
     def __enter__(self):
+        self.init()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
@@ -39,49 +44,64 @@ class Observability:
         # 2. Creating measures and register views.
         # 3. Create and Saves Tracer and Sampler to ContextVar.
         # TODO(xuanwn): Errors out if config is invalid.
-        _cyobservability.read_gcp_observability_config()
+        config = _cyobservability.read_gcp_observability_config()
+        sys.stderr.write(f"found config in Observability: {config}\n"); sys.stderr.flush()
 
         # 4. Start exporting thread.
-        _cyobservability.observability_init()
+        _cyobservability.cyobservability_init()
 
-        # 5. Inject server call tracer factory.
+        # 5. Init grpc.
+        grpc_observability = GCPOpenCensusObservability(config)
+        grpc.observability_init(grpc_observability)
+
+
+class GCPOpenCensusObservability(grpc.GrpcObservability):
+
+    def __init__(self, config: _open_census.GcpObservabilityConfig):
+        if config.tracing_enabled:
+            self._enable_tracing()
+        if config.stats_enabled:
+            self._enable_stats()
+
+    def create_client_call_tracer_capsule(self, method: bytes) -> PyCapsule:
+        current_span = execution_context.get_current_span()
+        if current_span:
+            # Propagate existing OC context
+            trace_id = current_span.context_tracer.trace_id.encode('utf8')
+            parent_span_id = current_span.span_id.encode('utf8')
+            sys.stderr.write(
+                f"PY: found trace_id: {trace_id} parent_span_id: {parent_span_id}\n"
+            )
+            sys.stderr.flush()
+            capsule = _cyobservability.create_client_call_tracer_capsule(
+                method, trace_id, parent_span_id)
+        else:
+            trace_id = span_context_module.generate_trace_id().encode('utf8')
+            capsule = _cyobservability.create_client_call_tracer_capsule(
+                method, trace_id)
+        return capsule
+
+    def create_server_call_tracer_factory(self) -> PyCapsule:
         capsule = _cyobservability.create_server_call_tracer_factory_capsule()
-        grpc.observability_init(capsule)
+        return capsule
 
+    def delete_client_call_tracer(self, client_call_tracer_capsule: PyCapsule) -> None:
+        _cyobservability.delete_client_call_tracer(client_call_tracer_capsule)
 
-def _create_client_call_tracer_capsule(**kwargs) -> object:
-    method = kwargs['method']
-    current_span = execution_context.get_current_span()
-    if current_span:
-        # Propagate existing OC context
-        trace_id = current_span.context_tracer.trace_id.encode('utf8')
-        parent_span_id = current_span.span_id.encode('utf8')
-        sys.stderr.write(
-            f"PY: found trace_id: {trace_id} parent_span_id: {parent_span_id}\n"
-        )
-        sys.stderr.flush()
-        capsule = _cyobservability.create_client_call_tracer_capsule(
-            method, trace_id, parent_span_id)
-    else:
-        trace_id = span_context_module.generate_trace_id().encode('utf8')
-        capsule = _cyobservability.create_client_call_tracer_capsule(
-            method, trace_id)
-    return capsule
+    def save_span_context(self, trace_id: str, span_id: str, is_sampled: bool) -> None:
+        trace_options = trace_options_module.TraceOptions(0)
+        trace_options.set_enabled(is_sampled)
+        span_context = span_context_module.SpanContext(trace_id=trace_id,
+                                                    span_id=span_id,
+                                                    trace_options=trace_options)
+        current_tracer = execution_context.get_opencensus_tracer()
+        current_tracer.span_context = span_context
 
+    def record_rpc_latency(self, method: str, rpc_latency: float, status_code: Any) -> None:
+        status_code = GRPC_STATUS_CODE_TO_STRING.get(status_code, "UNKNOWN")
+        sys.stderr.write(f"PY: found double_measure: {method}, {rpc_latency}, {status_code}\n"); sys.stderr.flush()
+        _cyobservability._record_rpc_latency(method, rpc_latency, status_code)
 
-def _save_span_context(**kwargs) -> None:
-    trace_options = trace_options_module.TraceOptions(0)
-    trace_options.set_enabled(kwargs['is_sampled'])
-    span_context = span_context_module.SpanContext(trace_id=kwargs['trace_id'],
-                                                   span_id=kwargs['span_id'],
-                                                   trace_options=trace_options)
-    current_tracer = execution_context.get_opencensus_tracer()
-    current_tracer.span_context = span_context
-
-def _record_rpc_latency(**kwargs) -> None:
-    status_code = GRPC_STATUS_CODE_TO_STRING.get(kwargs['status_code'], "UNKNOWN")
-    sys.stderr.write(f"PY: found double_measure: {kwargs['method']}, {kwargs['rpc_latency']}, {status_code}\n"); sys.stderr.flush()
-    _cyobservability._record_rpc_latency(kwargs['method'], kwargs['rpc_latency'], status_code)
 
 GRPC_STATUS_CODE_TO_STRING = {
     grpc.StatusCode.OK: "OK",

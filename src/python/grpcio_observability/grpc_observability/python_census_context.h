@@ -48,13 +48,13 @@ std::atomic<bool> g_open_census_stats_enabled(true);
 std::atomic<bool> g_open_census_tracing_enabled(true);
 }  // namespace
 
-// Enables/Disables OpenCensus stats/tracing. It's only safe to do at the start
+// Enables/Disables Python OpenCensus stats/tracing. It's only safe to do at the start
 // of a program, before any channels/servers are built.
-void EnableOpenCensusStats(bool enable);
-void EnableOpenCensusTracing(bool enable);
-// Gets the current status of OpenCensus stats/tracing
-bool OpenCensusStatsEnabled();
-bool OpenCensusTracingEnabled();
+void EnablePythonOpenCensusStats(bool enable);
+void EnablePythonOpenCensusTracing(bool enable);
+// Gets the current status of Python OpenCensus stats/tracing
+bool PythonOpenCensusStatsEnabled();
+bool PythonOpenCensusTracingEnabled();
 
 // The length of the grpc-trace-bin value:
 //      1 (version)
@@ -121,7 +121,7 @@ struct Annotation {
   std::string description;
 };
 
-struct SpanSensusData {
+struct SpanCensusData {
   std::string name;
   std::string start_time;
   std::string end_time;
@@ -189,7 +189,7 @@ class Span final {
 
   void AddAnnotation(absl::string_view description);
 
-  SpanSensusData ToSensusData();
+  SpanCensusData ToCensusData();
 
  private:
   static bool ShouldSample(std::string trace_id) {

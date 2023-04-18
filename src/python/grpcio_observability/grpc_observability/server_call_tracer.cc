@@ -64,13 +64,13 @@ void FilterInitialMetadata(grpc_metadata_batch* b,
   if (path != nullptr) {
     sml->path = path->Ref();
   }
-  if (OpenCensusTracingEnabled()) {
+  if (PythonOpenCensusTracingEnabled()) {
     auto grpc_trace_bin = b->Take(grpc_core::GrpcTraceBinMetadata());
     if (grpc_trace_bin.has_value()) {
       sml->tracing_slice = std::move(*grpc_trace_bin);
     }
   }
-  if (OpenCensusStatsEnabled()) {
+  if (PythonOpenCensusStatsEnabled()) {
     auto grpc_tags_bin = b->Take(grpc_core::GrpcTagsBinMetadata());
     if (grpc_tags_bin.has_value()) {
       sml->census_proto = std::move(*grpc_tags_bin);
@@ -178,7 +178,7 @@ void PythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata(
   FilterInitialMetadata(recv_initial_metadata, &sml);
   path_ = std::move(sml.path);
   method_ = GetMethod(path_);
-  auto tracing_enabled = OpenCensusTracingEnabled();
+  auto tracing_enabled = PythonOpenCensusTracingEnabled();
   GenerateServerContext(
       tracing_enabled ? sml.tracing_slice.as_string_view() : "",
       absl::StrCat("Recv.", method_), &context_);
@@ -188,7 +188,7 @@ void PythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata(
   //   std::cout << "    setting GRPC_CONTEXT_TRACING" << std::endl;
   //   call_context[GRPC_CONTEXT_TRACING].value = &context_;
   // }
-  if (OpenCensusStatsEnabled()) {
+  if (PythonOpenCensusStatsEnabled()) {
     std::vector<Label> labels = context_.Labels();
     labels.emplace_back(Label{kServerMethod, std::string(method_)});
     RecordIntMetric(kRpcServerStartedRpcsMeasureName, 1, labels);
@@ -202,7 +202,7 @@ void PythonOpenCensusServerCallTracer::RecordSendTrailingMetadata(
   // We need to record the time when the trailing metadata was sent to
   // mark the completeness of the request.
   elapsed_time_ = absl::Now() - start_time_;
-  if (OpenCensusStatsEnabled() && send_trailing_metadata != nullptr) {
+  if (PythonOpenCensusStatsEnabled() && send_trailing_metadata != nullptr) {
     size_t len = ServerStatsSerialize(absl::ToInt64Nanoseconds(elapsed_time_),
                                       stats_buf_, kMaxServerStatsLen);
     if (len > 0) {
@@ -217,7 +217,7 @@ void PythonOpenCensusServerCallTracer::RecordSendTrailingMetadata(
 void PythonOpenCensusServerCallTracer::RecordEnd(
     const grpc_call_final_info* final_info) {
   std::cout << " >> PythonPythonOpenCensusServerCallTracer::RecordEnd" << std::endl;
-  if (OpenCensusStatsEnabled()) {
+  if (PythonOpenCensusStatsEnabled()) {
     const uint64_t request_size = GetOutgoingDataSize(final_info);
     const uint64_t response_size = GetIncomingDataSize(final_info);
     double elapsed_time_ms = absl::ToDoubleMilliseconds(elapsed_time_);
@@ -230,11 +230,11 @@ void PythonOpenCensusServerCallTracer::RecordEnd(
     RecordIntMetric(kRpcServerSentMessagesPerRpcMeasureName, sent_message_count_, labels);
     RecordIntMetric(kRpcServerReceivedMessagesPerRpcMeasureName, recv_message_count_, labels);
   }
-  if (OpenCensusTracingEnabled()) {
+  if (PythonOpenCensusTracingEnabled()) {
     std::cout << " __ENDDING Recv. SPAN__" << std::endl;
     context_.EndSpan();
     if (IsSampled()) {
-      RecordSpan(context_.Span().ToSensusData());
+      RecordSpan(context_.Span().ToCensusData());
     }
   }
 }

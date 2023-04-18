@@ -13,22 +13,24 @@
 # limitations under the License.
 
 cimport cpython
+from cython.operator cimport dereference
 
 import sys
 import os
 import logging
 from threading import Thread
-from typing import List, Tuple, Mapping
+from typing import List, Tuple, Mapping, TypeVar
 
-from grpc_observability import open_census
-from grpc_observability import measures
+from grpc_observability import _open_census
+from grpc_observability import _measures
 
-cdef const char* CLIENT_CALL_TRACER = "client_call_tracer"
-cdef const char* SERVER_CALL_TRACER_FACTORY = "server_call_tracer_factory"
+cdef const char* CLIENT_CALL_TRACER = "gcp_opencensus_client_call_tracer"
+cdef const char* SERVER_CALL_TRACER_FACTORY = "gcp_opencensus_server_call_tracer_factory"
 cdef bint GLOBAL_SHUTDOWN_EXPORT_THREAD = False
 cdef object global_export_thread
 
 _LOGGER = logging.getLogger(__name__)
+PyCapsule = TypeVar('PyCapsule')
 
 class PyMetric:
   def __init__(self, measurement, labels):
@@ -78,63 +80,63 @@ class MetricsName:
   SERVER_STARTED_RPCS = kRpcServerStartedRpcsMeasureName
 
 METRICS_NAME_TO_MEASURE = {
-  MetricsName.CLIENT_API_LATENCY: measures.rpc_client_api_latency(),
-  MetricsName.CLIENT_SNET_MESSSAGES_PER_RPC: measures.rpc_client_sent_messages_per_rpc(),
-  MetricsName.CLIENT_SEND_BYTES_PER_RPC: measures.rpc_client_send_bytes_per_prc(),
-  MetricsName.CLIENT_RECEIVED_MESSAGES_PER_RPC: measures.rpc_client_received_messages_per_rpc(),
-  MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC: measures.rpc_client_received_bytes_per_rpc(),
-  MetricsName.CLIENT_ROUNDTRIP_LATENCY: measures.rpc_client_roundtrip_latency(),
-  MetricsName.CLIENT_SERVER_LATENCY: measures.rpc_client_server_latency(),
-  MetricsName.CLIENT_STARTED_RPCS: measures.rpc_client_started_rpcs(),
-  MetricsName.CLIENT_RETRIES_PER_CALL: measures.rpc_client_retries_per_call(),
-  MetricsName.CLIENT_TRANSPARENT_RETRIES_PER_CALL: measures.rpc_client_transparent_retries_per_call(),
-  MetricsName.CLIENT_RETRY_DELAY_PER_CALL: measures.rpc_client_retry_delay_per_call(),
-  MetricsName.CLIENT_TRANSPORT_LATENCY: measures.rpc_client_transport_latency(),
-  MetricsName.SERVER_SENT_MESSAGES_PER_RPC: measures.rpc_server_sent_messages_per_rpc(),
-  MetricsName.SERVER_SENT_BYTES_PER_RPC: measures.rpc_server_sent_bytes_per_rpc(),
-  MetricsName.SERVER_RECEIVED_MESSAGES_PER_RPC: measures.rpc_server_received_messages_per_rpc(),
-  MetricsName.SERVER_RECEIVED_BYTES_PER_RPC: measures.rpc_server_received_bytes_per_rpc(),
-  MetricsName.SERVER_SERVER_LATENCY: measures.rpc_server_server_latency(),
-  MetricsName.SERVER_STARTED_RPCS: measures.rpc_server_started_rpcs(),
+  MetricsName.CLIENT_API_LATENCY: _measures.rpc_client_api_latency(),
+  MetricsName.CLIENT_SNET_MESSSAGES_PER_RPC: _measures.rpc_client_sent_messages_per_rpc(),
+  MetricsName.CLIENT_SEND_BYTES_PER_RPC: _measures.rpc_client_send_bytes_per_prc(),
+  MetricsName.CLIENT_RECEIVED_MESSAGES_PER_RPC: _measures.rpc_client_received_messages_per_rpc(),
+  MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC: _measures.rpc_client_received_bytes_per_rpc(),
+  MetricsName.CLIENT_ROUNDTRIP_LATENCY: _measures.rpc_client_roundtrip_latency(),
+  MetricsName.CLIENT_SERVER_LATENCY: _measures.rpc_client_server_latency(),
+  MetricsName.CLIENT_STARTED_RPCS: _measures.rpc_client_started_rpcs(),
+  MetricsName.CLIENT_RETRIES_PER_CALL: _measures.rpc_client_retries_per_call(),
+  MetricsName.CLIENT_TRANSPARENT_RETRIES_PER_CALL: _measures.rpc_client_transparent_retries_per_call(),
+  MetricsName.CLIENT_RETRY_DELAY_PER_CALL: _measures.rpc_client_retry_delay_per_call(),
+  MetricsName.CLIENT_TRANSPORT_LATENCY: _measures.rpc_client_transport_latency(),
+  MetricsName.SERVER_SENT_MESSAGES_PER_RPC: _measures.rpc_server_sent_messages_per_rpc(),
+  MetricsName.SERVER_SENT_BYTES_PER_RPC: _measures.rpc_server_sent_bytes_per_rpc(),
+  MetricsName.SERVER_RECEIVED_MESSAGES_PER_RPC: _measures.rpc_server_received_messages_per_rpc(),
+  MetricsName.SERVER_RECEIVED_BYTES_PER_RPC: _measures.rpc_server_received_bytes_per_rpc(),
+  MetricsName.SERVER_SERVER_LATENCY: _measures.rpc_server_server_latency(),
+  MetricsName.SERVER_STARTED_RPCS: _measures.rpc_server_started_rpcs(),
 }
 
-def observability_init() -> None:
+def cyobservability_init() -> None:
   gcpObservabilityInit() # remove print buffer
   _start_exporting_thread()
 
 
 def _start_exporting_thread() -> None:
   global global_export_thread
-  global_export_thread = Thread(target=ExportSensusData)
+  global_export_thread = Thread(target=_export_census_data)
   printf("> Exporting Thread: ------------ STARTING Exporting Thread ------------\n")
   global_export_thread.start()
 
 
-def read_gcp_observability_config() -> None:
+def read_gcp_observability_config() -> _open_census.GcpObservabilityConfig:
   py_labels = {}
   sampling_rate = 0.0
   tracing_enabled = False
-  monitoring_enabled = False
+  stats_enabled = False
 
   cdef cGcpObservabilityConfig c_config = ReadObservabilityConfig()
 
   for label in c_config.labels:
     py_labels[_decode(label.key)] = _decode(label.value)
 
-  if OpenCensusTracingEnabled():
+  if PythonOpenCensusTracingEnabled():
     sampling_rate = c_config.cloud_trace.sampling_rate
     tracing_enabled = True
-    os.environ['GRPC_OPEN_CENSUS_TRACING_ENABLED'] = 'True'
     # Save sampling rate to global sampler.
     ProbabilitySampler.Get().SetThreshold(sampling_rate)
 
-  if OpenCensusStatsEnabled():
-    monitoring_enabled = True
-    os.environ['GRPC_OPEN_CENSUS_STATS_ENABLED'] = 'True'
+  if PythonOpenCensusStatsEnabled():
+    stats_enabled = True
 
-  py_config = open_census.gcpObservabilityConfig.get()
+  py_config = _open_census.GcpObservabilityConfig.get()
   py_config.set_configuration(_decode(c_config.project_id), sampling_rate,
-                              py_labels, tracing_enabled, monitoring_enabled)
+                              py_labels, tracing_enabled, stats_enabled)
+  sys.stderr.write(f"After set_configuration: {py_config}\n"); sys.stderr.flush()
+  return py_config
 
 
 def create_client_call_tracer_capsule(bytes method, bytes trace_id,
@@ -154,6 +156,16 @@ def create_server_call_tracer_factory_capsule() -> cpython.PyObject:
   capsule = cpython.PyCapsule_New(call_tracer_factory, SERVER_CALL_TRACER_FACTORY, NULL)
   return capsule
 
+
+def delete_client_call_tracer(client_call_tracer_capsule: PyCapsule) -> None:
+  sys.stderr.write(f"~~~~~~~~~~~~~~ CPY: calling delete_client_call_tracer\n"); sys.stderr.flush()
+  if cpython.PyCapsule_IsValid(client_call_tracer_capsule, "gcp_opencensus_client_call_tracer"):
+    capsule_ptr = cpython.PyCapsule_GetPointer(client_call_tracer_capsule, "gcp_opencensus_client_call_tracer")
+    #sys.stderr.write(f"~~~~~~~~~~~~~~ capsule_ptr: {capsule_ptr}\n"); sys.stderr.flush()
+    call_tracer_ptr = <ClientCallTracer*>capsule_ptr
+    #printf("~~~~~~~~~~~~~~ <CallTracer*>capsule_ptr: %p\n", call_tracer_ptr)
+    sys.stderr.write(f"~~~~~~~~~~~~~~ CPY: deling call_tracer_ptr\n"); sys.stderr.flush()
+    del call_tracer_ptr
 
 def _c_label_to_labels(cLabels) -> Mapping[str, str]:
   py_labels = {}
@@ -184,65 +196,64 @@ def _record_rpc_latency(str method, float rpc_latency, status_code) -> None:
   labels[_decode(kClientMethod)] = method.strip("/")
   labels[_decode(kClientStatus)] = status_code
   metric = PyMetric(measurement, labels)
-  open_census.export_metric_batch([metric])
+  _open_census.export_metric_batch([metric])
 
 
-cdef void ExportSensusData():
+cdef void _export_census_data():
   while True:
     with nogil:
       while not GLOBAL_SHUTDOWN_EXPORT_THREAD:
-        # Wait for next batch of sensus data OR timeout at fixed interval.
-        AwaitNextBatch(500)
+        lk = new unique_lock[mutex](kCensusDataBufferMutex)
+        # Wait for next batch of census data OR timeout at fixed interval.
+        # Batch export census data to minimize the time we acquiring the GIL.
+        AwaitNextBatchLocked(dereference(lk), 500)
 
         # Break only when buffer have data
-        LockSensusDataBuffer()
-        if not kSensusDataBuffer.empty():
-          UnlockSensusDataBuffer()
+        if not kCensusDataBuffer.empty():
+          del lk
           break
         else:
-          UnlockSensusDataBuffer()
+          del lk
+
+    _flush_census_data()
 
     if GLOBAL_SHUTDOWN_EXPORT_THREAD:
-      sys.stderr.write(f"> Exporting Thread: locking to check queue before shutting down...\n"); sys.stderr.flush()
-      # Flush remaining data before shutdown thread
-      LockSensusDataBuffer()
-      if not kSensusDataBuffer.empty():
-        printf("> Exporting Thread: >>>>>>>> queue NOT empty, flushing last data...\n")
-        FlushSensusData()
-      UnlockSensusDataBuffer()
       break # Break to shutdown exporting thead
-
-    LockSensusDataBuffer()
-    FlushSensusData()
-    UnlockSensusDataBuffer()
-  sys.stderr.write(f"> Exporting Thread: ExportSensusData shutting down...\n"); sys.stderr.flush()
+  sys.stderr.write(f"> Exporting Thread: _export_census_data shutting down...\n"); sys.stderr.flush()
 
 
-cdef void FlushSensusData():
+cdef void _flush_census_data():
+  lk = new unique_lock[mutex](kCensusDataBufferMutex)
+  with nogil:
+    if kCensusDataBuffer.empty():
+      del lk
+      return
+  printf("> Exporting Thread: >>>>>>>> queue NOT empty, flushing data...\n")
   py_metrics_batch = []
   py_spans_batch = []
-  while not kSensusDataBuffer.empty():
-    cSensusData = kSensusDataBuffer.front()
-    if cSensusData.type == kMetricData:
-      py_labels = _c_label_to_labels(cSensusData.labels)
-      py_metric = PyMetric(cSensusData.measurement_data, py_labels)
+  while not kCensusDataBuffer.empty():
+    cCensusData = kCensusDataBuffer.front()
+    if cCensusData.type == kMetricData:
+      py_labels = _c_label_to_labels(cCensusData.labels)
+      py_metric = PyMetric(cCensusData.measurement_data, py_labels)
       py_metrics_batch.append(py_metric)
     else:
-      py_span_labels = _c_label_to_labels(cSensusData.span_data.span_labels)
-      py_span_annotations = _c_annotation_to_annotations(cSensusData.span_data.span_annotations)
-      py_span = PySpan(cSensusData.span_data, py_span_labels, py_span_annotations)
+      py_span_labels = _c_label_to_labels(cCensusData.span_data.span_labels)
+      py_span_annotations = _c_annotation_to_annotations(cCensusData.span_data.span_annotations)
+      py_span = PySpan(cCensusData.span_data, py_span_labels, py_span_annotations)
       py_spans_batch.append(py_span)
-    kSensusDataBuffer.pop()
+    kCensusDataBuffer.pop()
 
-  open_census.export_metric_batch(py_metrics_batch)
-  open_census.export_span_batch(py_spans_batch)
-
+  _open_census.export_metric_batch(py_metrics_batch)
+  _open_census.export_span_batch(py_spans_batch)
+  del lk
 
 cdef void _shutdown_exporting_thread():
   with nogil:
     global GLOBAL_SHUTDOWN_EXPORT_THREAD
     printf("------------ shutting down exporting thread\n")
     GLOBAL_SHUTDOWN_EXPORT_THREAD = True
+    CensusDataBufferCV.notify_all()
   printf("------------ waiting export thead to end...\n")
   global_export_thread.join()
 

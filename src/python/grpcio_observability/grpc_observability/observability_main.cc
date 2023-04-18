@@ -19,15 +19,11 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
 
-#include <limits.h>
-
-#include <atomic>
-
 namespace grpc_observability {
 
-std::queue<CensusData> kSensusDataBuffer;
-std::mutex kSensusDataBufferMutex;
-std::condition_variable SensusDataBufferCV;
+std::queue<CensusData>* kCensusDataBuffer;
+std::mutex kCensusDataBufferMutex;
+std::condition_variable CensusDataBufferCV;
 constexpr int kExportThreshold = 2;
 
 
@@ -53,16 +49,17 @@ void RecordDoubleMetric(MetricsName name, double value, std::vector<Label> label
 }
 
 
-void RecordSpan(SpanSensusData span_sensus_data) {
-  CensusData data = CensusData(span_sensus_data);
-  std::cout << " ________Record SPAN: " << span_sensus_data.name << " with id: " << span_sensus_data.span_id << std::endl;
+void RecordSpan(SpanCensusData span_census_data) {
+  CensusData data = CensusData(span_census_data);
+  std::cout << " ________Record SPAN: " << span_census_data.name << " with id: " << span_census_data.span_id << std::endl;
   AddCensusDataToBuffer(data);
 }
 
 
 void gcpObservabilityInit() {
     setbuf(stdout, nullptr);
-    std::cout << "Calling grpc::experimental::GcpObservabilityInit()"; std::cout << std::endl;
+    std::cout << "Calling grpc_observability::GcpObservabilityInit()"; std::cout << std::endl;
+    kCensusDataBuffer= new std::queue<CensusData>;
 }
 
 
@@ -71,8 +68,8 @@ void* CreateClientCallTracer(char* method, char* trace_id, char* parent_span_id)
     std::cout << "  ---->>> method: "  << method  << " string(method):" << std::string(method) << std::endl;
     std::cout << "  ---->>> trace_id: "  << trace_id << std::endl;
     std::cout << "  ---->>> parent_span_id: " << parent_span_id << std::endl;
-    std::cout << "  ---->>> tracing_enabled: " << (OpenCensusTracingEnabled() ? "True" : "False") << std::endl;
-    void* client_call_tracer = new PythonOpenCensusCallTracer(method, trace_id, parent_span_id, OpenCensusTracingEnabled());
+    std::cout << "  ---->>> tracing_enabled: " << (PythonOpenCensusTracingEnabled() ? "True" : "False") << std::endl;
+    void* client_call_tracer = new PythonOpenCensusCallTracer(method, trace_id, parent_span_id, PythonOpenCensusTracingEnabled());
 
     std::cout << "created client call tracer with address in void* format:" << client_call_tracer << std::endl;
     return client_call_tracer;
@@ -88,10 +85,10 @@ void* CreateServerCallTracerFactory() {
 }
 
 
-void AwaitNextBatch(int timeout_ms) {
-  std::unique_lock<std::mutex> lk(kSensusDataBufferMutex);
+void AwaitNextBatchLocked(std::unique_lock<std::mutex>& lock, int timeout_ms) {
+  // std::unique_lock<std::mutex> lk(kCensusDataBufferMutex);
   auto now = std::chrono::system_clock::now();
-  auto status = SensusDataBufferCV.wait_until(lk, now + std::chrono::milliseconds(timeout_ms));
+  auto status = CensusDataBufferCV.wait_until(lock, now + std::chrono::milliseconds(timeout_ms));
   if (status == std::cv_status::no_timeout) {
     std::cout << "> Exporting Thread: Waiting Finished no_timeout" << std::endl;
   } else {
@@ -100,23 +97,23 @@ void AwaitNextBatch(int timeout_ms) {
 }
 
 
-void LockSensusDataBuffer() {
-  kSensusDataBufferMutex.lock();
+void LockCensusDataBuffer() {
+  kCensusDataBufferMutex.lock();
   // std::cout << "> Exporting Thread: >>>>>>>> LOCKED <<<<<<<<<< at " << absl::Now() << std::endl;
 }
 
 
-void UnlockSensusDataBuffer() {
+void UnlockCensusDataBuffer() {
   // std::cout << "> Exporting Thread: >>>>>>>> UN-LOCKED <<<<<<<<<< at " << absl::Now() << std::endl;
-  kSensusDataBufferMutex.unlock();
+  kCensusDataBufferMutex.unlock();
 }
 
 
 void AddCensusDataToBuffer(CensusData data) {
-  std::unique_lock<std::mutex> lk(kSensusDataBufferMutex);
-  kSensusDataBuffer.push(data);
-  if (kSensusDataBuffer.size() >= kExportThreshold) {
-      SensusDataBufferCV.notify_all();
+  std::unique_lock<std::mutex> lk(kCensusDataBufferMutex);
+  kCensusDataBuffer->push(data);
+  if (kCensusDataBuffer->size() >= kExportThreshold) {
+      CensusDataBufferCV.notify_all();
   }
 }
 
@@ -138,12 +135,12 @@ GcpObservabilityConfig ReadObservabilityConfig() {
   if (!config->cloud_trace.has_value()) {
     // Disable OpenCensus tracing
     std::cout << "------ Disable OpenCensus tracing ------ " << std::endl;
-    EnableOpenCensusTracing(false);
+    EnablePythonOpenCensusTracing(false);
   }
   if (!config->cloud_monitoring.has_value()) {
     // Disable OpenCensus stats
     std::cout << "------ Disable OpenCensus stats ------ " << std::endl;
-    EnableOpenCensusStats(false);
+    EnablePythonOpenCensusStats(false);
   }
 
   std::vector<Label> labels;
@@ -156,7 +153,7 @@ GcpObservabilityConfig ReadObservabilityConfig() {
     labels.reserve(config->labels.size());
     // Insert in user defined labels from the GCP Observability config.
     for (const auto& label : config->labels) {
-      labels.push_back(Label{label.first, label.second});
+      labels.emplace_back(Label{label.first, label.second});
     }
 
     if (config->cloud_trace.has_value()) {
@@ -173,7 +170,8 @@ GcpObservabilityConfig ReadObservabilityConfig() {
     // TODO(xuanwn): Read cloud logging config
   }
 
-  return GcpObservabilityConfig(cloud_monitoring_config, cloud_trace_config, cloud_logging_config, project_id, labels);
+  return GcpObservabilityConfig(cloud_monitoring_config, cloud_trace_config,
+                                cloud_logging_config, project_id, labels);
 }
 
 

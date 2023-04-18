@@ -17,7 +17,7 @@ load("//bazel:cython_library.bzl", "pyx_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "observability_lib",
+    name = "observability",
     srcs = [
         "observability_main.cc",
         "python_census_context.cc",
@@ -48,18 +48,18 @@ pyx_library(
         "_cyobservability.pxd",
     ],
     deps = [
-        ':observability_lib',
+        ':observability',
     ],
 )
 
 py_library(
-    name = "grpc_observability",
+    name = "pyobservability",
     srcs = [
         "__init__.py",
         "observability.py",
-        "open_census.py",
-        "views.py",
-        "measures.py",
+        "_open_census.py",
+        "_views.py",
+        "_measures.py",
     ],
     imports = ["../", "."],
     srcs_version = "PY3ONLY",

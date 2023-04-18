@@ -56,7 +56,7 @@ void PythonOpenCensusCallTracer::RecordAnnotation(absl::string_view annotation) 
 
 PythonOpenCensusCallTracer::~PythonOpenCensusCallTracer() {
   std::cout << " ~~ PythonOpenCensusCallTracer::~PythonOpenCensusCallTracer() (3 Metrics, 1 Span)" << std::endl;
-  if (OpenCensusStatsEnabled()) {
+  if (PythonOpenCensusStatsEnabled()) {
     std::vector<Label> labels = context_.Labels();
     labels.emplace_back(Label{kClientMethod, std::string(method_)});
     RecordIntMetric(kRpcClientRetriesPerCallMeasureName, retries_ - 1, labels); // exclude first attempt
@@ -68,7 +68,7 @@ PythonOpenCensusCallTracer::~PythonOpenCensusCallTracer() {
     std::cout << " __ENDDING Sent. SPAN__" << std::endl;
     context_.EndSpan();
     if (IsSampled()) {
-      RecordSpan(context_.Span().ToSensusData());
+      RecordSpan(context_.Span().ToCensusData());
     }
   }
   // Export span data.
@@ -92,7 +92,7 @@ PythonOpenCensusCallTracer::StartNewAttempt(bool is_transparent_retry) {
     grpc_core::MutexLock lock(&mu_);
     if (transparent_retries_ != 0 || retries_ != 0) {
       // is_first_attempt = false;
-      if (OpenCensusStatsEnabled() && num_active_rpcs_ == 0) {
+      if (PythonOpenCensusStatsEnabled() && num_active_rpcs_ == 0) {
         retry_delay_ += absl::Now() - time_at_last_attempt_end_;
       }
     }
@@ -128,7 +128,7 @@ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::PythonOpenCensusC
     context_.AddSpanAttribute("previous-rpc-attempts", std::to_string(attempt_num));
     context_.AddSpanAttribute("transparent-retry", std::to_string(is_transparent_retry));
   }
-  if (OpenCensusStatsEnabled()) {
+  if (PythonOpenCensusStatsEnabled()) {
     std::vector<Label> labels = context_.Labels();
     labels.emplace_back(Label{kClientMethod, std::string(parent_->method_)});
     RecordIntMetric(kRpcClientStartedRpcsMeasureName, 1, labels);
@@ -149,7 +149,7 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
           grpc_core::Slice::FromCopiedBuffer(tracing_buf, tracing_len));
     }
   }
-  if (OpenCensusStatsEnabled()) {
+  if (PythonOpenCensusStatsEnabled()) {
     grpc_slice tags = grpc_empty_slice();
     // TODO(unknown): Add in tagging serialization.
     size_t encoded_tags_len = StatsContextSerialize(kMaxTagsLen, &tags);
@@ -178,7 +178,7 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordReceiv
 namespace {
 
 void FilterTrailingMetadata(grpc_metadata_batch* b, uint64_t* elapsed_time) {
-  if (OpenCensusStatsEnabled()) {
+  if (PythonOpenCensusStatsEnabled()) {
     absl::optional<grpc_core::Slice> grpc_server_stats_bin =
         b->Take(grpc_core::GrpcServerStatsBinMetadata());
     if (grpc_server_stats_bin.has_value()) {
@@ -202,7 +202,7 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     std::cout << " ~~ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordReceivedTrailingMetadata  (3 Metrics)" << std::endl;
   }
   status_code_ = status.code();
-  if (OpenCensusStatsEnabled()) {
+  if (PythonOpenCensusStatsEnabled()) {
     uint64_t elapsed_time = 0;
     if (recv_trailing_metadata != nullptr) {
       FilterTrailingMetadata(recv_trailing_metadata, &elapsed_time);
@@ -237,7 +237,7 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordCancel
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordEnd(
     const gpr_timespec& /*latency*/) {
   std::cout << " ~~ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordEnd (3 Metrics, 1 Span)" << std::endl;
-  if (OpenCensusStatsEnabled()) {
+  if (PythonOpenCensusStatsEnabled()) {
     std::vector<Label> labels = context_.Labels();
     labels.emplace_back(Label{kClientMethod, std::string(parent_->method_)});
     labels.emplace_back(Label{kClientStatus, StatusCodeToString(status_code_)});
@@ -257,7 +257,7 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordEnd(
     std::cout << " ________ENDDING Attempt. SPAN________" << std::endl;
     context_.EndSpan();
     if (IsSampled()) {
-      RecordSpan(context_.Span().ToSensusData());
+      RecordSpan(context_.Span().ToCensusData());
     }
   }
 

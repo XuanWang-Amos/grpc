@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import sys
 import logging
-import views
 import collections
+import threading
+from dataclasses import dataclass, field
 from typing import AnyStr, Optional, List, Tuple, Mapping
 from datetime import datetime
 
@@ -33,6 +36,8 @@ from opencensus.trace import execution_context, samplers
 from opencensus.trace import span_data as span_data_module
 from opencensus.trace import time_event
 from opencensus.trace import trace_options as trace_options_module
+
+from grpc_observability import _views
 
 logger = logging.getLogger(__name__)
 
@@ -55,33 +60,31 @@ VIEW_NAMES = [
     #   "grpc.io/server/server_latency"
 ]
 
-
-class gcpObservabilityConfig:
+@dataclass
+class GcpObservabilityConfig:
     _singleton = None
-
-    def __init__(self):
-        self.project_id = ""
-        self.monitoring_enabled = False
-        self.tracing_enabled = False
-        self.labels = []
-        self.sampler = None
-        self.sampling_rate = 0.0
-        self.tracer = None
+    _lock: threading.RLock = threading.RLock()
+    project_id: str = ""
+    stats_enabled: bool = False
+    tracing_enabled: bool = False
+    labels: List[_Label] = field(default_factory=list)
+    sampling_rate: float = 0.0
 
     @staticmethod
     def get():
-        if gcpObservabilityConfig._singleton is None:
-            gcpObservabilityConfig._singleton = gcpObservabilityConfig()
-        return gcpObservabilityConfig._singleton
+        with GcpObservabilityConfig._lock:
+            if GcpObservabilityConfig._singleton is None:
+                GcpObservabilityConfig._singleton = GcpObservabilityConfig()
+        return GcpObservabilityConfig._singleton
 
     def set_configuration(self,
                           project_id,
                           sampling_rate=0.0,
                           labels=None,
                           tracing_enabled=False,
-                          monitoring_enabled=False):
+                          stats_enabled=False):
         self.project_id = project_id
-        self.monitoring_enabled = monitoring_enabled
+        self.stats_enabled = stats_enabled
         self.tracing_enabled = tracing_enabled
         self.labels = []
         self.sampling_rate = sampling_rate
@@ -93,19 +96,19 @@ class gcpObservabilityConfig:
 
     def register_open_census_views(self, view_manager) -> None:
         # Client
-        view_manager.register_view(views.client_api_latency())
-        view_manager.register_view(views.client_started_rpcs())
-        view_manager.register_view(views.client_completed_rpcs())
-        view_manager.register_view(views.client_roundtrip_latency())
-        view_manager.register_view(views.client_sent_compressed_message_bytes_per_rpc())
-        view_manager.register_view(views.client_received_compressed_message_bytes_per_rpc())
+        view_manager.register_view(_views.client_api_latency())
+        view_manager.register_view(_views.client_started_rpcs())
+        view_manager.register_view(_views.client_completed_rpcs())
+        view_manager.register_view(_views.client_roundtrip_latency())
+        view_manager.register_view(_views.client_sent_compressed_message_bytes_per_rpc())
+        view_manager.register_view(_views.client_received_compressed_message_bytes_per_rpc())
 
         # Server
-        view_manager.register_view(views.server_started_rpcs())
-        view_manager.register_view(views.server_completed_rpcs())
-        view_manager.register_view(views.server_sent_compressed_message_bytes_per_rpc())
-        view_manager.register_view(views.server_received_compressed_message_bytes_per_rpc())
-        view_manager.register_view(views.server_server_latency())
+        view_manager.register_view(_views.server_started_rpcs())
+        view_manager.register_view(_views.server_completed_rpcs())
+        view_manager.register_view(_views.server_sent_compressed_message_bytes_per_rpc())
+        view_manager.register_view(_views.server_received_compressed_message_bytes_per_rpc())
+        view_manager.register_view(_views.server_server_latency())
 
     def set_tracer(self) -> None:
         current_tracer = execution_context.get_opencensus_tracer()
@@ -118,14 +121,14 @@ class gcpObservabilityConfig:
         # Create and Saves Tracer and Sampler to ContextVar
         sampler = samplers.ProbabilitySampler(rate=self.sampling_rate)
         # TODO: check existing SpanContext
-        self.tracer = Tracer(sampler=sampler, span_context=span_context)
+        tracer = Tracer(sampler=sampler, span_context=span_context)
 
     def __repr__(self):
         labels_str = "\n"
         for label in self.labels:
             labels_str += f"Key:{label.key}, TagKey:{label.tag_key}, Value:{label.value}\n"
 
-        rst = f"gcpObservabilityConfig(project_id={self.project_id},monitoring_enabled={self.monitoring_enabled}"
+        rst = f"GcpObservabilityConfig(project_id={self.project_id},stats_enabled={self.stats_enabled}"
         rst += f",tracing_enabled={self.tracing_enabled},sampling_rate={self.sampling_rate},labels={labels_str})"
         return rst
 
@@ -135,7 +138,7 @@ class gcpObservabilityConfig:
 def export_metric_batch(py_metrics_batch: list) -> None:
     if not py_metrics_batch:
         return
-    config = gcpObservabilityConfig.get()
+    config = GcpObservabilityConfig.get()
     stats = stats_module.stats
     stats_recorder = stats.stats_recorder
     mmap = stats_recorder.new_measurement_map()
@@ -152,7 +155,7 @@ def export_metric_batch(py_metrics_batch: list) -> None:
             sys.stderr.flush()
             mmap.measure_float_put(measure, metric.measure_value)
         else:
-            # sys.stderr.write(f"---->>> PY: measure_int_put with name:{measure.name}, value: {metric.measure_value}, tags: {tag_map.map}\n")
+            sys.stderr.write(f"---->>> PY: measure_int_put with name:{measure.name}, value: {metric.measure_value}, tags: {tag_map.map}\n")
             sys.stderr.flush()
             mmap.measure_int_put(measure, metric.measure_value)
 
@@ -163,14 +166,14 @@ def export_span_batch(py_span_batch: list) -> None:
     if not py_span_batch:
         return
 
-    config = gcpObservabilityConfig.get()
+    config = GcpObservabilityConfig.get()
     for span_data in py_span_batch:
         span_context = span_context_module.SpanContext(
             trace_id=span_data.trace_id,
             span_id=span_data.span_id,
             trace_options=trace_options_module.TraceOptions(1))
         span_data = _get_span_datas(span_data, span_context, config.labels)
-        # sys.stderr.write(f"---->>> PY: span_data: {span_data}\n")
+        sys.stderr.write(f"---->>> PY: span_data: {span_data}\n")
         # self.exporter.export(span_datas)
 
 

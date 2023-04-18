@@ -16,22 +16,22 @@
 
 namespace grpc_observability {
 
-void EnableOpenCensusStats(bool enable) {
+void EnablePythonOpenCensusStats(bool enable) {
   g_open_census_stats_enabled = enable;
 }
 
 
-void EnableOpenCensusTracing(bool enable) {
+void EnablePythonOpenCensusTracing(bool enable) {
   g_open_census_tracing_enabled = enable;
 }
 
 
-bool OpenCensusStatsEnabled() {
+bool PythonOpenCensusStatsEnabled() {
   return g_open_census_stats_enabled.load(std::memory_order_relaxed);
 }
 
 
-bool OpenCensusTracingEnabled() {
+bool PythonOpenCensusTracingEnabled() {
   return g_open_census_tracing_enabled.load(std::memory_order_relaxed);
 }
 
@@ -249,23 +249,23 @@ void Span::AddAnnotation(absl::string_view description) {
 }
 
 
-SpanSensusData Span::ToSensusData() {
-  SpanSensusData sensus_data;
+SpanCensusData Span::ToCensusData() {
+  SpanCensusData census_data;
   absl::TimeZone utc =  absl::UTCTimeZone();
-  sensus_data.name = name_;
+  census_data.name = name_;
   // Time string here will be exported to StackDriver directly.
   // See format details: https://cloud.google.com/trace/docs/reference/v2/rest/v2/projects.traces/batchWrite
-  sensus_data.start_time = absl::FormatTime("%Y-%m-%dT%H:%M:%E6SZ", start_time_, utc);
-  sensus_data.end_time = absl::FormatTime("%Y-%m-%dT%H:%M:%E6SZ", end_time_, utc);
-  sensus_data.trace_id = Context().TraceId();
-  sensus_data.span_id = Context().SpanId();
-  sensus_data.should_sample = Context().IsSampled();
-  sensus_data.parent_span_id = parent_span_id_;
-  sensus_data.status = status_;
-  sensus_data.span_labels = span_labels_;
-  sensus_data.span_annotations = span_annotations_;
-  sensus_data.child_span_count = child_span_count_;
-  return sensus_data;
+  census_data.start_time = absl::FormatTime("%Y-%m-%dT%H:%M:%E6SZ", start_time_, utc);
+  census_data.end_time = absl::FormatTime("%Y-%m-%dT%H:%M:%E6SZ", end_time_, utc);
+  census_data.trace_id = Context().TraceId();
+  census_data.span_id = Context().SpanId();
+  census_data.should_sample = Context().IsSampled();
+  census_data.parent_span_id = parent_span_id_;
+  census_data.status = status_;
+  census_data.span_labels = span_labels_;
+  census_data.span_annotations = span_annotations_;
+  census_data.child_span_count = child_span_count_;
+  return census_data;
 }
 
 }  // namespace grpc_observability

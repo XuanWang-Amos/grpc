@@ -16,8 +16,8 @@ from opencensus.stats import view as view_module
 from opencensus.stats import aggregation as aggregation_module
 from opencensus.tags.tag_key import TagKey
 
-from grpc_observability import measures
-from grpc_observability import open_census
+from grpc_observability import _measures
+from grpc_observability import _open_census
 
 # These measure definitions should be kept in sync across opencensus
 # implementations--see
@@ -65,7 +65,7 @@ def client_api_latency() -> view_module.View:
                             default_coulmns() +
                             [client_method_tag_key(),
                              client_status_tag_key()],
-                            measures.rpc_client_api_latency(),
+                            _measures.rpc_client_api_latency(),
                             millis_distribution_aggregation())
     return view
 
@@ -73,7 +73,7 @@ def client_started_rpcs() -> view_module.View:
     view = view_module.View("grpc.io/client/started_rpcs", "MOCK Description",
                             default_coulmns() +
                             [client_method_tag_key()],
-                            measures.rpc_client_started_rpcs(),
+                            _measures.rpc_client_started_rpcs(),
                             aggregation_module.CountAggregation())
     return view
 
@@ -83,7 +83,7 @@ def client_completed_rpcs() -> view_module.View:
                             default_coulmns() +
                             [client_method_tag_key(),
                              client_status_tag_key()],
-                            measures.rpc_client_roundtrip_latency(),
+                            _measures.rpc_client_roundtrip_latency(),
                             aggregation_module.CountAggregation())
     return view
 
@@ -92,7 +92,7 @@ def client_roundtrip_latency() -> view_module.View:
     view = view_module.View(
         "grpc.io/client/roundtrip_latency", "MOCK Description",
         default_coulmns() + [client_method_tag_key()],
-        measures.rpc_client_roundtrip_latency(),
+        _measures.rpc_client_roundtrip_latency(),
         millis_distribution_aggregation())
     return view
 
@@ -102,7 +102,7 @@ def client_sent_compressed_message_bytes_per_rpc() -> view_module.View:
         "grpc.io/client/sent_compressed_message_bytes_per_rpc",
         "MOCK Description", default_coulmns() +
         [client_method_tag_key(),
-         client_status_tag_key()], measures.rpc_client_send_bytes_per_prc(),
+         client_status_tag_key()], _measures.rpc_client_send_bytes_per_prc(),
         bytes_distribution_aggregation())
     return view
 
@@ -112,7 +112,7 @@ def client_received_compressed_message_bytes_per_rpc() -> view_module.View:
         "grpc.io/client/received_compressed_message_bytes_per_rpc",
         "MOCK Description", default_coulmns() +
         [client_method_tag_key(),
-         client_status_tag_key()], measures.rpc_client_received_bytes_per_rpc(),
+         client_status_tag_key()], _measures.rpc_client_received_bytes_per_rpc(),
         bytes_distribution_aggregation())
     return view
 
@@ -122,7 +122,7 @@ def server_started_rpcs() -> view_module.View:
     view = view_module.View("grpc.io/server/started_rpcs", "MOCK Description",
                             default_coulmns() +
                             [server_method_tag_key()],
-                            measures.rpc_server_started_rpcs(),
+                            _measures.rpc_server_started_rpcs(),
                             aggregation_module.CountAggregation())
     return view
 
@@ -132,7 +132,7 @@ def server_completed_rpcs() -> view_module.View:
                             default_coulmns() +
                             [server_method_tag_key(),
                              server_status_tag_key()],
-                            measures.rpc_server_server_latency(),
+                            _measures.rpc_server_server_latency(),
                             aggregation_module.CountAggregation())
     return view
 
@@ -142,7 +142,7 @@ def server_sent_compressed_message_bytes_per_rpc() -> view_module.View:
         "grpc.io/server/sent_compressed_message_bytes_per_rpc",
         "MOCK Description", default_coulmns() +
         [server_method_tag_key(),
-         server_status_tag_key()], measures.rpc_server_sent_bytes_per_rpc(),
+         server_status_tag_key()], _measures.rpc_server_sent_bytes_per_rpc(),
         bytes_distribution_aggregation())
     return view
 
@@ -152,7 +152,7 @@ def server_received_compressed_message_bytes_per_rpc() -> view_module.View:
         "grpc.io/server/received_compressed_message_bytes_per_rpc",
         "MOCK Description", default_coulmns() +
         [server_method_tag_key(),
-         server_status_tag_key()], measures.rpc_server_received_bytes_per_rpc(),
+         server_status_tag_key()], _measures.rpc_server_received_bytes_per_rpc(),
         bytes_distribution_aggregation())
     return view
 
@@ -162,7 +162,7 @@ def server_server_latency() -> view_module.View:
                             default_coulmns() +
                             [server_method_tag_key(),
                              server_status_tag_key()],
-                            measures.rpc_server_server_latency(),
+                            _measures.rpc_server_server_latency(),
                             millis_distribution_aggregation())
     return view
 
@@ -181,5 +181,5 @@ def _get_exponential_boundaries(num_finite_buckets: int, scale: float,
 
 # Default columns inlcudes user provided labels as TagKey.
 def default_coulmns():
-    config = open_census.gcpObservabilityConfig.get()
+    config = _open_census.GcpObservabilityConfig.get()
     return [label.tag_key for label in config.labels]

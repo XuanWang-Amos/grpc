@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
+import grpc
 
 _INTERNAL_CALL_ERROR_MESSAGE_FORMAT = (
     'Internal gRPC call error %d. ' +
@@ -72,15 +72,11 @@ cdef class _CallState:
   def __cinit__(self):
     self.due = set()
 
-  def del_call_tracer(self):
-    sys.stderr.write(f"~~~~~~~~~~~~~~ CPY: calling del_call_tracer\n"); sys.stderr.flush()
-    if cpython.PyCapsule_IsValid(self.call_tracer_capsule, "client_call_tracer"):
-      capsule_ptr = cpython.PyCapsule_GetPointer(self.call_tracer_capsule, "client_call_tracer")
-      #sys.stderr.write(f"~~~~~~~~~~~~~~ capsule_ptr: {capsule_ptr}\n"); sys.stderr.flush()
-      call_tracer_ptr = <ClientCallTracer*>capsule_ptr
-      #printf("~~~~~~~~~~~~~~ <CallTracer*>capsule_ptr: %p\n", call_tracer_ptr)
-      sys.stderr.write(f"~~~~~~~~~~~~~~ CPY: deling call_tracer_ptr\n"); sys.stderr.flush()
-      del call_tracer_ptr
+  def maybe_delete_call_tracer(self) -> None:
+    observability = get_grpc_observability()
+    if not (observability and observability._tracing_enabled()):
+      return
+    observability.delete_client_call_tracer(self.call_tracer_capsule)
 
 cdef class _ChannelState:
 
@@ -241,8 +237,7 @@ cdef void _call(
       if host_slice_ptr:
         grpc_slice_unref(host_slice)
 
-      if observability_enabled():
-        set_client_call_tracer_on_call(call_state, method)
+      mapbe_set_client_call_tracer_on_call(call_state, method)
 
       if context is not None:
         set_census_context_on_call(call_state, context)
@@ -252,6 +247,7 @@ cdef void _call(
             call_state.c_call, c_call_credentials)
         grpc_call_credentials_release(c_call_credentials)
         if c_call_error != GRPC_CALL_OK:
+          #TODO(xuanwn): Expand the scope of nogil
           with nogil:
             grpc_call_unref(call_state.c_call)
           call_state.c_call = NULL
@@ -263,6 +259,7 @@ cdef void _call(
           started_tags.add(tag)
         else:
           grpc_call_cancel(call_state.c_call, NULL)
+          #TODO(xuanwn): Expand the scope of nogil
           with nogil:
             grpc_call_unref(call_state.c_call)
           call_state.c_call = NULL
@@ -281,6 +278,7 @@ cdef void _process_integrated_call_tag(
   if not call_state.due:
     with nogil:
       grpc_call_unref(call_state.c_call)
+      #TODO(xuanwn): Delete callTracer
     call_state.c_call = NULL
 
 
@@ -321,10 +319,11 @@ cdef object _process_segregated_call_tag(
   call_state.due.remove(tag)
   if not call_state.due:
     sys.stderr.write(f"~~~~~~~~~~~~~~ CPY: calling grpc_call_unref\n"); sys.stderr.flush()
+    #TODO(xuanwn): Expand the scope of nogil
     with nogil:
       grpc_call_unref(call_state.c_call)
     call_state.c_call = NULL
-    call_state.del_call_tracer()
+    call_state.maybe_delete_call_tracer()
     state.segregated_call_states.remove(call_state)
     _destroy_c_completion_queue(c_completion_queue)
     return True

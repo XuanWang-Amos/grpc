@@ -20,7 +20,6 @@
 #include <chrono>
 #include <mutex>
 #include <map>
-// #include <Python.h>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/status/status.h"
@@ -44,17 +43,16 @@
 namespace grpc_observability {
 
 struct CensusData {
-  CensusData() {}
-  CensusData(Measurement mm, std::vector<Label> labels)
-      : type(kMetricData), labels(std::move(labels)), measurement_data(mm)  {}
-  CensusData(SpanSensusData sd)
-      : type(kSpanData), span_data(sd) {}
-
   DataType type;
   std::vector<Label> labels;
   // TODO(xuanwn): We can use union here
-  SpanSensusData span_data;
+  SpanCensusData span_data;
   Measurement measurement_data;
+  CensusData() {}
+  CensusData(Measurement mm, std::vector<Label> labels)
+      : type(kMetricData), labels(std::move(labels)), measurement_data(mm)  {}
+  CensusData(SpanCensusData sd)
+      : type(kSpanData), span_data(sd) {}
 };
 
 struct CloudMonitoring {
@@ -62,9 +60,9 @@ struct CloudMonitoring {
 };
 
 struct CloudTrace {
+  float sampling_rate = 0.0;
   CloudTrace() {}
   CloudTrace(double sr) : sampling_rate(sr) {}
-  float sampling_rate = 0.0;
 };
 
 struct CloudLogging {
@@ -72,20 +70,21 @@ struct CloudLogging {
 };
 
 struct GcpObservabilityConfig {
-  GcpObservabilityConfig() {}
-  GcpObservabilityConfig(CloudMonitoring cm, CloudTrace ct, CloudLogging cl,
-             std::string pi, std::vector<Label> ls)
-      : cloud_monitoring(cm), cloud_trace(ct), cloud_logging(cl), project_id(pi), labels(ls) {}
   CloudMonitoring cloud_monitoring;
   CloudTrace cloud_trace;
   CloudLogging cloud_logging;
   std::string project_id;
   std::vector<Label> labels;
+  GcpObservabilityConfig() {}
+  GcpObservabilityConfig(CloudMonitoring cloud_monitoring, CloudTrace cloud_trace, CloudLogging cloud_logging,
+                         std::string project_id, std::vector<Label> labels)
+    : cloud_monitoring(cloud_monitoring), cloud_trace(cloud_trace), cloud_logging(cloud_logging),
+      project_id(project_id), labels(labels) {}
 };
 
-extern std::queue<CensusData> kSensusDataBuffer;
-extern std::mutex kSensusDataBufferMutex;
-extern std::condition_variable SensusDataBufferCV;
+extern std::queue<CensusData>* kCensusDataBuffer;
+extern std::mutex kCensusDataBufferMutex;
+extern std::condition_variable CensusDataBufferCV;
 
 void* CreateClientCallTracer(char* method, char* trace_id, char* parent_span_id);
 
@@ -93,11 +92,12 @@ void* CreateServerCallTracerFactory();
 
 void gcpObservabilityInit();
 
-void AwaitNextBatch(int delay);
+// void AwaitNextBatchLocked(int timeout_ms);
+void AwaitNextBatchLocked(std::unique_lock<std::mutex>& lock, int timeout_ms);
 
-void LockSensusDataBuffer();
+void LockCensusDataBuffer();
 
-void UnlockSensusDataBuffer();
+void UnlockCensusDataBuffer();
 
 void AddCensusDataToBuffer(CensusData buffer);
 
@@ -105,7 +105,7 @@ void RecordIntMetric(MetricsName name, int64_t value, std::vector<Label> labels)
 
 void RecordDoubleMetric(MetricsName name, double value, std::vector<Label> labels);
 
-void RecordSpan(SpanSensusData span_sensus_data);
+void RecordSpan(SpanCensusData span_census_data);
 
 GcpObservabilityConfig ReadObservabilityConfig();
 

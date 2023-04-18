@@ -209,8 +209,6 @@ class ObservabilityTest(unittest.TestCase):
 
         with observability.Observability() as o11y:
 
-            o11y.init()
-
             sys.stderr.write("PY: Creating server\n")
             sys.stderr.flush()
             self._server = test_common.test_server()

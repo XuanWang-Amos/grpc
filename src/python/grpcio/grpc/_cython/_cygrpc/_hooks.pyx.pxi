@@ -12,12 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+from libcpp.cast cimport static_cast
+import codecs
+import grpc
 
 cdef object _custom_op_on_c_call(int op, grpc_call *call):
   raise NotImplementedError("No custom hooks are implemented")
 
 def install_context_from_request_call_event(RequestCallEvent event):
-  pass
+  observability = get_grpc_observability()
+  if not (observability and observability._observability_enabled()):
+    return
+  sys.stderr.write("CPY: calling get_server_call_tracer...\n"); sys.stderr.flush()
+  cdef ServerCallTracer* server_call_tracer
+  server_call_tracer = static_cast['ServerCallTracer*'](grpc_call_get_call_tracer(event.call.c_call))
+  if observability._tracing_enabled():
+    # TraceId and SpanId is hex string, need to convert to str
+    trace_id = _decode(codecs.decode(server_call_tracer.TraceId(), 'hex_codec'))
+    span_id = _decode(codecs.decode(server_call_tracer.SpanId(), 'hex_codec'))
+    is_sampled = server_call_tracer.IsSampled()
+    sys.stderr.write(f"CPY: server side context from core with trace_id: {trace_id} span_id: {span_id} is_sampled: {is_sampled}\n"); sys.stderr.flush()
+    observability.save_span_context(trace_id, span_id, is_sampled)
 
 def uninstall_context():
   pass
