@@ -45,7 +45,7 @@ class GrpcObservability(Generic[PyCapsule], metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def save_span_context(self, trace_id: str, span_id: str, is_sampled: bool) -> None:
+    def save_trace_context(self, trace_id: str, span_id: str, is_sampled: bool) -> None:
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -80,7 +80,7 @@ class GrpcObservability(Generic[PyCapsule], metaclass=abc.ABCMeta):
 
 def observability_init(grpc_observability: GrpcObservability) -> None:
     setattr(grpc, "_grpc_observability", grpc_observability)
-    sys.stderr.write(f"ERROR: setattr(grpc): {type(getattr(grpc, '_grpc_observability', None))}\n"); sys.stderr.flush()
+    sys.stderr.write(f"setattr(grpc): {type(getattr(grpc, '_grpc_observability', None))}\n"); sys.stderr.flush()
     try:
         _cygrpc.set_server_call_tracer_factory()
     except Exception as e:  # pylint:disable=broad-except

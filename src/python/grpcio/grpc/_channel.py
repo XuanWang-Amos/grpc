@@ -199,7 +199,7 @@ def _handle_event(
                     state.details = batch_operation.details()
                     state.debug_error_string = batch_operation.error_string()
             state.rpc_end_time = datetime.utcnow()
-            cygrpc.record_rpc_latency(state)
+            cygrpc.maybe_record_rpc_latency(state)
             callbacks.extend(state.callbacks)
             state.callbacks = None
     return callbacks

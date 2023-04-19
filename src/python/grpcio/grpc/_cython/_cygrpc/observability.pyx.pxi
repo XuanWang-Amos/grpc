@@ -15,16 +15,30 @@ cdef const char* SERVER_CALL_TRACER_FACTORY = "gcp_opencensus_server_call_tracer
 
 def set_server_call_tracer_factory() -> None:
   observability = get_grpc_observability()
+  if not observability:
+    return
   capsule = observability.create_server_call_tracer_factory()
   capsule_ptr = cpython.PyCapsule_GetPointer(capsule, SERVER_CALL_TRACER_FACTORY)
-  register_server_call_tracer_factory(capsule_ptr)
+  _register_server_call_tracer_factory(capsule_ptr)
 
 
-def set_context_from_server_call_tracer(RequestCallEvent event) -> None:
-  pass
+def maybe_save_server_trace_context(RequestCallEvent event) -> None:
+  observability = get_grpc_observability()
+  if not (observability and observability._observability_enabled()):
+    return
+  sys.stderr.write("CPY: calling get_server_call_tracer...\n"); sys.stderr.flush()
+  cdef ServerCallTracer* server_call_tracer
+  server_call_tracer = static_cast['ServerCallTracer*'](_get_call_tracer(event.call.c_call))
+  if observability._tracing_enabled():
+    # TraceId and SpanId is hex string, need to convert to str
+    trace_id = _decode(codecs.decode(server_call_tracer.TraceId(), 'hex_codec'))
+    span_id = _decode(codecs.decode(server_call_tracer.SpanId(), 'hex_codec'))
+    is_sampled = server_call_tracer.IsSampled()
+    sys.stderr.write(f"CPY: server side context from core with trace_id: {trace_id} span_id: {span_id} is_sampled: {is_sampled}\n"); sys.stderr.flush()
+    observability.save_trace_context(trace_id, span_id, is_sampled)
 
 
-def record_rpc_latency(state) -> None:
+def maybe_record_rpc_latency(state) -> None:
   observability = get_grpc_observability()
   if not (observability and observability._stats_enabled()):
     return
@@ -43,20 +57,20 @@ cdef void mapbe_set_client_call_tracer_on_call(_CallState call_state, bytes meth
     return
   capsule = observability.create_client_call_tracer_capsule(method)
   capsule_ptr = cpython.PyCapsule_GetPointer(capsule, CLIENT_CALL_TRACER)
-  set_call_tracer(call_state.c_call, capsule_ptr)
+  _set_call_tracer(call_state.c_call, capsule_ptr)
   call_state.call_tracer_capsule = capsule
 
 
-cdef void set_call_tracer(grpc_call* call, void* capsule_ptr):
+cdef void _set_call_tracer(grpc_call* call, void* capsule_ptr):
   cdef ClientCallTracer* call_tracer = <ClientCallTracer*>capsule_ptr
   grpc_call_context_set(call, GRPC_CONTEXT_CALL_TRACER_ANNOTATION_INTERFACE, call_tracer, NULL)
 
 
-cdef void register_server_call_tracer_factory(void* capsule_ptr):
+cdef void _register_server_call_tracer_factory(void* capsule_ptr):
   cdef ServerCallTracerFactory* call_tracer_factory = <ServerCallTracerFactory*>capsule_ptr
   ServerCallTracerFactory.RegisterGlobal(call_tracer_factory)
 
 
-cdef void* get_call_tracer(grpc_call* call):
+cdef void* _get_call_tracer(grpc_call* call):
   cdef void* call_tracer = grpc_call_context_get(call, GRPC_CONTEXT_CALL_TRACER_ANNOTATION_INTERFACE)
   return call_tracer

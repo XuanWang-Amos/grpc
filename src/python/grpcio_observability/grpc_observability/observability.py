@@ -88,7 +88,7 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
     def delete_client_call_tracer(self, client_call_tracer_capsule: PyCapsule) -> None:
         _cyobservability.delete_client_call_tracer(client_call_tracer_capsule)
 
-    def save_span_context(self, trace_id: str, span_id: str, is_sampled: bool) -> None:
+    def save_trace_context(self, trace_id: str, span_id: str, is_sampled: bool) -> None:
         trace_options = trace_options_module.TraceOptions(0)
         trace_options.set_enabled(is_sampled)
         span_context = span_context_module.SpanContext(trace_id=trace_id,
