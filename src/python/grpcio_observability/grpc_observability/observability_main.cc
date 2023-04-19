@@ -122,13 +122,12 @@ GcpObservabilityConfig ReadObservabilityConfig() {
   auto config = grpc::internal::GcpObservabilityConfig::ReadFromEnv();
 
   if (!config.ok()) {
-    std::cout << ">>>>> !config.ok <<<<< " << std::endl;
     return GcpObservabilityConfig();
   }
+
   if (!config->cloud_trace.has_value() &&
       !config->cloud_monitoring.has_value() &&
       !config->cloud_logging.has_value()) {
-    std::cout << ">>>>> config no value for all <<<<< " << std::endl;
     return GcpObservabilityConfig();
   }
 

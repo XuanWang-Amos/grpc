@@ -19,7 +19,7 @@ import sys
 import os
 import logging
 from threading import Thread
-from typing import List, Tuple, Mapping, TypeVar
+from typing import List, Tuple, Mapping, TypeVar, Optional
 
 from grpc_observability import _open_census
 from grpc_observability import _measures
@@ -112,13 +112,15 @@ def _start_exporting_thread() -> None:
   global_export_thread.start()
 
 
-def read_gcp_observability_config() -> _open_census.GcpObservabilityConfig:
+def read_gcp_observability_config() -> Optional[_open_census.GcpObservabilityConfig]:
   py_labels = {}
   sampling_rate = 0.0
   tracing_enabled = False
   stats_enabled = False
 
   cdef cGcpObservabilityConfig c_config = ReadObservabilityConfig()
+  if not c_config.is_valid:
+    return None
 
   for label in c_config.labels:
     py_labels[_decode(label.key)] = _decode(label.value)

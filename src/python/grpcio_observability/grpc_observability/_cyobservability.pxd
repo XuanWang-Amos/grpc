@@ -113,6 +113,7 @@ cdef extern from "observability_main.h" namespace "grpc_observability":
     CloudLogging cloud_logging
     string project_id
     vector[Label] labels
+    bint is_valid
 
 cdef extern from "constants.h" namespace "grpc_observability":
   ctypedef enum DataType:

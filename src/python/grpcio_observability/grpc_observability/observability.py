@@ -13,15 +13,18 @@
 # limitations under the License.
 
 import sys
-import grpc
+import logging
 from typing import Any, Optional, TypeVar, Generic
 
 from opencensus.trace import execution_context
 from opencensus.trace import span_context as span_context_module
 from opencensus.trace import trace_options as trace_options_module
 
+import grpc
 from grpc_observability import _cyobservability
 import _open_census
+
+_LOGGER = logging.getLogger(__name__)
 
 PyCapsule = TypeVar('PyCapsule')
 
@@ -45,10 +48,15 @@ class Observability:
         # 3. Create and Saves Tracer and Sampler to ContextVar.
         # TODO(xuanwn): Errors out if config is invalid.
         config = _cyobservability.read_gcp_observability_config()
+        if not config:
+            raise ValueError("Invalid configuration")
         sys.stderr.write(f"found config in Observability: {config}\n"); sys.stderr.flush()
 
         # 4. Start exporting thread.
-        _cyobservability.cyobservability_init()
+        try:
+            _cyobservability.cyobservability_init()
+        except Exception as e:
+            _LOGGER.exception("grpc_observability init failed with: {}".format(e))
 
         # 5. Init grpc.
         grpc_observability = GCPOpenCensusObservability(config)

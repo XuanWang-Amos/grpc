@@ -75,11 +75,12 @@ struct GcpObservabilityConfig {
   CloudLogging cloud_logging;
   std::string project_id;
   std::vector<Label> labels;
-  GcpObservabilityConfig() {}
+  bool is_valid;
+  GcpObservabilityConfig(): is_valid(false) {}
   GcpObservabilityConfig(CloudMonitoring cloud_monitoring, CloudTrace cloud_trace, CloudLogging cloud_logging,
                          std::string project_id, std::vector<Label> labels)
     : cloud_monitoring(cloud_monitoring), cloud_trace(cloud_trace), cloud_logging(cloud_logging),
-      project_id(project_id), labels(labels) {}
+      project_id(project_id), labels(labels), is_valid(true) {}
 };
 
 extern std::queue<CensusData>* kCensusDataBuffer;
