@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from observability import Observability
+from observability import GCPOpenCensusObservability
 
-__all__ = ['Observability']
+__all__ = ['GCPOpenCensusObservability']

@@ -19,10 +19,11 @@ import sys
 import os
 import logging
 from threading import Thread
-from typing import List, Tuple, Mapping, TypeVar, Optional
+from typing import Any, AnyStr, List, Tuple, Mapping, TypeVar, Optional
 
 from grpc_observability import _open_census
 from grpc_observability import _measures
+from grpc_observability import _views
 
 cdef const char* CLIENT_CALL_TRACER = "gcp_opencensus_client_call_tracer"
 cdef const char* SERVER_CALL_TRACER_FACTORY = "gcp_opencensus_server_call_tracer_factory"
@@ -30,7 +31,6 @@ cdef bint GLOBAL_SHUTDOWN_EXPORT_THREAD = False
 cdef object global_export_thread
 
 _LOGGER = logging.getLogger(__name__)
-PyCapsule = TypeVar('PyCapsule')
 
 class PyMetric:
   def __init__(self, measurement, labels):
@@ -100,14 +100,15 @@ METRICS_NAME_TO_MEASURE = {
   MetricsName.SERVER_STARTED_RPCS: _measures.rpc_server_started_rpcs(),
 }
 
-def cyobservability_init() -> None:
+
+def cyobservability_init(object exporter) -> None:
   gcpObservabilityInit() # remove print buffer
-  _start_exporting_thread()
+  _start_exporting_thread(exporter)
 
 
-def _start_exporting_thread() -> None:
+def _start_exporting_thread(object exporter) -> None:
   global global_export_thread
-  global_export_thread = Thread(target=_export_census_data)
+  global_export_thread = Thread(target=_export_census_data, args=(exporter,))
   printf("> Exporting Thread: ------------ STARTING Exporting Thread ------------\n")
   global_export_thread.start()
 
@@ -159,7 +160,7 @@ def create_server_call_tracer_factory_capsule() -> cpython.PyObject:
   return capsule
 
 
-def delete_client_call_tracer(client_call_tracer_capsule: PyCapsule) -> None:
+def delete_client_call_tracer(object client_call_tracer_capsule) -> None:
   sys.stderr.write(f"~~~~~~~~~~~~~~ CPY: calling delete_client_call_tracer\n"); sys.stderr.flush()
   if cpython.PyCapsule_IsValid(client_call_tracer_capsule, "gcp_opencensus_client_call_tracer"):
     capsule_ptr = cpython.PyCapsule_GetPointer(client_call_tracer_capsule, "gcp_opencensus_client_call_tracer")
@@ -169,14 +170,14 @@ def delete_client_call_tracer(client_call_tracer_capsule: PyCapsule) -> None:
     sys.stderr.write(f"~~~~~~~~~~~~~~ CPY: deling call_tracer_ptr\n"); sys.stderr.flush()
     del call_tracer_ptr
 
-def _c_label_to_labels(cLabels) -> Mapping[str, str]:
+def _c_label_to_labels(object cLabels) -> Mapping[str, str]:
   py_labels = {}
   for label in cLabels:
     py_labels[_decode(label['key'])] = _decode(label['value'])
   return py_labels
 
 
-def _c_annotation_to_annotations(cAnnotations) -> List[Tuple[str, str]]:
+def _c_annotation_to_annotations(object cAnnotations) -> List[Tuple[str, str]]:
   py_annotations = []
   for annotation in cAnnotations:
     py_annotations.append((_decode(annotation['time_stamp']),
@@ -188,7 +189,7 @@ def at_observability_exit() -> None:
   _shutdown_exporting_thread()
 
 
-def _record_rpc_latency(str method, float rpc_latency, status_code) -> None:
+def _record_rpc_latency(object exporter, str method, float rpc_latency, status_code) -> None:
   measurement = {}
   measurement['name'] = kRpcClientApiLatencyMeasureName
   measurement['type'] = kMeasurementDouble
@@ -198,10 +199,10 @@ def _record_rpc_latency(str method, float rpc_latency, status_code) -> None:
   labels[_decode(kClientMethod)] = method.strip("/")
   labels[_decode(kClientStatus)] = status_code
   metric = PyMetric(measurement, labels)
-  _open_census.export_metric_batch([metric])
+  exporter.export_stats_data([metric])
 
 
-cdef void _export_census_data():
+cdef void _export_census_data(object exporter):
   while True:
     with nogil:
       while not GLOBAL_SHUTDOWN_EXPORT_THREAD:
@@ -217,14 +218,14 @@ cdef void _export_census_data():
         else:
           del lk
 
-    _flush_census_data()
+    _flush_census_data(exporter)
 
     if GLOBAL_SHUTDOWN_EXPORT_THREAD:
       break # Break to shutdown exporting thead
   sys.stderr.write(f"> Exporting Thread: _export_census_data shutting down...\n"); sys.stderr.flush()
 
 
-cdef void _flush_census_data():
+cdef void _flush_census_data(object exporter):
   lk = new unique_lock[mutex](kCensusDataBufferMutex)
   with nogil:
     if kCensusDataBuffer.empty():
@@ -246,8 +247,8 @@ cdef void _flush_census_data():
       py_spans_batch.append(py_span)
     kCensusDataBuffer.pop()
 
-  _open_census.export_metric_batch(py_metrics_batch)
-  _open_census.export_span_batch(py_spans_batch)
+  exporter.export_stats_data(py_metrics_batch)
+  exporter.export_tracing_data(py_spans_batch)
   del lk
 
 cdef void _shutdown_exporting_thread():

@@ -182,4 +182,4 @@ def _get_exponential_boundaries(num_finite_buckets: int, scale: float,
 # Default columns inlcudes user provided labels as TagKey.
 def default_coulmns():
     config = _open_census.GcpObservabilityConfig.get()
-    return [label.tag_key for label in config.labels]
+    return [TagKey(key) for key in config.labels.keys()]

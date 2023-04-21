@@ -14,7 +14,8 @@
 
 import sys
 import logging
-from typing import Any, Optional, TypeVar, Generic
+import abc
+from typing import Any, Optional, TypeVar, Generic, List
 
 from opencensus.trace import execution_context
 from opencensus.trace import span_context as span_context_module
@@ -22,54 +23,56 @@ from opencensus.trace import trace_options as trace_options_module
 
 import grpc
 from grpc_observability import _cyobservability
-import _open_census
+from grpc_observability import _open_census
 
 _LOGGER = logging.getLogger(__name__)
 
 PyCapsule = TypeVar('PyCapsule')
 
-class Observability:
+
+class GCPOpenCensusObservability(grpc.GrpcObservability):
+    exporter: _open_census.Exporter
+    config: _open_census.GcpObservabilityConfig
 
     def __init__(self):
-        pass
+        # 1. Read config.
+        # 2. Creating measures and register views.
+        # 3. Create and Saves Tracer and Sampler to ContextVar.
+        self.config = _cyobservability.read_gcp_observability_config()
+        if not self.config:
+            raise ValueError("Invalid configuration")
+        sys.stderr.write(f"found config in Observability: {self.config}\n"); sys.stderr.flush()
 
-    def __enter__(self):
-        self.init()
+        if self.config.tracing_enabled:
+            self._enable_tracing()
+        if self.config.stats_enabled:
+            self._enable_stats()
+
+    def init(self, exporter: Optional[_open_census.Exporter]=None) -> None:
+        if exporter:
+            self.exporter = exporter
+        else:
+            self.exporter = _open_census.OpenCensusExporter(self.config)
+
+        # 4. Start exporting thread.
+        try:
+            _cyobservability.cyobservability_init(self.exporter)
+        except Exception as e:
+            _LOGGER.exception("grpc_observability init failed with: {}".format(e))
+
+        # 5. Init grpc.
+        grpc.observability_init(self)
+
+    def exit(self) -> None:
+        _cyobservability.at_observability_exit()
+
+    def __enter__(self) -> None:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         sys.stderr.write("\nPY: Calling Observability.__exit__\n")
         sys.stderr.flush()
         _cyobservability.at_observability_exit()
-
-    def init(self) -> None:
-        # 1. Read config.
-        # 2. Creating measures and register views.
-        # 3. Create and Saves Tracer and Sampler to ContextVar.
-        # TODO(xuanwn): Errors out if config is invalid.
-        config = _cyobservability.read_gcp_observability_config()
-        if not config:
-            raise ValueError("Invalid configuration")
-        sys.stderr.write(f"found config in Observability: {config}\n"); sys.stderr.flush()
-
-        # 4. Start exporting thread.
-        try:
-            _cyobservability.cyobservability_init()
-        except Exception as e:
-            _LOGGER.exception("grpc_observability init failed with: {}".format(e))
-
-        # 5. Init grpc.
-        grpc_observability = GCPOpenCensusObservability(config)
-        grpc.observability_init(grpc_observability)
-
-
-class GCPOpenCensusObservability(grpc.GrpcObservability):
-
-    def __init__(self, config: _open_census.GcpObservabilityConfig):
-        if config.tracing_enabled:
-            self._enable_tracing()
-        if config.stats_enabled:
-            self._enable_stats()
 
     def create_client_call_tracer_capsule(self, method: bytes) -> PyCapsule:
         current_span = execution_context.get_current_span()
@@ -108,7 +111,7 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
     def record_rpc_latency(self, method: str, rpc_latency: float, status_code: Any) -> None:
         status_code = GRPC_STATUS_CODE_TO_STRING.get(status_code, "UNKNOWN")
         sys.stderr.write(f"PY: found double_measure: {method}, {rpc_latency}, {status_code}\n"); sys.stderr.flush()
-        _cyobservability._record_rpc_latency(method, rpc_latency, status_code)
+        _cyobservability._record_rpc_latency(self.exporter, method, rpc_latency, status_code)
 
 
 GRPC_STATUS_CODE_TO_STRING = {

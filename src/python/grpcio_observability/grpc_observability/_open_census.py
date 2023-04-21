@@ -14,12 +14,13 @@
 
 from __future__ import annotations
 
+import abc
 import sys
 import logging
 import collections
 import threading
 from dataclasses import dataclass, field
-from typing import AnyStr, Optional, List, Tuple, Mapping
+from typing import Any, AnyStr, Optional, List, Tuple, Mapping
 from datetime import datetime
 
 from google.rpc import code_pb2
@@ -39,13 +40,9 @@ from opencensus.trace import trace_options as trace_options_module
 
 from grpc_observability import _views
 
-logger = logging.getLogger(__name__)
+_cyobservability = Any  # _cyobservability.py imports this module.
 
-_Label = collections.namedtuple('_Label', (
-    'key',
-    'tag_key',
-    'value',
-))
+logger = logging.getLogger(__name__)
 
 VIEW_NAMES = [
     "grpc.io/client/started_rpcs",
@@ -60,37 +57,20 @@ VIEW_NAMES = [
     #   "grpc.io/server/server_latency"
 ]
 
-@dataclass
-class GcpObservabilityConfig:
-    _singleton = None
-    _lock: threading.RLock = threading.RLock()
-    project_id: str = ""
-    stats_enabled: bool = False
-    tracing_enabled: bool = False
-    labels: List[_Label] = field(default_factory=list)
-    sampling_rate: float = 0.0
+class Exporter(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def export_stats_data(self, stats_data: List[_cyobservability.PyMetric]):
+        raise NotImplementedError()
 
-    @staticmethod
-    def get():
-        with GcpObservabilityConfig._lock:
-            if GcpObservabilityConfig._singleton is None:
-                GcpObservabilityConfig._singleton = GcpObservabilityConfig()
-        return GcpObservabilityConfig._singleton
+    @abc.abstractmethod
+    def export_tracing_data(self, tracing_data: List[_cyobservability.PySpan]):
+        raise NotImplementedError()
 
-    def set_configuration(self,
-                          project_id,
-                          sampling_rate=0.0,
-                          labels=None,
-                          tracing_enabled=False,
-                          stats_enabled=False):
-        self.project_id = project_id
-        self.stats_enabled = stats_enabled
-        self.tracing_enabled = tracing_enabled
-        self.labels = []
-        self.sampling_rate = sampling_rate
-        for key, value in labels.items():
-            self.labels.append(_Label(key, TagKey(key), value))
 
+class OpenCensusExporter(Exporter):
+
+    def __init__(self, config: GcpObservabilityConfig):
+        self.default_labels = config.get().labels
         view_manager = stats_module.stats.view_manager
         self.register_open_census_views(view_manager)
 
@@ -110,6 +90,74 @@ class GcpObservabilityConfig:
         view_manager.register_view(_views.server_received_compressed_message_bytes_per_rpc())
         view_manager.register_view(_views.server_server_latency())
 
+
+    def export_stats_data(self, stats_data: List["_cyobservability.PyMetric"]):
+        stats = stats_module.stats
+        stats_recorder = stats.stats_recorder
+        mmap = stats_recorder.new_measurement_map()
+
+        for metric in stats_data:
+            measure = metric.measure
+            if measure is None:
+                continue
+
+            labels = metric.labels
+            labels.update(self.default_labels)
+            tag_map = TagMap()
+            for key, value in labels.items():
+                tag_map.insert(TagKey(key), TagValue(value))
+
+            if metric.measure_double:
+                sys.stderr.write(f"---->>> PY: measure_float_put with name:{measure.name}, value: {metric.measure_value}, tags: {tag_map.map}\n")
+                sys.stderr.flush()
+                mmap.measure_float_put(measure, metric.measure_value)
+            else:
+                sys.stderr.write(f"---->>> PY: measure_int_put with name:{measure.name}, value: {metric.measure_value}, tags: {tag_map.map}\n")
+                sys.stderr.flush()
+                mmap.measure_int_put(measure, metric.measure_value)
+
+            mmap.record(tag_map)
+
+
+    def export_tracing_data(self, tracing_data: List["_cyobservability.PySpan"]):
+        for span_data in tracing_data:
+            span_context = span_context_module.SpanContext(
+                trace_id=span_data.trace_id,
+                span_id=span_data.span_id,
+                trace_options=trace_options_module.TraceOptions(1))
+            span_data = _get_span_datas(span_data, span_context, self.default_labels)
+            sys.stderr.write(f"---->>> PY: span_data: {span_data}\n")
+
+
+@dataclass
+class GcpObservabilityConfig:
+    _singleton = None
+    _lock: threading.RLock = threading.RLock()
+    project_id: str = ""
+    stats_enabled: bool = False
+    tracing_enabled: bool = False
+    labels: Mapping[str, str] = field(default_factory=dict)
+    sampling_rate: float = 0.0
+
+    @staticmethod
+    def get():
+        with GcpObservabilityConfig._lock:
+            if GcpObservabilityConfig._singleton is None:
+                GcpObservabilityConfig._singleton = GcpObservabilityConfig()
+        return GcpObservabilityConfig._singleton
+
+    def set_configuration(self,
+                          project_id,
+                          sampling_rate=0.0,
+                          labels={},
+                          tracing_enabled=False,
+                          stats_enabled=False):
+        self.project_id = project_id
+        self.stats_enabled = stats_enabled
+        self.tracing_enabled = tracing_enabled
+        self.labels = labels
+        self.sampling_rate = sampling_rate
+
     def set_tracer(self) -> None:
         current_tracer = execution_context.get_opencensus_tracer()
         trace_id = current_tracer.span_context.trace_id
@@ -125,81 +173,11 @@ class GcpObservabilityConfig:
 
     def __repr__(self):
         labels_str = "\n"
-        for label in self.labels:
-            labels_str += f"Key:{label.key}, TagKey:{label.tag_key}, Value:{label.value}\n"
-
         rst = f"GcpObservabilityConfig(project_id={self.project_id},stats_enabled={self.stats_enabled}"
         rst += f",tracing_enabled={self.tracing_enabled},sampling_rate={self.sampling_rate},labels={labels_str})"
         return rst
 
     __str__ = __repr__
-
-
-def export_metric_batch(py_metrics_batch: list) -> None:
-    if not py_metrics_batch:
-        return
-    config = GcpObservabilityConfig.get()
-    stats = stats_module.stats
-    stats_recorder = stats.stats_recorder
-    mmap = stats_recorder.new_measurement_map()
-
-    for metric in py_metrics_batch:
-        measure = metric.measure
-        if measure is None:
-            continue
-
-        tag_map = _get_tag_map(metric.labels, config.labels)
-
-        if metric.measure_double:
-            sys.stderr.write(f"---->>> PY: measure_float_put with name:{measure.name}, value: {metric.measure_value}, tags: {tag_map.map}\n")
-            sys.stderr.flush()
-            mmap.measure_float_put(measure, metric.measure_value)
-        else:
-            sys.stderr.write(f"---->>> PY: measure_int_put with name:{measure.name}, value: {metric.measure_value}, tags: {tag_map.map}\n")
-            sys.stderr.flush()
-            mmap.measure_int_put(measure, metric.measure_value)
-
-        mmap.record(tag_map)
-
-
-def export_span_batch(py_span_batch: list) -> None:
-    if not py_span_batch:
-        return
-
-    config = GcpObservabilityConfig.get()
-    for span_data in py_span_batch:
-        span_context = span_context_module.SpanContext(
-            trace_id=span_data.trace_id,
-            span_id=span_data.span_id,
-            trace_options=trace_options_module.TraceOptions(1))
-        span_data = _get_span_datas(span_data, span_context, config.labels)
-        sys.stderr.write(f"---->>> PY: span_data: {span_data}\n")
-        # self.exporter.export(span_datas)
-
-
-def _get_tag_map(labels: Mapping[AnyStr, AnyStr],
-                 config_labels: Mapping[str, str]) -> TagMap:
-    tag_map = TagMap()
-
-    for label in config_labels:
-        tag_map.insert(label.tag_key, TagValue(label.value))
-
-    for key, value in labels.items():
-        tag_map.insert(TagKey(key), TagValue(value))
-
-    return tag_map
-
-
-def _get_span_attirbutes(span_labels: Mapping[AnyStr, AnyStr],
-                         config_labels: Mapping[str, str]) -> TagMap:
-    span_attributes = {}
-
-    for label in config_labels:
-        span_attributes[label.key] = label.value
-
-    span_attributes.update(span_labels)
-
-    return span_attributes
 
 
 def _get_span_annotations(
@@ -253,13 +231,14 @@ def _status_to_span_status(status: str) -> Optional[Status]:
         return None
 
 
-def _get_span_datas(span_data, span_context, labels):
+def _get_span_datas(span_data, span_context, labels: Mapping[str, str]):
     """Extracts a list of SpanData tuples from a span
 
     :rtype: list of opencensus.trace.span_data.SpanData
     :return list of SpanData tuples
     """
-    span_attributes = _get_span_attirbutes(span_data.span_labels, labels)
+    span_attributes = span_data.span_labels
+    span_attributes.update(labels)
     span_status = _status_to_span_status(span_data.status)
     span_annotations = _get_span_annotations(span_data.span_annotations)
     span_datas = [
