@@ -51,63 +51,32 @@ void RecordDoubleMetric(MetricsName name, double value, std::vector<Label> label
 
 void RecordSpan(SpanCensusData span_census_data) {
   CensusData data = CensusData(span_census_data);
-  std::cout << " ________Record SPAN: " << span_census_data.name << " with id: " << span_census_data.span_id << std::endl;
   AddCensusDataToBuffer(data);
 }
 
 
 void gcpObservabilityInit() {
     setbuf(stdout, nullptr);
-    std::cout << "Calling grpc_observability::GcpObservabilityInit()"; std::cout << std::endl;
     kCensusDataBuffer= new std::queue<CensusData>;
 }
 
 
 void* CreateClientCallTracer(char* method, char* trace_id, char* parent_span_id) {
-    std::cout << "Inside grpc_o11y.CreateClientCallTracer" << std::endl;
-    std::cout << "  ---->>> method: "  << method  << " string(method):" << std::string(method) << std::endl;
-    std::cout << "  ---->>> trace_id: "  << trace_id << std::endl;
-    std::cout << "  ---->>> parent_span_id: " << parent_span_id << std::endl;
-    std::cout << "  ---->>> tracing_enabled: " << (PythonOpenCensusTracingEnabled() ? "True" : "False") << std::endl;
     void* client_call_tracer = new PythonOpenCensusCallTracer(method, trace_id, parent_span_id, PythonOpenCensusTracingEnabled());
-
-    std::cout << "created client call tracer with address in void* format:" << client_call_tracer << std::endl;
     return client_call_tracer;
 }
 
 
 void* CreateServerCallTracerFactory() {
-    std::cout << "Inside grpc_o11y.CreateServerCallTracerFactory" << std::endl;
     void* server_call_tracer_factory = new PythonOpenCensusServerCallTracerFactory();
-
-    std::cout << "created server tracer factory with address in void* format:" << server_call_tracer_factory << std::endl;
     return server_call_tracer_factory;
 }
 
 
 void AwaitNextBatchLocked(std::unique_lock<std::mutex>& lock, int timeout_ms) {
-  // std::unique_lock<std::mutex> lk(kCensusDataBufferMutex);
   auto now = std::chrono::system_clock::now();
   auto status = CensusDataBufferCV.wait_until(lock, now + std::chrono::milliseconds(timeout_ms));
-  if (status == std::cv_status::no_timeout) {
-    std::cout << "> Exporting Thread: Waiting Finished no_timeout" << std::endl;
-  } else {
-    std::cout << "> Exporting Thread: Waiting Finished timeout" << std::endl;
-  }
 }
-
-
-void LockCensusDataBuffer() {
-  kCensusDataBufferMutex.lock();
-  // std::cout << "> Exporting Thread: >>>>>>>> LOCKED <<<<<<<<<< at " << absl::Now() << std::endl;
-}
-
-
-void UnlockCensusDataBuffer() {
-  // std::cout << "> Exporting Thread: >>>>>>>> UN-LOCKED <<<<<<<<<< at " << absl::Now() << std::endl;
-  kCensusDataBufferMutex.unlock();
-}
-
 
 void AddCensusDataToBuffer(CensusData data) {
   std::unique_lock<std::mutex> lk(kCensusDataBufferMutex);
@@ -133,12 +102,10 @@ GcpObservabilityConfig ReadObservabilityConfig() {
 
   if (!config->cloud_trace.has_value()) {
     // Disable OpenCensus tracing
-    std::cout << "------ Disable OpenCensus tracing ------ " << std::endl;
     EnablePythonOpenCensusTracing(false);
   }
   if (!config->cloud_monitoring.has_value()) {
     // Disable OpenCensus stats
-    std::cout << "------ Disable OpenCensus stats ------ " << std::endl;
     EnablePythonOpenCensusStats(false);
   }
 

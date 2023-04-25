@@ -27,7 +27,6 @@
 #include "src/core/lib/surface/call.h"
 
 void grpc_census_call_set_context(grpc_call* call, census_context* context) {
-  std::cout << "GRPC_API_TRACE[grpc_census_call_set_context] with context:"  << context << std::endl;
   GRPC_API_TRACE("grpc_census_call_set_context(call=%p, census_context=%p)", 2,
                  (call, context));
   if (context != nullptr) {

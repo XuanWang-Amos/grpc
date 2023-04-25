@@ -127,11 +127,11 @@ class OpenCensusExporter(Exporter):
                 tag_map.insert(TagKey(key), TagValue(value))
 
             if metric.measure_double:
-                sys.stderr.write(f"---->>> PY: measure_float_put with name:{measure.name}, value: {metric.measure_value}, tags: {tag_map.map}\n")
+                sys.stderr.write(f"---->>> Metric name:{measure.name}, value: {metric.measure_value}, tags: {tag_map.map}\n")
                 sys.stderr.flush()
                 mmap.measure_float_put(measure, metric.measure_value)
             else:
-                sys.stderr.write(f"---->>> PY: measure_int_put with name:{measure.name}, value: {metric.measure_value}, tags: {tag_map.map}\n")
+                sys.stderr.write(f"---->>> Metric name:{measure.name}, value: {metric.measure_value}, tags: {tag_map.map}\n")
                 sys.stderr.flush()
                 mmap.measure_int_put(measure, metric.measure_value)
 
@@ -145,7 +145,7 @@ class OpenCensusExporter(Exporter):
                 span_id=span_data.span_id,
                 trace_options=trace_options_module.TraceOptions(1))
             span_data = _get_span_datas(span_data, span_context, self.default_labels)
-            sys.stderr.write(f"---->>> PY: span_data: {span_data}\n")
+            sys.stderr.write(f"---->>> Span: {span_data}\n")
 
     # def set_tracer(self) -> None:
     #     current_tracer = execution_context.get_opencensus_tracer()

@@ -29,11 +29,8 @@ cdef object global_export_thread
 
 _LOGGER = logging.getLogger(__name__)
 
-#@dataclass
+
 class PyMetric:
- # name: str = field(init=False)
- # labels: Mapping[str, str] = field(default_factory=dict)
- # measure: 
   def __init__(self, measurement, labels):
     self.name = measurement['name']
     self.labels = labels
@@ -43,6 +40,7 @@ class PyMetric:
     else:
       self.measure_double = False
       self.measure_value = measurement['value']['value_int']
+
 
 class PySpan:
   def __init__(self, span_data, span_labels, span_annotations):
@@ -88,7 +86,6 @@ def cyobservability_init(object exporter) -> None:
 def _start_exporting_thread(object exporter) -> None:
   global global_export_thread
   global_export_thread = Thread(target=_export_census_data, args=(exporter,))
-  printf("> Exporting Thread: ------------ STARTING Exporting Thread ------------\n")
   global_export_thread.start()
 
 
@@ -116,7 +113,6 @@ def set_gcp_observability_config(py_config) -> bool:
 
   py_config.set_configuration(_decode(c_config.project_id), sampling_rate,
                               py_labels, tracing_enabled, stats_enabled)
-  sys.stderr.write(f"After set_configuration: {py_config}\n"); sys.stderr.flush()
   return True
 
 
@@ -139,13 +135,9 @@ def create_server_call_tracer_factory_capsule() -> cpython.PyObject:
 
 
 def delete_client_call_tracer(object client_call_tracer_capsule) -> None:
-  sys.stderr.write(f"~~~~~~~~~~~~~~ CPY: calling delete_client_call_tracer\n"); sys.stderr.flush()
   if cpython.PyCapsule_IsValid(client_call_tracer_capsule, "gcp_opencensus_client_call_tracer"):
     capsule_ptr = cpython.PyCapsule_GetPointer(client_call_tracer_capsule, "gcp_opencensus_client_call_tracer")
-    #sys.stderr.write(f"~~~~~~~~~~~~~~ capsule_ptr: {capsule_ptr}\n"); sys.stderr.flush()
     call_tracer_ptr = <ClientCallTracer*>capsule_ptr
-    #printf("~~~~~~~~~~~~~~ <CallTracer*>capsule_ptr: %p\n", call_tracer_ptr)
-    sys.stderr.write(f"~~~~~~~~~~~~~~ CPY: deling call_tracer_ptr\n"); sys.stderr.flush()
     del call_tracer_ptr
 
 def _c_label_to_labels(object cLabels) -> Mapping[str, str]:
@@ -200,7 +192,6 @@ cdef void _export_census_data(object exporter):
 
     if GLOBAL_SHUTDOWN_EXPORT_THREAD:
       break # Break to shutdown exporting thead
-  sys.stderr.write(f"> Exporting Thread: _export_census_data shutting down...\n"); sys.stderr.flush()
 
 
 cdef void _flush_census_data(object exporter):
@@ -209,7 +200,6 @@ cdef void _flush_census_data(object exporter):
     if kCensusDataBuffer.empty():
       del lk
       return
-  printf("> Exporting Thread: >>>>>>>> queue NOT empty, flushing data...\n")
   py_metrics_batch = []
   py_spans_batch = []
   while not kCensusDataBuffer.empty():
@@ -232,10 +222,8 @@ cdef void _flush_census_data(object exporter):
 cdef void _shutdown_exporting_thread():
   with nogil:
     global GLOBAL_SHUTDOWN_EXPORT_THREAD
-    printf("------------ shutting down exporting thread\n")
     GLOBAL_SHUTDOWN_EXPORT_THREAD = True
     CensusDataBufferCV.notify_all()
-  printf("------------ waiting export thead to end...\n")
   global_export_thread.join()
 
 

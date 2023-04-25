@@ -37,25 +37,19 @@ PythonOpenCensusCallTracer::PythonOpenCensusCallTracer(char* method, char* trace
                                                        char* parent_span_id, bool tracing_enabled):
       method_(GetMethod(method)),
       tracing_enabled_(tracing_enabled) {
-  std::cout << " ~~ PythonOpenCensusCallTracer::PythonOpenCensusCallTracer" << std::endl;
-  std::cout << " Calling GenerateClientContext to STARTING SPAN with name Sent." << std::endl;
   GenerateClientContext(absl::StrCat("Sent.", method_), absl::string_view(trace_id),
                         absl::string_view(parent_span_id), &context_);
 }
 
-void PythonOpenCensusCallTracer::GenerateContext() {
-  std::cout << " ~~ PythonOpenCensusCallTracer::GenerateContext" << std::endl;
-}
+void PythonOpenCensusCallTracer::GenerateContext() {}
 
 void PythonOpenCensusCallTracer::RecordAnnotation(absl::string_view annotation) {
-  std::cout << " ~~ PythonOpenCensusCallTracer::RecordAnnotation" << std::endl;
   // If tracing is disabled, the following will be a no-op.
   context_.AddSpanAnnotation(annotation);
 }
 
 
 PythonOpenCensusCallTracer::~PythonOpenCensusCallTracer() {
-  std::cout << " ~~ PythonOpenCensusCallTracer::~PythonOpenCensusCallTracer() (3 Metrics, 1 Span)" << std::endl;
   if (PythonOpenCensusStatsEnabled()) {
     std::vector<Label> labels = context_.Labels();
     labels.emplace_back(Label{kClientMethod, std::string(method_)});
@@ -65,7 +59,6 @@ PythonOpenCensusCallTracer::~PythonOpenCensusCallTracer() {
   }
 
   if (tracing_enabled_) {
-    std::cout << " __ENDDING Sent. SPAN__" << std::endl;
     context_.EndSpan();
     if (IsSampled()) {
       RecordSpan(context_.Span().ToCensusData());
@@ -76,8 +69,6 @@ PythonOpenCensusCallTracer::~PythonOpenCensusCallTracer() {
 
 
 PythonCensusContext PythonOpenCensusCallTracer::CreateCensusContextForCallAttempt() {
-  std::cout << "~~ PythonOpenCensusCallTracer::CreateCensusContextForCallAttempt" << std::endl;
-  std::cout << " ________STARTING Attempt. SPAN________ with name " << absl::StrCat("Attempt.", method_) << std::endl;
   auto context = PythonCensusContext(absl::StrCat("Attempt.", method_), &(context_.Span()), context_.Labels());
   return context;
 }
@@ -85,13 +76,10 @@ PythonCensusContext PythonOpenCensusCallTracer::CreateCensusContextForCallAttemp
 
 PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer*
 PythonOpenCensusCallTracer::StartNewAttempt(bool is_transparent_retry) {
-  std::cout << "~~ PythonOpenCensusCallTracer::StartNewAttempt"; std::cout << std::endl;
-  // bool is_first_attempt = true;
   uint64_t attempt_num;
   {
     grpc_core::MutexLock lock(&mu_);
     if (transparent_retries_ != 0 || retries_ != 0) {
-      // is_first_attempt = false;
       if (PythonOpenCensusStatsEnabled() && num_active_rpcs_ == 0) {
         retry_delay_ += absl::Now() - time_at_last_attempt_end_;
       }
@@ -103,10 +91,7 @@ PythonOpenCensusCallTracer::StartNewAttempt(bool is_transparent_retry) {
       ++retries_;
     }
     ++num_active_rpcs_;
-    std::cout << "~~ PythonOpenCensusCallTracer::StartNewAttempt num_active_rpcs_: " << num_active_rpcs_ << std::endl;
   }
-
-  std::cout << "creating new OpenCensusCallAttemptTracer"<< std::endl;
   context_.AddChildSpan();
   return new PythonOpenCensusCallAttemptTracer(
       this, attempt_num, is_transparent_retry, false /* arena_allocated */);
@@ -123,7 +108,6 @@ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::PythonOpenCensusC
       arena_allocated_(arena_allocated),
       context_(parent_->CreateCensusContextForCallAttempt()),
       start_time_(absl::Now()) {
-  std::cout << "~~ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::PythonOpenCensusCallAttemptTracer  (1 Metrics)" << std::endl;
   if (parent_->tracing_enabled_) {
     context_.AddSpanAttribute("previous-rpc-attempts", std::to_string(attempt_num));
     context_.AddSpanAttribute("transparent-retry", std::to_string(is_transparent_retry));
@@ -138,7 +122,6 @@ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::PythonOpenCensusC
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     RecordSendInitialMetadata(grpc_metadata_batch* send_initial_metadata) {
-  std::cout << " ~~ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordSendInitialMetadata" << std::endl;
   if (parent_->tracing_enabled_) {
     char tracing_buf[kMaxTraceContextLen];
     size_t tracing_len = TraceContextSerialize(context_, tracing_buf,
@@ -163,14 +146,12 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordSendMessage(
     const grpc_core::SliceBuffer& /*send_message*/) {
-  std::cout << " ~~ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordSendMessage" << std::endl;
   ++sent_message_count_;
 }
 
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordReceivedMessage(
     const grpc_core::SliceBuffer& /*recv_message*/) {
-  std::cout << " ~~ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordReceivedMessage" << std::endl;
   ++recv_message_count_;
 }
 
@@ -196,11 +177,6 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     RecordReceivedTrailingMetadata(
         absl::Status status, grpc_metadata_batch* recv_trailing_metadata,
         const grpc_transport_stream_stats* transport_stream_stats) {
-  if (grpc_core::IsTransportSuppliesClientLatencyEnabled()) {
-    std::cout << " ~~ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordReceivedTrailingMetadata  (4 Metrics)" << std::endl;
-  } else {
-    std::cout << " ~~ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordReceivedTrailingMetadata  (3 Metrics)" << std::endl;
-  }
   status_code_ = status.code();
   if (PythonOpenCensusStatsEnabled()) {
     uint64_t elapsed_time = 0;
@@ -230,13 +206,11 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordCancel(
     absl::Status /*cancel_error*/) {
-  std::cout << " ~~ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordCancel" << std::endl;
 }
 
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordEnd(
     const gpr_timespec& /*latency*/) {
-  std::cout << " ~~ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordEnd (3 Metrics, 1 Span)" << std::endl;
   if (PythonOpenCensusStatsEnabled()) {
     std::vector<Label> labels = context_.Labels();
     labels.emplace_back(Label{kClientMethod, std::string(parent_->method_)});
@@ -254,14 +228,12 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordEnd(
     if (status_code_ != absl::StatusCode::kOk) {
       context_.Span().SetStatus(StatusCodeToString(status_code_));
     }
-    std::cout << " ________ENDDING Attempt. SPAN________" << std::endl;
     context_.EndSpan();
     if (IsSampled()) {
       RecordSpan(context_.Span().ToCensusData());
     }
   }
 
-  std::cout << " ~~ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::~PythonOpenCensusCallAttemptTracer()" << std::endl;
   if (arena_allocated_) {
     this->~PythonOpenCensusCallAttemptTracer();
   } else {
@@ -272,7 +244,6 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordEnd(
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordAnnotation(
     absl::string_view annotation) {
-  std::cout << " ~~ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordAnnotation" << std::endl;
   // If tracing is disabled, the following will be a no-op.
   context_.AddSpanAnnotation(annotation);
 }

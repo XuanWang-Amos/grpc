@@ -85,8 +85,6 @@ cdef extern from "observability_main.h" namespace "grpc_observability":
   cdef void* CreateServerCallTracerFactory() except +
   cdef queue[cCensusData]* kCensusDataBuffer
   cdef void AwaitNextBatchLocked(unique_lock[mutex]&, int) nogil
-  cdef void LockCensusDataBuffer() nogil
-  cdef void UnlockCensusDataBuffer() nogil
   cdef bint PythonOpenCensusStatsEnabled() nogil
   cdef bint PythonOpenCensusTracingEnabled() nogil
   cdef mutex kCensusDataBufferMutex

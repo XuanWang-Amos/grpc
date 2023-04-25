@@ -317,7 +317,6 @@ cdef object _process_segregated_call_tag(
     grpc_completion_queue *c_completion_queue, _BatchOperationTag tag):
   call_state.due.remove(tag)
   if not call_state.due:
-    sys.stderr.write(f"~~~~~~~~~~~~~~ CPY: calling grpc_call_unref\n"); sys.stderr.flush()
     #TODO(xuanwn): Expand the scope of nogil
     with nogil:
       grpc_call_unref(call_state.c_call)

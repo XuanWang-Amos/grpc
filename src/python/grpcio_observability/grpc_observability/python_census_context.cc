@@ -52,7 +52,6 @@ void GenerateClientContext(absl::string_view method, absl::string_view trace_id,
     return;
   }
   // Create span without parent.
-  std::cout << " STARTING SPAN without parent with name: " << method  << " trace_id: " << trace_id << std::endl;
   new (ctxt) PythonCensusContext(method, trace_id);
 }
 
@@ -65,10 +64,8 @@ void GenerateServerContext(absl::string_view header, absl::string_view method,
     new (context) PythonCensusContext();
     return;
   }
-  std::cout << "----SSSS Getting SpanContext FromGrpcTraceBinHeader" << std::endl;
   SpanContext parent_ctx = FromGrpcTraceBinHeader(header);
   if (parent_ctx.IsValid()) {
-    std::cout << "----SSSS STARTING SPAN with parent with name: " << method  << " trace_id: " << parent_ctx.TraceId() << " should_sample: " << parent_ctx.IsSampled() << std::endl;
     new (context) PythonCensusContext(method, parent_ctx);
   } else {
     new (context) PythonCensusContext(method);
@@ -80,13 +77,11 @@ void ToGrpcTraceBinHeader(PythonCensusContext& ctx, uint8_t* out) {
   out[kVersionOfs] = kVersionId;
   out[kTraceIdOfs] = kTraceIdField;
 
-  std::cout << "Saving tracerId to header: " << ctx.Span().Context().TraceId() << std::endl;
   memcpy(reinterpret_cast<uint8_t*>(&out[kTraceIdOfs + 1]),
          absl::HexStringToBytes(absl::string_view(ctx.Span().Context().TraceId())).c_str(),
          kSizeTraceID);
 
   out[kSpanIdOfs] = kSpanIdField;
-  std::cout << "Saving spanId to header: " << ctx.Span().Context().SpanId() << std::endl;
   memcpy(reinterpret_cast<uint8_t*>(&out[kSpanIdOfs + 1]),
          absl::HexStringToBytes(absl::string_view(ctx.Span().Context().SpanId())).c_str(),
          kSizeSpanID);
@@ -122,10 +117,6 @@ SpanContext FromGrpcTraceBinHeader(absl::string_view header) {
   SpanContext context(absl::BytesToHexString(absl::string_view(reinterpret_cast<const char *>(trace_id_rep_), kTraceIdSize)),
                       absl::BytesToHexString(absl::string_view(reinterpret_cast<const char *>(span_id_rep_), kSpanIdSize)),
                       trace_option_rep_[0] & kIsSampled);
-
-  std::cout << "----SSSS: SpanContext from header: " << std::endl;
-  std::cout << "          trace_id: " << context.TraceId() << std::endl;
-  std::cout << "          span_id: " << context.SpanId() << std::endl;
   return context;
 }
 

@@ -111,7 +111,6 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
       grpc_metadata_batch* send_trailing_metadata) override;
 
   void RecordSendMessage(const grpc_core::SliceBuffer& send_message) override {
-    std::cout << " >> PythonPythonOpenCensusServerCallTracer::RecordSendMessage" << std::endl;
     RecordAnnotation(
         absl::StrFormat("Send message: %ld bytes", send_message.Length()));
     ++sent_message_count_;
@@ -119,7 +118,6 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
 
   void RecordSendCompressedMessage(
       const grpc_core::SliceBuffer& send_compressed_message) override {
-    std::cout << " >> PythonPythonOpenCensusServerCallTracer::RecordSendCompressedMessage" << std::endl;
     RecordAnnotation(absl::StrFormat("Send compressed message: %ld bytes",
                                      send_compressed_message.Length()));
   }
@@ -129,14 +127,12 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
 
   void RecordReceivedMessage(
       const grpc_core::SliceBuffer& recv_message) override {
-    std::cout << " >> PythonPythonOpenCensusServerCallTracer::RecordReceivedMessage" << std::endl;
     RecordAnnotation(
         absl::StrFormat("Received message: %ld bytes", recv_message.Length()));
     ++recv_message_count_;
   }
   void RecordReceivedDecompressedMessage(
       const grpc_core::SliceBuffer& recv_decompressed_message) override {
-    std::cout << " >> PythonPythonOpenCensusServerCallTracer::RecordReceivedDecompressedMessage" << std::endl;
     RecordAnnotation(absl::StrFormat("Received decompressed message: %ld bytes",
                                      recv_decompressed_message.Length()));
   }
@@ -145,7 +141,6 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
       grpc_metadata_batch* /*recv_trailing_metadata*/) override {}
 
   void RecordCancel(grpc_error_handle /*cancel_error*/) override {
-    std::cout << " >> PythonPythonOpenCensusServerCallTracer::RecordCancel" << std::endl;
     elapsed_time_ = absl::Now() - start_time_;
   }
 
@@ -173,7 +168,6 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
 
 void PythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata(
     grpc_metadata_batch* recv_initial_metadata) {
-  std::cout << " >> PythonPythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata" << std::endl;
   ServerMetadataElements sml;
   FilterInitialMetadata(recv_initial_metadata, &sml);
   path_ = std::move(sml.path);
@@ -182,12 +176,6 @@ void PythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata(
   GenerateServerContext(
       tracing_enabled ? sml.tracing_slice.as_string_view() : "",
       absl::StrCat("Recv.", method_), &context_);
-  // if (tracing_enabled) {
-    // std::cout << "    getting grpc_call_context_element" << std::endl;
-    // auto* call_context = grpc_core::GetContext<grpc_call_context_element>();
-  //   std::cout << "    setting GRPC_CONTEXT_TRACING" << std::endl;
-  //   call_context[GRPC_CONTEXT_TRACING].value = &context_;
-  // }
   if (PythonOpenCensusStatsEnabled()) {
     std::vector<Label> labels = context_.Labels();
     labels.emplace_back(Label{kServerMethod, std::string(method_)});
@@ -198,7 +186,6 @@ void PythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata(
 
 void PythonOpenCensusServerCallTracer::RecordSendTrailingMetadata(
     grpc_metadata_batch* send_trailing_metadata) {
-  std::cout << " >> PythonPythonOpenCensusServerCallTracer::RecordSendTrailingMetadata" << std::endl;
   // We need to record the time when the trailing metadata was sent to
   // mark the completeness of the request.
   elapsed_time_ = absl::Now() - start_time_;
@@ -216,7 +203,6 @@ void PythonOpenCensusServerCallTracer::RecordSendTrailingMetadata(
 
 void PythonOpenCensusServerCallTracer::RecordEnd(
     const grpc_call_final_info* final_info) {
-  std::cout << " >> PythonPythonOpenCensusServerCallTracer::RecordEnd" << std::endl;
   if (PythonOpenCensusStatsEnabled()) {
     const uint64_t request_size = GetOutgoingDataSize(final_info);
     const uint64_t response_size = GetIncomingDataSize(final_info);
@@ -231,7 +217,6 @@ void PythonOpenCensusServerCallTracer::RecordEnd(
     RecordIntMetric(kRpcServerReceivedMessagesPerRpcMeasureName, recv_message_count_, labels);
   }
   if (PythonOpenCensusTracingEnabled()) {
-    std::cout << " __ENDDING Recv. SPAN__" << std::endl;
     context_.EndSpan();
     if (IsSampled()) {
       RecordSpan(context_.Span().ToCensusData());

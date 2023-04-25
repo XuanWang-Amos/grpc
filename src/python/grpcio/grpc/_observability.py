@@ -81,7 +81,6 @@ class GrpcObservability(Generic[PyCapsule], metaclass=abc.ABCMeta):
 def observability_init(grpc_observability: GrpcObservability) -> None:
     try:
         setattr(grpc, "_grpc_observability", grpc_observability)
-        sys.stderr.write(f"setattr(grpc): {type(getattr(grpc, '_grpc_observability', None))}\n"); sys.stderr.flush()
         _cygrpc.set_server_call_tracer_factory()
     except Exception as e:  # pylint:disable=broad-except
         _LOGGER.exception("grpc.observability initiazation failed with {}".format(e))

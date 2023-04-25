@@ -96,10 +96,6 @@ void gcpObservabilityInit();
 // void AwaitNextBatchLocked(int timeout_ms);
 void AwaitNextBatchLocked(std::unique_lock<std::mutex>& lock, int timeout_ms);
 
-void LockCensusDataBuffer();
-
-void UnlockCensusDataBuffer();
-
 void AddCensusDataToBuffer(CensusData buffer);
 
 void RecordIntMetric(MetricsName name, int64_t value, std::vector<Label> labels);

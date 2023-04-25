@@ -73,7 +73,6 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
         config_valid = _cyobservability.set_gcp_observability_config(self.config)
         if not config_valid:
             raise ValueError("Invalid configuration")
-        sys.stderr.write(f"found config in Observability: {self.config}\n"); sys.stderr.flush()
 
         if self.config.tracing_enabled:
             self._enable_tracing()
@@ -106,8 +105,6 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        sys.stderr.write("\nPY: Calling Observability.__exit__\n")
-        sys.stderr.flush()
         _cyobservability.at_observability_exit()
 
     def create_client_call_tracer_capsule(self, method: bytes) -> PyCapsule:
@@ -116,10 +113,6 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
             # Propagate existing OC context
             trace_id = current_span.context_tracer.trace_id.encode('utf8')
             parent_span_id = current_span.span_id.encode('utf8')
-            sys.stderr.write(
-                f"PY: found trace_id: {trace_id} parent_span_id: {parent_span_id}\n"
-            )
-            sys.stderr.flush()
             capsule = _cyobservability.create_client_call_tracer_capsule(
                 method, trace_id, parent_span_id)
         else:
@@ -146,7 +139,6 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
 
     def record_rpc_latency(self, method: str, rpc_latency: float, status_code: Any) -> None:
         status_code = GRPC_STATUS_CODE_TO_STRING.get(status_code, "UNKNOWN")
-        sys.stderr.write(f"PY: found double_measure: {method}, {rpc_latency}, {status_code}\n"); sys.stderr.flush()
         _cyobservability._record_rpc_latency(self.exporter, method, rpc_latency, status_code)
 
 

@@ -5,8 +5,6 @@
     },
     "cloud_monitoring":{},
     "labels":{
-       "SOURCE_VERSION":"0.0",
-       "SERVICE_NAME":"payment-service-1Cf",
        "DATA_CENTER":"us-west1-a"
     }
  }
