@@ -91,7 +91,7 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
         try:
             _cyobservability.cyobservability_init(self.exporter)
         except Exception as e:
-            _LOGGER.exception("grpc_observability init failed with: {}".format(e))
+            _LOGGER.exception("grpc_observability init failed with: %s", (e))
 
         # 5. Init grpc.
         # 5.1 Refister grpc_observability

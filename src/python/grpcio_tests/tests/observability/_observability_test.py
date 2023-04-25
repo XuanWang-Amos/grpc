@@ -151,10 +151,10 @@ class ObservabilityTest(unittest.TestCase):
 
             self._server.start()
             self._channel = grpc.insecure_channel('localhost:%d' % port)
-            # self.unary_unary_1_call()
+            self.unary_unary_1_call()
             # self.unary_unary_2_calls()
             # self.stream_unary()
-            self.stream_stream()
+            # self.stream_stream()
 
             self._server.stop(0)
             self._channel.close()
