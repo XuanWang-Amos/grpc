@@ -15,7 +15,10 @@
 import sys
 import logging
 import abc
-from typing import Any, Optional, TypeVar, Generic, List
+import collections
+import threading
+from dataclasses import dataclass, field
+from typing import Any, Optional, TypeVar, Generic, List, Mapping
 
 from opencensus.trace import execution_context
 from opencensus.trace import span_context as span_context_module
@@ -30,16 +33,45 @@ _LOGGER = logging.getLogger(__name__)
 PyCapsule = TypeVar('PyCapsule')
 
 
+@dataclass
+class GcpObservabilityPythonConfig:
+    _singleton = None
+    _lock: threading.RLock = threading.RLock()
+    project_id: str = ""
+    stats_enabled: bool = False
+    tracing_enabled: bool = False
+    labels: Mapping[str, str] = field(default_factory=dict)
+    sampling_rate: float = 0.0
+
+    @staticmethod
+    def get():
+        with GcpObservabilityPythonConfig._lock:
+            if GcpObservabilityPythonConfig._singleton is None:
+                GcpObservabilityPythonConfig._singleton = GcpObservabilityPythonConfig()
+        return GcpObservabilityPythonConfig._singleton
+
+    def set_configuration(self,
+                          project_id,
+                          sampling_rate=0.0,
+                          labels=None,
+                          tracing_enabled=False,
+                          stats_enabled=False) -> None:
+        self.project_id = project_id
+        self.stats_enabled = stats_enabled
+        self.tracing_enabled = tracing_enabled
+        self.labels = labels
+        self.sampling_rate = sampling_rate
+
+
 class GCPOpenCensusObservability(grpc.GrpcObservability):
     exporter: _open_census.Exporter
-    config: _open_census.GcpObservabilityConfig
+    config: GcpObservabilityPythonConfig
 
     def __init__(self):
         # 1. Read config.
-        # 2. Creating measures and register views.
-        # 3. Create and Saves Tracer and Sampler to ContextVar.
-        self.config = _cyobservability.read_gcp_observability_config()
-        if not self.config:
+        self.config = GcpObservabilityPythonConfig.get()
+        config_valid = _cyobservability.set_gcp_observability_config(self.config)
+        if not config_valid:
             raise ValueError("Invalid configuration")
         sys.stderr.write(f"found config in Observability: {self.config}\n"); sys.stderr.flush()
 
@@ -52,7 +84,9 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
         if exporter:
             self.exporter = exporter
         else:
-            self.exporter = _open_census.OpenCensusExporter(self.config)
+            # 2. Creating measures and register views.
+            # 3. Create and Saves Tracer and Sampler to ContextVar.
+            self.exporter = _open_census.OpenCensusExporter(self.config.get().labels)
 
         # 4. Start exporting thread.
         try:
@@ -61,6 +95,8 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
             _LOGGER.exception("grpc_observability init failed with: {}".format(e))
 
         # 5. Init grpc.
+        # 5.1 Refister grpc_observability
+        # 5.2 set_server_call_tracer_factory
         grpc.observability_init(self)
 
     def exit(self) -> None:

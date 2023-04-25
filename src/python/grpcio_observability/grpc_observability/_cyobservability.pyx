@@ -18,12 +18,9 @@ from cython.operator cimport dereference
 import sys
 import os
 import logging
+from dataclasses import dataclass, field
 from threading import Thread
 from typing import Any, AnyStr, List, Tuple, Mapping, TypeVar, Optional
-
-from grpc_observability import _open_census
-from grpc_observability import _measures
-from grpc_observability import _views
 
 cdef const char* CLIENT_CALL_TRACER = "gcp_opencensus_client_call_tracer"
 cdef const char* SERVER_CALL_TRACER_FACTORY = "gcp_opencensus_server_call_tracer_factory"
@@ -32,11 +29,14 @@ cdef object global_export_thread
 
 _LOGGER = logging.getLogger(__name__)
 
+#@dataclass
 class PyMetric:
+ # name: str = field(init=False)
+ # labels: Mapping[str, str] = field(default_factory=dict)
+ # measure: 
   def __init__(self, measurement, labels):
     self.name = measurement['name']
     self.labels = labels
-    self.measure = METRICS_NAME_TO_MEASURE.get(self.name)
     if measurement['type'] == kMeasurementDouble:
       self.measure_double = True
       self.measure_value = measurement['value']['value_double']
@@ -79,27 +79,6 @@ class MetricsName:
   SERVER_SERVER_LATENCY = kRpcServerServerLatencyMeasureName
   SERVER_STARTED_RPCS = kRpcServerStartedRpcsMeasureName
 
-METRICS_NAME_TO_MEASURE = {
-  MetricsName.CLIENT_API_LATENCY: _measures.rpc_client_api_latency(),
-  MetricsName.CLIENT_SNET_MESSSAGES_PER_RPC: _measures.rpc_client_sent_messages_per_rpc(),
-  MetricsName.CLIENT_SEND_BYTES_PER_RPC: _measures.rpc_client_send_bytes_per_prc(),
-  MetricsName.CLIENT_RECEIVED_MESSAGES_PER_RPC: _measures.rpc_client_received_messages_per_rpc(),
-  MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC: _measures.rpc_client_received_bytes_per_rpc(),
-  MetricsName.CLIENT_ROUNDTRIP_LATENCY: _measures.rpc_client_roundtrip_latency(),
-  MetricsName.CLIENT_SERVER_LATENCY: _measures.rpc_client_server_latency(),
-  MetricsName.CLIENT_STARTED_RPCS: _measures.rpc_client_started_rpcs(),
-  MetricsName.CLIENT_RETRIES_PER_CALL: _measures.rpc_client_retries_per_call(),
-  MetricsName.CLIENT_TRANSPARENT_RETRIES_PER_CALL: _measures.rpc_client_transparent_retries_per_call(),
-  MetricsName.CLIENT_RETRY_DELAY_PER_CALL: _measures.rpc_client_retry_delay_per_call(),
-  MetricsName.CLIENT_TRANSPORT_LATENCY: _measures.rpc_client_transport_latency(),
-  MetricsName.SERVER_SENT_MESSAGES_PER_RPC: _measures.rpc_server_sent_messages_per_rpc(),
-  MetricsName.SERVER_SENT_BYTES_PER_RPC: _measures.rpc_server_sent_bytes_per_rpc(),
-  MetricsName.SERVER_RECEIVED_MESSAGES_PER_RPC: _measures.rpc_server_received_messages_per_rpc(),
-  MetricsName.SERVER_RECEIVED_BYTES_PER_RPC: _measures.rpc_server_received_bytes_per_rpc(),
-  MetricsName.SERVER_SERVER_LATENCY: _measures.rpc_server_server_latency(),
-  MetricsName.SERVER_STARTED_RPCS: _measures.rpc_server_started_rpcs(),
-}
-
 
 def cyobservability_init(object exporter) -> None:
   gcpObservabilityInit() # remove print buffer
@@ -113,7 +92,7 @@ def _start_exporting_thread(object exporter) -> None:
   global_export_thread.start()
 
 
-def read_gcp_observability_config() -> Optional[_open_census.GcpObservabilityConfig]:
+def set_gcp_observability_config(py_config) -> bool:
   py_labels = {}
   sampling_rate = 0.0
   tracing_enabled = False
@@ -121,7 +100,7 @@ def read_gcp_observability_config() -> Optional[_open_census.GcpObservabilityCon
 
   cdef cGcpObservabilityConfig c_config = ReadObservabilityConfig()
   if not c_config.is_valid:
-    return None
+    return False
 
   for label in c_config.labels:
     py_labels[_decode(label.key)] = _decode(label.value)
@@ -135,11 +114,10 @@ def read_gcp_observability_config() -> Optional[_open_census.GcpObservabilityCon
   if PythonOpenCensusStatsEnabled():
     stats_enabled = True
 
-  py_config = _open_census.GcpObservabilityConfig.get()
   py_config.set_configuration(_decode(c_config.project_id), sampling_rate,
                               py_labels, tracing_enabled, stats_enabled)
   sys.stderr.write(f"After set_configuration: {py_config}\n"); sys.stderr.flush()
-  return py_config
+  return True
 
 
 def create_client_call_tracer_capsule(bytes method, bytes trace_id,

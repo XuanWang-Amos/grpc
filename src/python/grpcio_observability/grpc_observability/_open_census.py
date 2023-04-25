@@ -17,9 +17,6 @@ from __future__ import annotations
 import abc
 import sys
 import logging
-import collections
-import threading
-from dataclasses import dataclass, field
 from typing import Any, AnyStr, Optional, List, Tuple, Mapping
 from datetime import datetime
 
@@ -39,10 +36,31 @@ from opencensus.trace import time_event
 from opencensus.trace import trace_options as trace_options_module
 
 from grpc_observability import _views
-
-_cyobservability = Any  # _cyobservability.py imports this module.
+from grpc_observability import _measures
+from grpc_observability._cyobservability import MetricsName, PyMetric, PySpan
 
 logger = logging.getLogger(__name__)
+
+METRICS_NAME_TO_MEASURE = {
+  MetricsName.CLIENT_API_LATENCY: _measures.rpc_client_api_latency(),
+  MetricsName.CLIENT_SNET_MESSSAGES_PER_RPC: _measures.rpc_client_sent_messages_per_rpc(),
+  MetricsName.CLIENT_SEND_BYTES_PER_RPC: _measures.rpc_client_send_bytes_per_prc(),
+  MetricsName.CLIENT_RECEIVED_MESSAGES_PER_RPC: _measures.rpc_client_received_messages_per_rpc(),
+  MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC: _measures.rpc_client_received_bytes_per_rpc(),
+  MetricsName.CLIENT_ROUNDTRIP_LATENCY: _measures.rpc_client_roundtrip_latency(),
+  MetricsName.CLIENT_SERVER_LATENCY: _measures.rpc_client_server_latency(),
+  MetricsName.CLIENT_STARTED_RPCS: _measures.rpc_client_started_rpcs(),
+  MetricsName.CLIENT_RETRIES_PER_CALL: _measures.rpc_client_retries_per_call(),
+  MetricsName.CLIENT_TRANSPARENT_RETRIES_PER_CALL: _measures.rpc_client_transparent_retries_per_call(),
+  MetricsName.CLIENT_RETRY_DELAY_PER_CALL: _measures.rpc_client_retry_delay_per_call(),
+  MetricsName.CLIENT_TRANSPORT_LATENCY: _measures.rpc_client_transport_latency(),
+  MetricsName.SERVER_SENT_MESSAGES_PER_RPC: _measures.rpc_server_sent_messages_per_rpc(),
+  MetricsName.SERVER_SENT_BYTES_PER_RPC: _measures.rpc_server_sent_bytes_per_rpc(),
+  MetricsName.SERVER_RECEIVED_MESSAGES_PER_RPC: _measures.rpc_server_received_messages_per_rpc(),
+  MetricsName.SERVER_RECEIVED_BYTES_PER_RPC: _measures.rpc_server_received_bytes_per_rpc(),
+  MetricsName.SERVER_SERVER_LATENCY: _measures.rpc_server_server_latency(),
+  MetricsName.SERVER_STARTED_RPCS: _measures.rpc_server_started_rpcs(),
+}
 
 VIEW_NAMES = [
     "grpc.io/client/started_rpcs",
@@ -59,45 +77,46 @@ VIEW_NAMES = [
 
 class Exporter(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def export_stats_data(self, stats_data: List[_cyobservability.PyMetric]):
+    def export_stats_data(self, stats_data: List[PyMetric]):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def export_tracing_data(self, tracing_data: List[_cyobservability.PySpan]):
+    def export_tracing_data(self, tracing_data: List[PySpan]):
         raise NotImplementedError()
 
 
 class OpenCensusExporter(Exporter):
 
-    def __init__(self, config: GcpObservabilityConfig):
-        self.default_labels = config.get().labels
+    def __init__(self, labels: Mapping[str, str]):
+        self.default_labels = labels
         view_manager = stats_module.stats.view_manager
-        self.register_open_census_views(view_manager)
+        self._register_open_census_views(view_manager)
 
-    def register_open_census_views(self, view_manager) -> None:
+    def _register_open_census_views(self, view_manager) -> None:
         # Client
-        view_manager.register_view(_views.client_api_latency())
-        view_manager.register_view(_views.client_started_rpcs())
-        view_manager.register_view(_views.client_completed_rpcs())
-        view_manager.register_view(_views.client_roundtrip_latency())
-        view_manager.register_view(_views.client_sent_compressed_message_bytes_per_rpc())
-        view_manager.register_view(_views.client_received_compressed_message_bytes_per_rpc())
+        view_manager.register_view(_views.client_api_latency(self.default_labels))
+        view_manager.register_view(_views.client_started_rpcs(self.default_labels))
+        view_manager.register_view(_views.client_completed_rpcs(self.default_labels))
+        view_manager.register_view(_views.client_roundtrip_latency(self.default_labels))
+        view_manager.register_view(_views.client_sent_compressed_message_bytes_per_rpc(self.default_labels))
+        view_manager.register_view(_views.client_received_compressed_message_bytes_per_rpc(self.default_labels))
 
         # Server
-        view_manager.register_view(_views.server_started_rpcs())
-        view_manager.register_view(_views.server_completed_rpcs())
-        view_manager.register_view(_views.server_sent_compressed_message_bytes_per_rpc())
-        view_manager.register_view(_views.server_received_compressed_message_bytes_per_rpc())
-        view_manager.register_view(_views.server_server_latency())
+        view_manager.register_view(_views.server_started_rpcs(self.default_labels))
+        view_manager.register_view(_views.server_completed_rpcs(self.default_labels))
+        view_manager.register_view(_views.server_sent_compressed_message_bytes_per_rpc(self.default_labels))
+        view_manager.register_view(_views.server_received_compressed_message_bytes_per_rpc(self.default_labels))
+        view_manager.register_view(_views.server_server_latency(self.default_labels))
 
 
-    def export_stats_data(self, stats_data: List["_cyobservability.PyMetric"]):
+    def export_stats_data(self, stats_data: List[PyMetric]) -> None:
         stats = stats_module.stats
         stats_recorder = stats.stats_recorder
         mmap = stats_recorder.new_measurement_map()
 
         for metric in stats_data:
-            measure = metric.measure
+            # measure = metric.measure
+            measure = METRICS_NAME_TO_MEASURE.get(metric.name)
             if measure is None:
                 continue
 
@@ -119,7 +138,7 @@ class OpenCensusExporter(Exporter):
             mmap.record(tag_map)
 
 
-    def export_tracing_data(self, tracing_data: List["_cyobservability.PySpan"]):
+    def export_tracing_data(self, tracing_data: List[PySpan]) -> None:
         for span_data in tracing_data:
             span_context = span_context_module.SpanContext(
                 trace_id=span_data.trace_id,
@@ -128,57 +147,18 @@ class OpenCensusExporter(Exporter):
             span_data = _get_span_datas(span_data, span_context, self.default_labels)
             sys.stderr.write(f"---->>> PY: span_data: {span_data}\n")
 
-
-@dataclass
-class GcpObservabilityConfig:
-    _singleton = None
-    _lock: threading.RLock = threading.RLock()
-    project_id: str = ""
-    stats_enabled: bool = False
-    tracing_enabled: bool = False
-    labels: Mapping[str, str] = field(default_factory=dict)
-    sampling_rate: float = 0.0
-
-    @staticmethod
-    def get():
-        with GcpObservabilityConfig._lock:
-            if GcpObservabilityConfig._singleton is None:
-                GcpObservabilityConfig._singleton = GcpObservabilityConfig()
-        return GcpObservabilityConfig._singleton
-
-    def set_configuration(self,
-                          project_id,
-                          sampling_rate=0.0,
-                          labels={},
-                          tracing_enabled=False,
-                          stats_enabled=False):
-        self.project_id = project_id
-        self.stats_enabled = stats_enabled
-        self.tracing_enabled = tracing_enabled
-        self.labels = labels
-        self.sampling_rate = sampling_rate
-
-    def set_tracer(self) -> None:
-        current_tracer = execution_context.get_opencensus_tracer()
-        trace_id = current_tracer.span_context.trace_id
-        span_id = current_tracer.span_context.span_id
-        if not span_id:
-            span_id = span_context_module.generate_span_id()
-        span_context = span_context_module.SpanContext(trace_id=trace_id,
-                                                       span_id=span_id)
-        # Create and Saves Tracer and Sampler to ContextVar
-        sampler = samplers.ProbabilitySampler(rate=self.sampling_rate)
-        # TODO: check existing SpanContext
-        tracer = Tracer(sampler=sampler, span_context=span_context)
-
-    def __repr__(self):
-        labels_str = "\n"
-        rst = f"GcpObservabilityConfig(project_id={self.project_id},stats_enabled={self.stats_enabled}"
-        rst += f",tracing_enabled={self.tracing_enabled},sampling_rate={self.sampling_rate},labels={labels_str})"
-        return rst
-
-    __str__ = __repr__
-
+    # def set_tracer(self) -> None:
+    #     current_tracer = execution_context.get_opencensus_tracer()
+    #     trace_id = current_tracer.span_context.trace_id
+    #     span_id = current_tracer.span_context.span_id
+    #     if not span_id:
+    #         span_id = span_context_module.generate_span_id()
+    #     span_context = span_context_module.SpanContext(trace_id=trace_id,
+    #                                                    span_id=span_id)
+    #     # Create and Saves Tracer and Sampler to ContextVar
+    #     sampler = samplers.ProbabilitySampler(rate=self.sampling_rate)
+    #     # TODO: check existing SpanContext
+    #     tracer = Tracer(sampler=sampler, span_context=span_context)
 
 def _get_span_annotations(
         span_annotations: List[Tuple[bytes,
