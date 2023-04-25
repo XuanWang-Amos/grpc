@@ -278,9 +278,8 @@ cdef void _process_integrated_call_tag(
   if not call_state.due:
     with nogil:
       grpc_call_unref(call_state.c_call)
-      #TODO(xuanwn): Delete callTracer
     call_state.c_call = NULL
-
+    call_state.maybe_delete_call_tracer()
 
 cdef class IntegratedCall:
 
