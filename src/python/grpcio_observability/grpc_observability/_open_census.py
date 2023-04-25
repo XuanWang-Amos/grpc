@@ -37,7 +37,8 @@ from opencensus.trace import trace_options as trace_options_module
 
 from grpc_observability import _views
 from grpc_observability import _measures
-from grpc_observability._cyobservability import MetricsName, PyMetric, PySpan
+from grpc_observability import Exporter
+from grpc_observability import MetricsName
 
 logger = logging.getLogger(__name__)
 
@@ -75,15 +76,6 @@ VIEW_NAMES = [
     #   "grpc.io/server/server_latency"
 ]
 
-class Exporter(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
-    def export_stats_data(self, stats_data: List[PyMetric]):
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def export_tracing_data(self, tracing_data: List[PySpan]):
-        raise NotImplementedError()
-
 
 class OpenCensusExporter(Exporter):
 
@@ -109,13 +101,12 @@ class OpenCensusExporter(Exporter):
         view_manager.register_view(_views.server_server_latency(self.default_labels))
 
 
-    def export_stats_data(self, stats_data: List[PyMetric]) -> None:
+    def export_stats_data(self, stats_data) -> None:
         stats = stats_module.stats
         stats_recorder = stats.stats_recorder
         mmap = stats_recorder.new_measurement_map()
 
         for metric in stats_data:
-            # measure = metric.measure
             measure = METRICS_NAME_TO_MEASURE.get(metric.name)
             if measure is None:
                 continue
@@ -127,18 +118,18 @@ class OpenCensusExporter(Exporter):
                 tag_map.insert(TagKey(key), TagValue(value))
 
             if metric.measure_double:
-                sys.stderr.write(f"---->>> Metric name:{measure.name}, value: {metric.measure_value}, tags: {tag_map.map}\n")
+                sys.stderr.write(f"---->>> Metric name:{measure.name}, value: {metric.value_float}, tags: {tag_map.map}\n")
                 sys.stderr.flush()
-                mmap.measure_float_put(measure, metric.measure_value)
+                mmap.measure_float_put(measure, metric.value_float)
             else:
-                sys.stderr.write(f"---->>> Metric name:{measure.name}, value: {metric.measure_value}, tags: {tag_map.map}\n")
+                sys.stderr.write(f"---->>> Metric name:{measure.name}, value: {metric.value_int}, tags: {tag_map.map}\n")
                 sys.stderr.flush()
-                mmap.measure_int_put(measure, metric.measure_value)
+                mmap.measure_int_put(measure, metric.value_int)
 
             mmap.record(tag_map)
 
 
-    def export_tracing_data(self, tracing_data: List[PySpan]) -> None:
+    def export_tracing_data(self, tracing_data) -> None:
         for span_data in tracing_data:
             span_context = span_context_module.SpanContext(
                 trace_id=span_data.trace_id,

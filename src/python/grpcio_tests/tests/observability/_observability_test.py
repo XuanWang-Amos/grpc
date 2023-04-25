@@ -6,6 +6,7 @@ import os
 import time
 import random
 from concurrent import futures
+from typing import List
 
 import grpc
 
@@ -14,56 +15,12 @@ from opencensus.trace import base_exporter, execution_context, samplers
 from opencensus.trace.tracer import Tracer
 from opencensus.ext.stackdriver import stats_exporter
 
-from grpc_observability import observability
+from grpc_observability import GCPOpenCensusObservability
+# from grpc_observability import _cyobservability
 
 os.environ['OC_RESOURCE_TYPE'] = 'XUAN-TESTING'
 os.environ[
     'OC_RESOURCE_LABELS'] = "instance_id=5501923375024409176,project_id=google.com:cloudtop-prod,zone=europe-west1-c"
-
-
-class gRPCPrintExporter(base_exporter.Exporter):
-    """Export the spans by printing them.
-    :type transport: :class:`type`
-    :param transport: Class for creating new transport objects. It should
-                      extend from the base_exporter :class:`.Transport` type
-                      and implement :meth:`.Transport.export`. Defaults to
-                      :class:`.SyncTransport`. The other option is
-                      :class:`.AsyncTransport`.
-    """
-
-    def __init__(self, transport=sync.SyncTransport):
-        self.transport = transport(self)
-
-    def emit(self, span_datas):
-        """
-        :type span_datas: list of :class:
-            `~opencensus.trace.span_data.SpanData`
-        :param list of opencensus.trace.span_data.SpanData span_datas:
-            SpanData tuples to emit
-        """
-
-    def export(self, span_datas):
-        """
-        :type span_datas: list of :class:
-            `~opencensus.trace.span_data.SpanData`
-        :param list of opencensus.trace.span_data.SpanData span_datas:
-            SpanData tuples to export
-        """
-        self.transport.export(span_datas)
-
-
-class PrintStatsExporter():
-
-    def __init__(self):
-        pass
-
-    def export_metrics(self, metrics):
-        metrics = list(metrics)
-        for metric in metrics:
-            sys.stderr.write("PY: {metric}\n")
-            sys.stderr.flush()
-            print(metric)
-
 
 _REQUEST = b'\x00\x00\x00'
 _RESPONSE = b'\x00\x00\x00'
@@ -73,6 +30,17 @@ _UNARY_STREAM = '/test/UnaryStream'
 _STREAM_UNARY = '/test/StreamUnary'
 _STREAM_STREAM = '/test/StreamStream'
 STREAM_LENGTH = 5
+
+# class TestExporter(observability.Exporter):
+#     def __init__(self, metrics: List[_cyobservability.CPyMetric], spans: List[_cyobservability.PySpan]):
+#         self.span_collecter = spans
+#         self.metric_collecter = metrics
+
+#     def export_stats_data(self, stats_data: List[_cyobservability.CPyMetric]):
+#         self.span_collecter.extend(stats_data)
+
+#     def export_tracing_data(self, tracing_data: List[_cyobservability.PySpan]):
+#         self.metric_collecter.extend(tracing_data)
 
 
 def handle_unary_unary(test, request, servicer_context):
@@ -140,10 +108,13 @@ class ObservabilityTest(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_sunny_day(self):
-        with observability.GCPOpenCensusObservability() as o11y:
+    def testSunnyDay(self):
+        all_metric = []
+        all_span = []
+        # test_exporter = TestExporter(all_metric, all_span)
+        with GCPOpenCensusObservability() as o11y:
+            # o11y.init(exporter=test_exporter)
             o11y.init()
-
             self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
             self._server.add_generic_rpc_handlers(
                 (_GenericHandler(weakref.proxy(self)),))
@@ -158,6 +129,34 @@ class ObservabilityTest(unittest.TestCase):
 
             self._server.stop(0)
             self._channel.close()
+        # print("------------------Metrics------------------")
+        # print(all_metric)
+        # print("------------------Spans------------------")
+        # print(all_span)
+
+    def testThrowErrorWithoutConfig(self):
+        pass
+
+    def testThrowErrorWithInvalidConfig(self):
+        pass
+
+    def testRecordUnaryUnary(self):
+        pass
+
+    def testRecordUnaryStream(self):
+        pass
+
+    def testRecordStreamUnary(self):
+        pass
+
+    def testRecordStreamStream(self):
+        pass
+
+    def testNoRecordBeforeInit(self):
+        pass
+
+    def testNoRecordAfterExit(self):
+        pass
 
     def unary_unary_1_call(self):
         multi_callable = self._channel.unary_unary(_UNARY_UNARY)

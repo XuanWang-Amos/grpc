@@ -30,33 +30,6 @@ cdef object global_export_thread
 _LOGGER = logging.getLogger(__name__)
 
 
-class PyMetric:
-  def __init__(self, measurement, labels):
-    self.name = measurement['name']
-    self.labels = labels
-    if measurement['type'] == kMeasurementDouble:
-      self.measure_double = True
-      self.measure_value = measurement['value']['value_double']
-    else:
-      self.measure_double = False
-      self.measure_value = measurement['value']['value_int']
-
-
-class PySpan:
-  def __init__(self, span_data, span_labels, span_annotations):
-      self.name = _decode(span_data['name'])
-      self.start_time = _decode(span_data['start_time'])
-      self.end_time = _decode(span_data['end_time'])
-      self.trace_id = _decode(span_data['trace_id'])
-      self.span_id = _decode(span_data['span_id'])
-      self.parent_span_id = _decode(span_data['parent_span_id'])
-      self.status = _decode(span_data['status'])
-      self.span_labels = span_labels
-      self.span_annotations = span_annotations
-      self.should_sample = span_data['should_sample']
-      self.child_span_count = span_data['child_span_count']
-
-
 class MetricsName:
   CLIENT_API_LATENCY = kRpcClientApiLatencyMeasureName
   CLIENT_SNET_MESSSAGES_PER_RPC = kRpcClientSentMessagesPerRpcMeasureName
@@ -159,6 +132,42 @@ def at_observability_exit() -> None:
   _shutdown_exporting_thread()
 
 
+def cy_metric_name_to_py_metric_name(metric_name):
+  from grpc_observability import MetricsName as PyMetricsName
+  _MetricsName_TO_GRPC_MetricsName_MAPPING = {x.value[0]: x for x in PyMetricsName}
+  try:
+      return _MetricsName_TO_GRPC_MetricsName_MAPPING[metric_name]
+  except KeyError:
+      raise ValueError('Invalid metric name %s' % metric_name)
+
+
+def get_metric_data(measurement, labels):
+  from grpc_observability import PyMetric
+  metric_name = cy_metric_name_to_py_metric_name(measurement['name'])
+  if measurement['type'] == kMeasurementDouble:
+    py_metric = PyMetric(name=metric_name, measure_double=True, value_float=measurement['value']['value_double'], labels=labels)
+  else:
+    py_metric = PyMetric(name=metric_name, measure_double=False, value_int=measurement['value']['value_int'], labels=labels)
+  return py_metric
+
+
+def get_span_data(span_data, span_labels, span_annotations):
+  from grpc_observability import PySpan
+  py_span_labels = _c_label_to_labels(span_labels)
+  py_span_annotations = _c_annotation_to_annotations(span_annotations)
+  return PySpan(name=_decode(span_data['name']),
+                start_time = _decode(span_data['start_time']),
+                end_time = _decode(span_data['end_time']),
+                trace_id = _decode(span_data['trace_id']),
+                span_id = _decode(span_data['span_id']),
+                parent_span_id = _decode(span_data['parent_span_id']),
+                status = _decode(span_data['status']),
+                should_sample = span_data['should_sample'],
+                child_span_count = span_data['child_span_count'],
+                span_labels = py_span_labels,
+                span_annotations = py_span_annotations)
+
+
 def _record_rpc_latency(object exporter, str method, float rpc_latency, status_code) -> None:
   measurement = {}
   measurement['name'] = kRpcClientApiLatencyMeasureName
@@ -168,7 +177,7 @@ def _record_rpc_latency(object exporter, str method, float rpc_latency, status_c
   labels = {}
   labels[_decode(kClientMethod)] = method.strip("/")
   labels[_decode(kClientStatus)] = status_code
-  metric = PyMetric(measurement, labels)
+  metric = get_metric_data(measurement, labels)
   exporter.export_stats_data([metric])
 
 
@@ -193,8 +202,9 @@ cdef void _export_census_data(object exporter):
     if GLOBAL_SHUTDOWN_EXPORT_THREAD:
       break # Break to shutdown exporting thead
 
-
 cdef void _flush_census_data(object exporter):
+  # This needs to be loaded at run time once everything
+  # has been loaded.
   lk = new unique_lock[mutex](kCensusDataBufferMutex)
   with nogil:
     if kCensusDataBuffer.empty():
@@ -206,12 +216,11 @@ cdef void _flush_census_data(object exporter):
     cCensusData = kCensusDataBuffer.front()
     if cCensusData.type == kMetricData:
       py_labels = _c_label_to_labels(cCensusData.labels)
-      py_metric = PyMetric(cCensusData.measurement_data, py_labels)
+      py_metric = get_metric_data(cCensusData.measurement_data, py_labels)
       py_metrics_batch.append(py_metric)
     else:
-      py_span_labels = _c_label_to_labels(cCensusData.span_data.span_labels)
-      py_span_annotations = _c_annotation_to_annotations(cCensusData.span_data.span_annotations)
-      py_span = PySpan(cCensusData.span_data, py_span_labels, py_span_annotations)
+      py_span = get_span_data(cCensusData.span_data, cCensusData.span_data.span_labels,
+                              cCensusData.span_data.span_annotations)
       py_spans_batch.append(py_span)
     kCensusDataBuffer.pop()
 

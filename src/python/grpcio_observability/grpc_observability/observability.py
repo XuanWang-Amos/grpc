@@ -15,6 +15,7 @@
 import sys
 import logging
 import abc
+import enum
 import collections
 import threading
 from dataclasses import dataclass, field
@@ -64,11 +65,11 @@ class GcpObservabilityPythonConfig:
 
 
 class GCPOpenCensusObservability(grpc.GrpcObservability):
-    exporter: _open_census.Exporter
     config: GcpObservabilityPythonConfig
 
     def __init__(self):
         # 1. Read config.
+        self.exporter = None
         self.config = GcpObservabilityPythonConfig.get()
         config_valid = _cyobservability.set_gcp_observability_config(self.config)
         if not config_valid:
@@ -79,7 +80,7 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
         if self.config.stats_enabled:
             self._enable_stats()
 
-    def init(self, exporter: Optional[_open_census.Exporter]=None) -> None:
+    def init(self, exporter=None) -> None:
         if exporter:
             self.exporter = exporter
         else:
@@ -91,7 +92,7 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
         try:
             _cyobservability.cyobservability_init(self.exporter)
         except Exception as e:
-            _LOGGER.exception("grpc_observability init failed with: %s", (e))
+            _LOGGER.exception("grpc_observability init failed with: {}".format(e))
 
         # 5. Init grpc.
         # 5.1 Refister grpc_observability
