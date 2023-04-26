@@ -22,13 +22,15 @@ from dataclasses import dataclass, field
 from threading import Thread
 from typing import Any, AnyStr, List, Tuple, Mapping, TypeVar, Optional
 
+import grpc_observability
+
+
 cdef const char* CLIENT_CALL_TRACER = "gcp_opencensus_client_call_tracer"
 cdef const char* SERVER_CALL_TRACER_FACTORY = "gcp_opencensus_server_call_tracer_factory"
 cdef bint GLOBAL_SHUTDOWN_EXPORT_THREAD = False
 cdef object global_export_thread
 
 _LOGGER = logging.getLogger(__name__)
-
 
 class MetricsName:
   CLIENT_API_LATENCY = kRpcClientApiLatencyMeasureName
@@ -132,40 +134,41 @@ def at_observability_exit() -> None:
   _shutdown_exporting_thread()
 
 
-def cy_metric_name_to_py_metric_name(metric_name):
-  from grpc_observability import MetricsName as PyMetricsName
-  _MetricsName_TO_GRPC_MetricsName_MAPPING = {x.value[0]: x for x in PyMetricsName}
+def cy_metric_name_to_py_metric_name(object metric_name) -> grpc_observability.MetricsName:
+  _CY_METRICS_NAME_TO_PY_METRICS_NAME_MAPPING = {x.value[0]: x for x in grpc_observability.MetricsName}
   try:
-      return _MetricsName_TO_GRPC_MetricsName_MAPPING[metric_name]
+      return _CY_METRICS_NAME_TO_PY_METRICS_NAME_MAPPING[metric_name]
   except KeyError:
       raise ValueError('Invalid metric name %s' % metric_name)
 
 
-def get_metric_data(measurement, labels):
-  from grpc_observability import PyMetric
+def get_metric_data(object measurement, object labels) -> grpc_observability.PyMetric:
   metric_name = cy_metric_name_to_py_metric_name(measurement['name'])
   if measurement['type'] == kMeasurementDouble:
-    py_metric = PyMetric(name=metric_name, measure_double=True, value_float=measurement['value']['value_double'], labels=labels)
+    py_metric = grpc_observability.PyMetric(name=metric_name, measure_double=True,
+                                            value_float=measurement['value']['value_double'],
+                                            labels=labels)
   else:
-    py_metric = PyMetric(name=metric_name, measure_double=False, value_int=measurement['value']['value_int'], labels=labels)
+    py_metric = grpc_observability.PyMetric(name=metric_name, measure_double=False,
+                                            value_int=measurement['value']['value_int'],
+                                            labels=labels)
   return py_metric
 
 
-def get_span_data(span_data, span_labels, span_annotations):
-  from grpc_observability import PySpan
+def get_span_data(object span_data, object span_labels, object span_annotations) -> grpc_observability.PySpan:
   py_span_labels = _c_label_to_labels(span_labels)
   py_span_annotations = _c_annotation_to_annotations(span_annotations)
-  return PySpan(name=_decode(span_data['name']),
-                start_time = _decode(span_data['start_time']),
-                end_time = _decode(span_data['end_time']),
-                trace_id = _decode(span_data['trace_id']),
-                span_id = _decode(span_data['span_id']),
-                parent_span_id = _decode(span_data['parent_span_id']),
-                status = _decode(span_data['status']),
-                should_sample = span_data['should_sample'],
-                child_span_count = span_data['child_span_count'],
-                span_labels = py_span_labels,
-                span_annotations = py_span_annotations)
+  return grpc_observability.PySpan(name=_decode(span_data['name']),
+                                   start_time = _decode(span_data['start_time']),
+                                   end_time = _decode(span_data['end_time']),
+                                   trace_id = _decode(span_data['trace_id']),
+                                   span_id = _decode(span_data['span_id']),
+                                   parent_span_id = _decode(span_data['parent_span_id']),
+                                   status = _decode(span_data['status']),
+                                   should_sample = span_data['should_sample'],
+                                   child_span_count = span_data['child_span_count'],
+                                   span_labels = py_span_labels,
+                                   span_annotations = py_span_annotations)
 
 
 def _record_rpc_latency(object exporter, str method, float rpc_latency, status_code) -> None:
@@ -203,8 +206,6 @@ cdef void _export_census_data(object exporter):
       break # Break to shutdown exporting thead
 
 cdef void _flush_census_data(object exporter):
-  # This needs to be loaded at run time once everything
-  # has been loaded.
   lk = new unique_lock[mutex](kCensusDataBufferMutex)
   with nogil:
     if kCensusDataBuffer.empty():

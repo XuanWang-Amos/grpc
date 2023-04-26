@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import enum
 import abc
 from dataclasses import dataclass, field
@@ -21,11 +23,11 @@ from grpc_observability import _cyobservability
 
 class Exporter(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def export_stats_data(self, stats_data):
+    def export_stats_data(self, stats_data: List[PySpan]) -> None:
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def export_tracing_data(self, tracing_data):
+    def export_tracing_data(self, tracing_data: List[PyMetric]) -> None:
         raise NotImplementedError()
 
 
@@ -77,4 +79,4 @@ class PySpan:
 
 from observability import GCPOpenCensusObservability
 
-__all__ = ['GCPOpenCensusObservability', 'Exporter', 'MetricsName', 'PyMetric', 'PySpan']
+__all__ = ('GCPOpenCensusObservability', 'Exporter', 'MetricsName', 'PyMetric', 'PySpan')

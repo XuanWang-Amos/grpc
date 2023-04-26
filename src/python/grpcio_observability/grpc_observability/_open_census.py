@@ -39,6 +39,7 @@ from grpc_observability import _views
 from grpc_observability import _measures
 from grpc_observability import Exporter
 from grpc_observability import MetricsName
+from grpc_observability import PyMetric, PySpan
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +102,7 @@ class OpenCensusExporter(Exporter):
         view_manager.register_view(_views.server_server_latency(self.default_labels))
 
 
-    def export_stats_data(self, stats_data) -> None:
+    def export_stats_data(self, stats_data: List[PyMetric]) -> None:
         stats = stats_module.stats
         stats_recorder = stats.stats_recorder
         mmap = stats_recorder.new_measurement_map()
@@ -129,7 +130,7 @@ class OpenCensusExporter(Exporter):
             mmap.record(tag_map)
 
 
-    def export_tracing_data(self, tracing_data) -> None:
+    def export_tracing_data(self, tracing_data: List[PySpan]) -> None:
         for span_data in tracing_data:
             span_context = span_context_module.SpanContext(
                 trace_id=span_data.trace_id,
