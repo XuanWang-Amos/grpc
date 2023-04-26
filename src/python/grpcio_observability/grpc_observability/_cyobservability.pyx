@@ -142,23 +142,23 @@ def cy_metric_name_to_py_metric_name(object metric_name) -> grpc_observability.M
       raise ValueError('Invalid metric name %s' % metric_name)
 
 
-def get_metric_data(object measurement, object labels) -> grpc_observability.PyMetric:
+def get_stats_data(object measurement, object labels) -> grpc_observability.StatsData:
   metric_name = cy_metric_name_to_py_metric_name(measurement['name'])
   if measurement['type'] == kMeasurementDouble:
-    py_metric = grpc_observability.PyMetric(name=metric_name, measure_double=True,
-                                            value_float=measurement['value']['value_double'],
-                                            labels=labels)
+    py_stat = grpc_observability.StatsData(name=metric_name, measure_double=True,
+                                           value_float=measurement['value']['value_double'],
+                                           labels=labels)
   else:
-    py_metric = grpc_observability.PyMetric(name=metric_name, measure_double=False,
-                                            value_int=measurement['value']['value_int'],
-                                            labels=labels)
-  return py_metric
+    py_stat = grpc_observability.StatsData(name=metric_name, measure_double=False,
+                                           value_int=measurement['value']['value_int'],
+                                           labels=labels)
+  return py_stat
 
 
-def get_span_data(object span_data, object span_labels, object span_annotations) -> grpc_observability.PySpan:
+def get_tracing_data(object span_data, object span_labels, object span_annotations) -> grpc_observability.TracingData:
   py_span_labels = _c_label_to_labels(span_labels)
   py_span_annotations = _c_annotation_to_annotations(span_annotations)
-  return grpc_observability.PySpan(name=_decode(span_data['name']),
+  return grpc_observability.TracingData(name=_decode(span_data['name']),
                                    start_time = _decode(span_data['start_time']),
                                    end_time = _decode(span_data['end_time']),
                                    trace_id = _decode(span_data['trace_id']),
@@ -180,7 +180,7 @@ def _record_rpc_latency(object exporter, str method, float rpc_latency, status_c
   labels = {}
   labels[_decode(kClientMethod)] = method.strip("/")
   labels[_decode(kClientStatus)] = status_code
-  metric = get_metric_data(measurement, labels)
+  metric = get_stats_data(measurement, labels)
   exporter.export_stats_data([metric])
 
 
@@ -217,10 +217,10 @@ cdef void _flush_census_data(object exporter):
     cCensusData = kCensusDataBuffer.front()
     if cCensusData.type == kMetricData:
       py_labels = _c_label_to_labels(cCensusData.labels)
-      py_metric = get_metric_data(cCensusData.measurement_data, py_labels)
+      py_metric = get_stats_data(cCensusData.measurement_data, py_labels)
       py_metrics_batch.append(py_metric)
     else:
-      py_span = get_span_data(cCensusData.span_data, cCensusData.span_data.span_labels,
+      py_span = get_tracing_data(cCensusData.span_data, cCensusData.span_data.span_labels,
                               cCensusData.span_data.span_annotations)
       py_spans_batch.append(py_span)
     kCensusDataBuffer.pop()

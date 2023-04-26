@@ -17,6 +17,7 @@ import logging
 import abc
 import enum
 import collections
+import importlib
 import threading
 from dataclasses import dataclass, field
 from typing import Any, Optional, TypeVar, Generic, List, Mapping
@@ -27,7 +28,6 @@ from opencensus.trace import trace_options as trace_options_module
 
 import grpc
 from grpc_observability import _cyobservability
-from grpc_observability import _open_census
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -86,7 +86,8 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
         else:
             # 2. Creating measures and register views.
             # 3. Create and Saves Tracer and Sampler to ContextVar.
-            self.exporter = _open_census.OpenCensusExporter(self.config.get().labels)
+            open_census = importlib.import_module("grpc_observability._open_census")
+            self.exporter = open_census.OpenCensusExporter(self.config.get().labels)
 
         # 4. Start exporting thread.
         try:

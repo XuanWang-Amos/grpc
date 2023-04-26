@@ -20,25 +20,33 @@ from dataclasses import dataclass, field
 from typing import Any, AnyStr, List, Tuple, Mapping, TypeVar, Optional
 
 from grpc_observability import _cyobservability
+from grpc_observability._observability import GCPOpenCensusObservability
+
 
 class Exporter(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def export_stats_data(self, stats_data: List[PySpan]) -> None:
+    def export_stats_data(self, stats_data: List[TracingData]) -> None:
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def export_tracing_data(self, tracing_data: List[PyMetric]) -> None:
+    def export_tracing_data(self, tracing_data: List[StatsData]) -> None:
         raise NotImplementedError()
 
 
 @enum.unique
 class MetricsName(enum.Enum):
-    CLIENT_API_LATENCY = (_cyobservability.MetricsName.CLIENT_API_LATENCY, 'client api latency')
-    CLIENT_SNET_MESSSAGES_PER_RPC = (_cyobservability.MetricsName.CLIENT_SNET_MESSSAGES_PER_RPC, 'client api latency')
-    CLIENT_SEND_BYTES_PER_RPC = (_cyobservability.MetricsName.CLIENT_SEND_BYTES_PER_RPC, 'client api latency')
-    CLIENT_RECEIVED_MESSAGES_PER_RPC = (_cyobservability.MetricsName.CLIENT_RECEIVED_MESSAGES_PER_RPC, 'client api latency')
-    CLIENT_RECEIVED_BYTES_PER_RPC = (_cyobservability.MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC, 'client api latency')
-    CLIENT_ROUNDTRIP_LATENCY = (_cyobservability.MetricsName.CLIENT_ROUNDTRIP_LATENCY, 'client api latency')
+    CLIENT_API_LATENCY = (_cyobservability.MetricsName.CLIENT_API_LATENCY,
+                          'client api latency')
+    CLIENT_SNET_MESSSAGES_PER_RPC = (_cyobservability.MetricsName.CLIENT_SNET_MESSSAGES_PER_RPC,
+                                     'client send messages per rpc')
+    CLIENT_SEND_BYTES_PER_RPC = (_cyobservability.MetricsName.CLIENT_SEND_BYTES_PER_RPC,
+                                 'client send bytes per rpc')
+    CLIENT_RECEIVED_MESSAGES_PER_RPC = (_cyobservability.MetricsName.CLIENT_RECEIVED_MESSAGES_PER_RPC,
+                                        'client received messages per rpc')
+    CLIENT_RECEIVED_BYTES_PER_RPC = (_cyobservability.MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC,
+                                     'client received bytes per rpc')
+    CLIENT_ROUNDTRIP_LATENCY = (_cyobservability.MetricsName.CLIENT_ROUNDTRIP_LATENCY,
+                                'client roundtrip latency')
     CLIENT_SERVER_LATENCY = (_cyobservability.MetricsName.CLIENT_SERVER_LATENCY, 'client api latency')
     CLIENT_STARTED_RPCS = (_cyobservability.MetricsName.CLIENT_STARTED_RPCS, 'client api latency')
     CLIENT_RETRIES_PER_CALL = (_cyobservability.MetricsName.CLIENT_RETRIES_PER_CALL, 'client api latency')
@@ -54,7 +62,7 @@ class MetricsName(enum.Enum):
 
 
 @dataclass(frozen=True)
-class PyMetric:
+class StatsData:
     name: MetricsName
     measure_double: bool
     value_int: int = 0
@@ -63,7 +71,7 @@ class PyMetric:
 
 
 @dataclass(frozen=True)
-class PySpan:
+class TracingData:
     name: str
     start_time: str
     end_time: str
@@ -77,6 +85,4 @@ class PySpan:
     span_annotations: List[Tuple[str, str]] = field(default_factory=list)
 
 
-from grpc_observability._observability import GCPOpenCensusObservability
-
-__all__ = ('GCPOpenCensusObservability', 'Exporter', 'MetricsName', 'PyMetric', 'PySpan')
+__all__ = ('GCPOpenCensusObservability', 'Exporter', 'MetricsName', 'StatsData', 'TracingData')

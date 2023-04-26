@@ -32,14 +32,14 @@ _STREAM_STREAM = '/test/StreamStream'
 STREAM_LENGTH = 5
 
 # class TestExporter(observability.Exporter):
-#     def __init__(self, metrics: List[_cyobservability.CPyMetric], spans: List[_cyobservability.PySpan]):
+#     def __init__(self, metrics: List[_cyobservability.CStatsData], spans: List[_cyobservability.TracingData]):
 #         self.span_collecter = spans
 #         self.metric_collecter = metrics
 
-#     def export_stats_data(self, stats_data: List[_cyobservability.CPyMetric]):
+#     def export_stats_data(self, stats_data: List[_cyobservability.CStatsData]):
 #         self.span_collecter.extend(stats_data)
 
-#     def export_tracing_data(self, tracing_data: List[_cyobservability.PySpan]):
+#     def export_tracing_data(self, tracing_data: List[_cyobservability.TracingData]):
 #         self.metric_collecter.extend(tracing_data)
 
 
