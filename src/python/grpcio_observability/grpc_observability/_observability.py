@@ -76,9 +76,9 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
             raise ValueError("Invalid configuration")
 
         if self.config.tracing_enabled:
-            self._enable_tracing()
+            self._enable_tracing(True)
         if self.config.stats_enabled:
-            self._enable_stats()
+            self._enable_stats(True)
 
     def init(self, exporter=None) -> None:
         if exporter:
@@ -101,13 +101,15 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
         grpc.observability_init(self)
 
     def exit(self) -> None:
+        self._enable_tracing(False)
+        self._enable_stats(False)
         _cyobservability.at_observability_exit()
 
     def __enter__(self) -> None:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        _cyobservability.at_observability_exit()
+        self.exit()
 
     def create_client_call_tracer_capsule(self, method: bytes) -> PyCapsule:
         current_span = execution_context.get_current_span()

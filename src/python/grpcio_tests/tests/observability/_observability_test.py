@@ -166,9 +166,8 @@ class ObservabilityTest(unittest.TestCase):
             port = self._start_server()
             self._channel = grpc.insecure_channel('localhost:%d' % port)
             self.unary_unary_call()
-        # for metric in self.all_metric:
-        #     print(f"Export: {metric}")
-        self.assertIs(len(self.all_span), 0)
+
+        self.assertEqual(len(self.all_span), 0)
         self.assertTrue(len(self.all_metric) > 0)
         self._validate_metrics(self.all_metric)
 
@@ -183,7 +182,8 @@ class ObservabilityTest(unittest.TestCase):
             port = self._start_server()
             self._channel = grpc.insecure_channel('localhost:%d' % port)
             self.unary_unary_call()
-        self.assertIs(len(self.all_metric), 0)
+
+        self.assertEqual(len(self.all_metric), 0)
         self.assertTrue(len(self.all_span) > 0)
         self._validate_spans(self.all_span)
 
@@ -241,16 +241,59 @@ class ObservabilityTest(unittest.TestCase):
         self._server.stop(0)
         self._channel.close()
 
-    # def testNoRecordBeforeInit(self):
-    #     pass
+    def testNoRecordBeforeInit(self):
+        os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
+        port = self._start_server()
+        self._channel = grpc.insecure_channel('localhost:%d' % port)
+        self.unary_unary_call()
 
-    # def testNoRecordAfterExit(self):
-    #     pass
+        self.assertEqual(len(self.all_metric), 0)
+        self.assertEqual(len(self.all_span), 0)
+
+        self._server.stop(0)
+        self._channel.close()
+
+        with grpc_observability.GCPOpenCensusObservability() as o11y:
+            o11y.init(exporter=self.test_exporter)
+
+            port = self._start_server()
+            self._channel = grpc.insecure_channel('localhost:%d' % port)
+            self.unary_unary_call()
+
+        self.assertTrue(len(self.all_metric) > 0)
+        self.assertTrue(len(self.all_span) > 0)
+        self._validate_metrics(self.all_metric)
+        self._validate_spans(self.all_span)
+
+        self._server.stop(0)
+        self._channel.close()
+
+    def testNoRecordAfterExit(self):
+        os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
+        with grpc_observability.GCPOpenCensusObservability() as o11y:
+            o11y.init(exporter=self.test_exporter)
+
+            port = self._start_server()
+            self._channel = grpc.insecure_channel('localhost:%d' % port)
+            self.unary_unary_call()
+
+        self.assertTrue(len(self.all_metric) > 0)
+        self.assertTrue(len(self.all_span) > 0)
+        current_metric_len = len(self.all_metric)
+        current_spans_len = len(self.all_span)
+        self._validate_metrics(self.all_metric)
+        self._validate_spans(self.all_span)
+
+        self.unary_unary_call()
+        self.assertEqual(len(self.all_metric), current_metric_len)
+        self.assertEqual(len(self.all_span), current_spans_len)
+
+        self._server.stop(0)
+        self._channel.close()
 
     def unary_unary_call(self):
         multi_callable = self._channel.unary_unary(_UNARY_UNARY)
         unused_response, call = multi_callable.with_call(_REQUEST)
-
 
     def unary_stream_call(self):
         multi_callable = self._channel.unary_stream(_UNARY_STREAM)

@@ -54,11 +54,11 @@ class GrpcObservability(Generic[PyCapsule], metaclass=abc.ABCMeta):
     def record_rpc_latency(self, method: str, rpc_latency: float, status_code: Any) -> None:
         raise NotImplementedError()
 
-    def _enable_tracing(self) -> None:
-        self._TRACING_ENABLED = True
+    def _enable_tracing(self, enable: bool) -> None:
+        self._TRACING_ENABLED = enable
 
-    def _enable_stats(self) -> None:
-        self._STATS_ENABLED = True
+    def _enable_stats(self, enable: bool) -> None:
+        self._STATS_ENABLED = enable
 
     def _tracing_enabled(self) -> bool:
         return self._TRACING_ENABLED
