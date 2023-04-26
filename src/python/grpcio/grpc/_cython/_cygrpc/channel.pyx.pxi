@@ -74,7 +74,7 @@ cdef class _CallState:
 
   def maybe_delete_call_tracer(self) -> None:
     observability = get_grpc_observability()
-    if not (observability and observability._tracing_enabled()):
+    if not (observability and observability._observability_enabled()):
       return
     observability.delete_client_call_tracer(self.call_tracer_capsule)
 

@@ -60,6 +60,8 @@ def cyobservability_init(object exporter) -> None:
 
 def _start_exporting_thread(object exporter) -> None:
   global global_export_thread
+  global GLOBAL_SHUTDOWN_EXPORT_THREAD
+  GLOBAL_SHUTDOWN_EXPORT_THREAD = False
   global_export_thread = Thread(target=_export_census_data, args=(exporter,))
   global_export_thread.start()
 

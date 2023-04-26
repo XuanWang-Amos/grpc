@@ -24,16 +24,14 @@ from grpc._cython import cygrpc as _cygrpc
 
 _LOGGER = logging.getLogger(__name__)
 
-_TRACING_ENABLED = False
-_STATS_ENABLED = False
-_O11Y_LOCK = threading.Lock()
-
 PyCapsule = TypeVar('PyCapsule')
 
 class GrpcObservability(Generic[PyCapsule], metaclass=abc.ABCMeta):
     # we need to add hooks so that the GCP observability package can register functions with
     # the grpcio module and so can any other observability module conforming to the interface.
-
+    _TRACING_ENABLED: bool = False
+    _STATS_ENABLED: bool = False
+    
     @abc.abstractmethod
     def create_client_call_tracer_capsule(self, method: bytes) -> PyCapsule:
         raise NotImplementedError()
@@ -57,22 +55,16 @@ class GrpcObservability(Generic[PyCapsule], metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     def _enable_tracing(self) -> None:
-        global _TRACING_ENABLED
-        with _O11Y_LOCK:
-            _TRACING_ENABLED = True
+        self._TRACING_ENABLED = True
 
     def _enable_stats(self) -> None:
-        global _STATS_ENABLED
-        with _O11Y_LOCK:
-            _STATS_ENABLED = True
+        self._STATS_ENABLED = True
 
     def _tracing_enabled(self) -> bool:
-        with _O11Y_LOCK:
-            return _TRACING_ENABLED
+        return self._TRACING_ENABLED
 
     def _stats_enabled(self) -> bool:
-        with _O11Y_LOCK:
-            return _STATS_ENABLED
+        return self._STATS_ENABLED
 
     def _observability_enabled(self) -> bool:
         return self._tracing_enabled() or self._stats_enabled()

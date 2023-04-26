@@ -101,12 +101,14 @@ GcpObservabilityConfig ReadObservabilityConfig() {
   }
 
   if (!config->cloud_trace.has_value()) {
-    // Disable OpenCensus tracing
     EnablePythonOpenCensusTracing(false);
+  } else {
+      EnablePythonOpenCensusTracing(true);
   }
   if (!config->cloud_monitoring.has_value()) {
-    // Disable OpenCensus stats
     EnablePythonOpenCensusStats(false);
+  } else {
+      EnablePythonOpenCensusStats(true);
   }
 
   std::vector<Label> labels;
