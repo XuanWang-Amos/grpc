@@ -65,10 +65,10 @@ class OpenCensusExporter(grpc_observability.Exporter):
 
     def _register_open_census_views(self, view_manager) -> None:
         # Client
-        view_manager.register_view(_views.client_api_latency(self.default_labels))
         view_manager.register_view(_views.client_started_rpcs(self.default_labels))
         view_manager.register_view(_views.client_completed_rpcs(self.default_labels))
         view_manager.register_view(_views.client_roundtrip_latency(self.default_labels))
+        view_manager.register_view(_views.client_api_latency(self.default_labels))
         view_manager.register_view(_views.client_sent_compressed_message_bytes_per_rpc(self.default_labels))
         view_manager.register_view(_views.client_received_compressed_message_bytes_per_rpc(self.default_labels))
 
@@ -86,7 +86,7 @@ class OpenCensusExporter(grpc_observability.Exporter):
         mmap = stats_recorder.new_measurement_map()
 
         for metric in stats_data:
-            measure = METRICS_NAME_TO_MEASURE.get(metric.name)
+            measure = METRICS_NAME_TO_MEASURE.get(metric.name, None)
             if measure is None:
                 continue
 
@@ -214,22 +214,13 @@ def _get_span_datas(span_data, span_context, labels: Mapping[str, str]):
     return span_datas
 
 METRICS_NAME_TO_MEASURE = {
-  grpc_observability.MetricsName.CLIENT_API_LATENCY: _measures.rpc_client_api_latency(),
-  grpc_observability.MetricsName.CLIENT_SNET_MESSSAGES_PER_RPC: _measures.rpc_client_sent_messages_per_rpc(),
-  grpc_observability.MetricsName.CLIENT_SEND_BYTES_PER_RPC: _measures.rpc_client_send_bytes_per_prc(),
-  grpc_observability.MetricsName.CLIENT_RECEIVED_MESSAGES_PER_RPC: _measures.rpc_client_received_messages_per_rpc(),
-  grpc_observability.MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC: _measures.rpc_client_received_bytes_per_rpc(),
-  grpc_observability.MetricsName.CLIENT_ROUNDTRIP_LATENCY: _measures.rpc_client_roundtrip_latency(),
-  grpc_observability.MetricsName.CLIENT_SERVER_LATENCY: _measures.rpc_client_server_latency(),
   grpc_observability.MetricsName.CLIENT_STARTED_RPCS: _measures.rpc_client_started_rpcs(),
-  grpc_observability.MetricsName.CLIENT_RETRIES_PER_CALL: _measures.rpc_client_retries_per_call(),
-  grpc_observability.MetricsName.CLIENT_TRANSPARENT_RETRIES_PER_CALL: _measures.rpc_client_transparent_retries_per_call(),
-  grpc_observability.MetricsName.CLIENT_RETRY_DELAY_PER_CALL: _measures.rpc_client_retry_delay_per_call(),
-  grpc_observability.MetricsName.CLIENT_TRANSPORT_LATENCY: _measures.rpc_client_transport_latency(),
-  grpc_observability.MetricsName.SERVER_SENT_MESSAGES_PER_RPC: _measures.rpc_server_sent_messages_per_rpc(),
+  grpc_observability.MetricsName.CLIENT_ROUNDTRIP_LATENCY: _measures.rpc_client_roundtrip_latency(),
+  grpc_observability.MetricsName.CLIENT_API_LATENCY: _measures.rpc_client_api_latency(),
+  grpc_observability.MetricsName.CLIENT_SEND_BYTES_PER_RPC: _measures.rpc_client_send_bytes_per_prc(),
+  grpc_observability.MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC: _measures.rpc_client_received_bytes_per_rpc(),
+  grpc_observability.MetricsName.SERVER_STARTED_RPCS: _measures.rpc_server_started_rpcs(),
   grpc_observability.MetricsName.SERVER_SENT_BYTES_PER_RPC: _measures.rpc_server_sent_bytes_per_rpc(),
-  grpc_observability.MetricsName.SERVER_RECEIVED_MESSAGES_PER_RPC: _measures.rpc_server_received_messages_per_rpc(),
   grpc_observability.MetricsName.SERVER_RECEIVED_BYTES_PER_RPC: _measures.rpc_server_received_bytes_per_rpc(),
   grpc_observability.MetricsName.SERVER_SERVER_LATENCY: _measures.rpc_server_server_latency(),
-  grpc_observability.MetricsName.SERVER_STARTED_RPCS: _measures.rpc_server_started_rpcs(),
 }

@@ -35,30 +35,42 @@ class Exporter(metaclass=abc.ABCMeta):
 
 @enum.unique
 class MetricsName(enum.Enum):
+    CLIENT_STARTED_RPCS = (_cyobservability.MetricsName.CLIENT_STARTED_RPCS,
+                           'CLIENT_STARTED_RPCS')
     CLIENT_API_LATENCY = (_cyobservability.MetricsName.CLIENT_API_LATENCY,
-                          'client api latency')
+                          'CLIENT_API_LATENCY')
     CLIENT_SNET_MESSSAGES_PER_RPC = (_cyobservability.MetricsName.CLIENT_SNET_MESSSAGES_PER_RPC,
-                                     'client send messages per rpc')
+                                     'CLIENT_API_LATENCY')
     CLIENT_SEND_BYTES_PER_RPC = (_cyobservability.MetricsName.CLIENT_SEND_BYTES_PER_RPC,
-                                 'client send bytes per rpc')
+                                 'CLIENT_SEND_BYTES_PER_RPC')
     CLIENT_RECEIVED_MESSAGES_PER_RPC = (_cyobservability.MetricsName.CLIENT_RECEIVED_MESSAGES_PER_RPC,
-                                        'client received messages per rpc')
+                                        'CLIENT_RECEIVED_MESSAGES_PER_RPC')
     CLIENT_RECEIVED_BYTES_PER_RPC = (_cyobservability.MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC,
-                                     'client received bytes per rpc')
+                                     'CLIENT_RECEIVED_BYTES_PER_RPC')
     CLIENT_ROUNDTRIP_LATENCY = (_cyobservability.MetricsName.CLIENT_ROUNDTRIP_LATENCY,
-                                'client roundtrip latency')
-    CLIENT_SERVER_LATENCY = (_cyobservability.MetricsName.CLIENT_SERVER_LATENCY, 'client api latency')
-    CLIENT_STARTED_RPCS = (_cyobservability.MetricsName.CLIENT_STARTED_RPCS, 'client api latency')
-    CLIENT_RETRIES_PER_CALL = (_cyobservability.MetricsName.CLIENT_RETRIES_PER_CALL, 'client api latency')
-    CLIENT_TRANSPARENT_RETRIES_PER_CALL = (_cyobservability.MetricsName.CLIENT_TRANSPARENT_RETRIES_PER_CALL, 'client api latency')
-    CLIENT_RETRY_DELAY_PER_CALL = (_cyobservability.MetricsName.CLIENT_RETRY_DELAY_PER_CALL, 'client api latency')
-    CLIENT_TRANSPORT_LATENCY = (_cyobservability.MetricsName.CLIENT_TRANSPORT_LATENCY, 'client api latency')
-    SERVER_SENT_MESSAGES_PER_RPC = (_cyobservability.MetricsName.SERVER_SENT_MESSAGES_PER_RPC, 'client api latency')
-    SERVER_SENT_BYTES_PER_RPC = (_cyobservability.MetricsName.SERVER_SENT_BYTES_PER_RPC, 'client api latency')
-    SERVER_RECEIVED_MESSAGES_PER_RPC = (_cyobservability.MetricsName.SERVER_RECEIVED_MESSAGES_PER_RPC, 'client api latency')
-    SERVER_RECEIVED_BYTES_PER_RPC = (_cyobservability.MetricsName.SERVER_RECEIVED_BYTES_PER_RPC, 'client api latency')
-    SERVER_SERVER_LATENCY = (_cyobservability.MetricsName.SERVER_SERVER_LATENCY, 'client api latency')
-    SERVER_STARTED_RPCS = (_cyobservability.MetricsName.SERVER_STARTED_RPCS, 'client api latency')
+                                'CLIENT_ROUNDTRIP_LATENCY')
+    CLIENT_SERVER_LATENCY = (_cyobservability.MetricsName.CLIENT_SERVER_LATENCY,
+                             'CLIENT_SERVER_LATENCY')
+    CLIENT_RETRIES_PER_CALL = (_cyobservability.MetricsName.CLIENT_RETRIES_PER_CALL,
+                               'CLIENT_RETRIES_PER_CALL')
+    CLIENT_TRANSPARENT_RETRIES_PER_CALL = (_cyobservability.MetricsName.CLIENT_TRANSPARENT_RETRIES_PER_CALL,
+                                           'CLIENT_TRANSPARENT_RETRIES_PER_CALL')
+    CLIENT_RETRY_DELAY_PER_CALL = (_cyobservability.MetricsName.CLIENT_RETRY_DELAY_PER_CALL,
+                                   'CLIENT_RETRY_DELAY_PER_CALL')
+    CLIENT_TRANSPORT_LATENCY = (_cyobservability.MetricsName.CLIENT_TRANSPORT_LATENCY,
+                                'CLIENT_TRANSPORT_LATENCY')
+    SERVER_SENT_MESSAGES_PER_RPC = (_cyobservability.MetricsName.SERVER_SENT_MESSAGES_PER_RPC,
+                                    'SERVER_SENT_MESSAGES_PER_RPC')
+    SERVER_SENT_BYTES_PER_RPC = (_cyobservability.MetricsName.SERVER_SENT_BYTES_PER_RPC,
+                                 'SERVER_SENT_BYTES_PER_RPC')
+    SERVER_RECEIVED_MESSAGES_PER_RPC = (_cyobservability.MetricsName.SERVER_RECEIVED_MESSAGES_PER_RPC,
+                                        'SERVER_RECEIVED_MESSAGES_PER_RPC')
+    SERVER_RECEIVED_BYTES_PER_RPC = (_cyobservability.MetricsName.SERVER_RECEIVED_BYTES_PER_RPC,
+                                     'SERVER_RECEIVED_BYTES_PER_RPC')
+    SERVER_SERVER_LATENCY = (_cyobservability.MetricsName.SERVER_SERVER_LATENCY,
+                             'SERVER_SERVER_LATENCY')
+    SERVER_STARTED_RPCS = (_cyobservability.MetricsName.SERVER_STARTED_RPCS,
+                           'SERVER_STARTED_RPCS')
 
 
 @dataclass(frozen=True)
