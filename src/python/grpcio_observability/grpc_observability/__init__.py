@@ -77,6 +77,6 @@ class PySpan:
     span_annotations: List[Tuple[str, str]] = field(default_factory=list)
 
 
-from observability import GCPOpenCensusObservability
+from grpc_observability._observability import GCPOpenCensusObservability
 
 __all__ = ('GCPOpenCensusObservability', 'Exporter', 'MetricsName', 'PyMetric', 'PySpan')
