@@ -205,6 +205,7 @@ cdef void _export_census_data(object exporter):
     _flush_census_data(exporter)
 
     if GLOBAL_SHUTDOWN_EXPORT_THREAD:
+      # printf("------------ shutting down exporting thread\n")
       break # Break to shutdown exporting thead
 
 cdef void _flush_census_data(object exporter):
@@ -227,9 +228,9 @@ cdef void _flush_census_data(object exporter):
       py_spans_batch.append(py_span)
     kCensusDataBuffer.pop()
 
+  del lk
   exporter.export_stats_data(py_metrics_batch)
   exporter.export_tracing_data(py_spans_batch)
-  del lk
 
 cdef void _shutdown_exporting_thread():
   with nogil:

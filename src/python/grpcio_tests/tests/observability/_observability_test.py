@@ -11,6 +11,7 @@ from typing import List
 import grpc
 import grpc_observability
 
+logger = logging.getLogger(__name__)
 
 _REQUEST = b'\x00\x00\x00'
 _RESPONSE = b'\x00\x00\x00'
@@ -60,27 +61,27 @@ class TestExporter(grpc_observability.Exporter):
         self.span_collecter.extend(tracing_data)
 
 
-def handle_unary_unary(test, request, servicer_context):
+def handle_unary_unary(request, servicer_context):
     return _RESPONSE
 
 
-def handle_unary_stream(test, request, servicer_context):
+def handle_unary_stream(request, servicer_context):
     for _ in range(STREAM_LENGTH):
         yield _RESPONSE
 
 
-def handle_stream_unary(test, request_iterator, servicer_context):
+def handle_stream_unary(request_iterator, servicer_context):
     return _RESPONSE
 
 
-def handle_stream_stream(test, request_iterator, servicer_context):
+def handle_stream_stream(request_iterator, servicer_context):
     for request in request_iterator:
         yield _RESPONSE
 
 
 class _MethodHandler(grpc.RpcMethodHandler):
 
-    def __init__(self, test, request_streaming, response_streaming):
+    def __init__(self, request_streaming, response_streaming):
         self.request_streaming = request_streaming
         self.response_streaming = response_streaming
         self.request_deserializer = None
@@ -90,29 +91,25 @@ class _MethodHandler(grpc.RpcMethodHandler):
         self.stream_unary = None
         self.stream_stream = None
         if self.request_streaming and self.response_streaming:
-            self.stream_stream = lambda x, y: handle_stream_stream(test, x, y)
+            self.stream_stream = lambda x, y: handle_stream_stream(x, y)
         elif self.request_streaming:
-            self.stream_unary = lambda x, y: handle_stream_unary(test, x, y)
+            self.stream_unary = lambda x, y: handle_stream_unary(x, y)
         elif self.response_streaming:
-            self.unary_stream = lambda x, y: handle_unary_stream(test, x, y)
+            self.unary_stream = lambda x, y: handle_unary_stream(x, y)
         else:
-            self.unary_unary = lambda x, y: handle_unary_unary(test, x, y)
+            self.unary_unary = lambda x, y: handle_unary_unary(x, y)
 
 
 class _GenericHandler(grpc.GenericRpcHandler):
-
-    def __init__(self, test):
-        self._test = test
-
     def service(self, handler_call_details):
         if handler_call_details.method == _UNARY_UNARY:
-            return _MethodHandler(self._test, False, False)
+            return _MethodHandler(False, False)
         elif handler_call_details.method == _UNARY_STREAM:
-            return _MethodHandler(self._test, False, True)
+            return _MethodHandler(False, True)
         elif handler_call_details.method == _STREAM_UNARY:
-            return _MethodHandler(self._test, True, False)
+            return _MethodHandler(True, False)
         elif handler_call_details.method == _STREAM_STREAM:
-            return _MethodHandler(self._test, True, True)
+            return _MethodHandler(True, True)
         else:
             return None
 
@@ -133,8 +130,7 @@ class ObservabilityTest(unittest.TestCase):
             o11y.init(exporter=self.test_exporter)
 
             port = self._start_server()
-            self._channel = grpc.insecure_channel('localhost:%d' % port)
-            self.unary_unary_call()
+            self.unary_unary_call(port)
 
         self.assertTrue(len(self.all_metric) > 0)
         self.assertTrue(len(self.all_span) > 0)
@@ -142,7 +138,6 @@ class ObservabilityTest(unittest.TestCase):
         self._validate_spans(self.all_span)
 
         self._server.stop(0)
-        self._channel.close()
 
 
     def testThrowErrorWithoutConfig(self):
@@ -164,15 +159,14 @@ class ObservabilityTest(unittest.TestCase):
             o11y.init(exporter=self.test_exporter)
 
             port = self._start_server()
-            self._channel = grpc.insecure_channel('localhost:%d' % port)
-            self.unary_unary_call()
+            self.unary_unary_call(port)
 
         self.assertEqual(len(self.all_span), 0)
         self.assertTrue(len(self.all_metric) > 0)
         self._validate_metrics(self.all_metric)
 
         self._server.stop(0)
-        self._channel.close()
+
 
     def testRecordUnaryUnaryTracingOnly(self):
         os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_ONLY
@@ -180,15 +174,14 @@ class ObservabilityTest(unittest.TestCase):
             o11y.init(exporter=self.test_exporter)
 
             port = self._start_server()
-            self._channel = grpc.insecure_channel('localhost:%d' % port)
-            self.unary_unary_call()
+            self.unary_unary_call(port)
 
         self.assertEqual(len(self.all_metric), 0)
         self.assertTrue(len(self.all_span) > 0)
         self._validate_spans(self.all_span)
 
         self._server.stop(0)
-        self._channel.close()
+
 
     def testRecordUnaryStream(self):
         os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
@@ -196,8 +189,7 @@ class ObservabilityTest(unittest.TestCase):
             o11y.init(exporter=self.test_exporter)
 
             port = self._start_server()
-            self._channel = grpc.insecure_channel('localhost:%d' % port)
-            self.unary_stream_call()
+            self.unary_stream_call(port)
 
         self.assertTrue(len(self.all_metric) > 0)
         self.assertTrue(len(self.all_span) > 0)
@@ -205,7 +197,7 @@ class ObservabilityTest(unittest.TestCase):
         self._validate_spans(self.all_span)
 
         self._server.stop(0)
-        self._channel.close()
+
 
     def testRecordStreamUnary(self):
         os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
@@ -213,8 +205,7 @@ class ObservabilityTest(unittest.TestCase):
             o11y.init(exporter=self.test_exporter)
 
             port = self._start_server()
-            self._channel = grpc.insecure_channel('localhost:%d' % port)
-            self.stream_unary_call()
+            self.stream_unary_call(port)
 
         self.assertTrue(len(self.all_metric) > 0)
         self.assertTrue(len(self.all_span) > 0)
@@ -222,7 +213,7 @@ class ObservabilityTest(unittest.TestCase):
         self._validate_spans(self.all_span)
 
         self._server.stop(0)
-        self._channel.close()
+
 
     def testRecordStreamStream(self):
         os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
@@ -230,8 +221,7 @@ class ObservabilityTest(unittest.TestCase):
             o11y.init(exporter=self.test_exporter)
 
             port = self._start_server()
-            self._channel = grpc.insecure_channel('localhost:%d' % port)
-            self.stream_stream_call()
+            self.stream_stream_call(port)
 
         self.assertTrue(len(self.all_metric) > 0)
         self.assertTrue(len(self.all_span) > 0)
@@ -239,26 +229,23 @@ class ObservabilityTest(unittest.TestCase):
         self._validate_spans(self.all_span)
 
         self._server.stop(0)
-        self._channel.close()
+
 
     def testNoRecordBeforeInit(self):
         os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
         port = self._start_server()
-        self._channel = grpc.insecure_channel('localhost:%d' % port)
-        self.unary_unary_call()
+        self.unary_unary_call(port)
 
         self.assertEqual(len(self.all_metric), 0)
         self.assertEqual(len(self.all_span), 0)
 
         self._server.stop(0)
-        self._channel.close()
 
         with grpc_observability.GCPOpenCensusObservability() as o11y:
             o11y.init(exporter=self.test_exporter)
 
             port = self._start_server()
-            self._channel = grpc.insecure_channel('localhost:%d' % port)
-            self.unary_unary_call()
+            self.unary_unary_call(port)
 
         self.assertTrue(len(self.all_metric) > 0)
         self.assertTrue(len(self.all_span) > 0)
@@ -266,7 +253,7 @@ class ObservabilityTest(unittest.TestCase):
         self._validate_spans(self.all_span)
 
         self._server.stop(0)
-        self._channel.close()
+
 
     def testNoRecordAfterExit(self):
         os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
@@ -274,8 +261,7 @@ class ObservabilityTest(unittest.TestCase):
             o11y.init(exporter=self.test_exporter)
 
             port = self._start_server()
-            self._channel = grpc.insecure_channel('localhost:%d' % port)
-            self.unary_unary_call()
+            self.unary_unary_call(port)
 
         self.assertTrue(len(self.all_metric) > 0)
         self.assertTrue(len(self.all_span) > 0)
@@ -284,39 +270,42 @@ class ObservabilityTest(unittest.TestCase):
         self._validate_metrics(self.all_metric)
         self._validate_spans(self.all_span)
 
-        self.unary_unary_call()
+        self.unary_unary_call(port)
         self.assertEqual(len(self.all_metric), current_metric_len)
         self.assertEqual(len(self.all_span), current_spans_len)
 
         self._server.stop(0)
-        self._channel.close()
 
-    def unary_unary_call(self):
-        multi_callable = self._channel.unary_unary(_UNARY_UNARY)
-        unused_response, call = multi_callable.with_call(_REQUEST)
+    def unary_unary_call(self, port):
+        with grpc.insecure_channel('localhost:{}'.format(port)) as channel:
+            multi_callable = channel.unary_unary(_UNARY_UNARY)
+            unused_response, call = multi_callable.with_call(_REQUEST)
 
-    def unary_stream_call(self):
-        multi_callable = self._channel.unary_stream(_UNARY_STREAM)
-        call = multi_callable(_REQUEST)
-        for _ in call:
-            pass
+    def unary_stream_call(self, port):
+        with grpc.insecure_channel('localhost:{}'.format(port)) as channel:
+            multi_callable = channel.unary_stream(_UNARY_STREAM)
+            call = multi_callable(_REQUEST)
+            for _ in call:
+                pass
 
-    def stream_unary_call(self):
-        multi_callable = self._channel.stream_unary(_STREAM_UNARY)
-        unused_response, call = multi_callable.with_call(
-            iter([_REQUEST] * STREAM_LENGTH))
+    def stream_unary_call(self, port):
+        with grpc.insecure_channel('localhost:{}'.format(port)) as channel:
+            multi_callable = channel.stream_unary(_STREAM_UNARY)
+            unused_response, call = multi_callable.with_call(
+                iter([_REQUEST] * STREAM_LENGTH))
 
-    def stream_stream_call(self):
-        multi_callable = self._channel.stream_stream(_STREAM_STREAM)
-        call = multi_callable(iter([_REQUEST] * STREAM_LENGTH))
-        for _ in call:
-            pass
+    def stream_stream_call(self, port):
+        with grpc.insecure_channel('localhost:{}'.format(port)) as channel:
+            multi_callable = channel.stream_stream(_STREAM_STREAM)
+            call = multi_callable(iter([_REQUEST] * STREAM_LENGTH))
+            for _ in call:
+                pass
 
     def _start_server(self) -> int:
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         self._server.add_generic_rpc_handlers(
-            (_GenericHandler(weakref.proxy(self)),))
-        port = self._server.add_insecure_port('[::]:0')
+            (_GenericHandler(),))
+        port = self._server.add_insecure_port('[::]:55555')
 
         self._server.start()
         return port
@@ -326,12 +315,17 @@ class ObservabilityTest(unittest.TestCase):
         for name in grpc_observability.MetricsName:
             if name in _SKIP_VEFIRY:
                 continue
+            if name not in metric_names:
+                logger.error('metric %s not found in exported metrics: %s!', name, metric_names)
             self.assertTrue(name in metric_names)
 
     def _validate_spans(self, tracing_data: List[grpc_observability.TracingData]) -> None:
         span_names = set(data.name for data in tracing_data)
         for prefix in _SPAN_PREFIXS:
-            self.assertTrue(any(prefix in name for name in span_names))
+            prefix_exist = any(prefix in name for name in span_names)
+            if not prefix_exist:
+                logger.error('missing span with prefix %s in exported spans: %s!', prefix, span_names)
+            self.assertTrue(prefix_exist)
 
 if __name__ == "__main__":
     logging.basicConfig()

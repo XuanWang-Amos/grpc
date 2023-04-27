@@ -17,6 +17,7 @@ import logging
 import abc
 import enum
 import collections
+import time
 import importlib
 import threading
 from dataclasses import dataclass, field
@@ -101,6 +102,8 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
         grpc.observability_init(self)
 
     def exit(self) -> None:
+        # Sleep for 1s so all data can be flushed.
+        time.sleep(0.5)
         self._enable_tracing(False)
         self._enable_stats(False)
         _cyobservability.at_observability_exit()
