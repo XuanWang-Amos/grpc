@@ -35,6 +35,7 @@ cc_library(
     ],
     includes = ["."],
     deps = [
+        "@local_config_python//:python_headers",
         "//src/cpp/ext/gcp:observability_config",
         "//:grpc_rpc_encoding",
         "//:grpc",

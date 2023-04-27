@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Python.h>
+
 #include "observability_main.h"
 #include "server_call_tracer.h"
 #include "client_call_tracer.h"
@@ -25,6 +27,7 @@ std::queue<CensusData>* kCensusDataBuffer;
 std::mutex kCensusDataBufferMutex;
 std::condition_variable CensusDataBufferCV;
 constexpr int kExportThreshold = 2;
+int kLockCnt = 0;
 
 
 void RecordIntMetric(MetricsName name, int64_t value, std::vector<Label> labels) {
@@ -110,11 +113,17 @@ void UnlockCensusDataBuffer() {
 
 
 void AddCensusDataToBuffer(CensusData data) {
+  std::cout << "-----------------LOCK LOCK LOCK GET AddCensusDataToBuffer " << kLockCnt  << std::endl;
+  // Release GIL first so this operation doesn't block exporting thread.
   std::unique_lock<std::mutex> lk(kCensusDataBufferMutex);
+  std::cout << "-----------------LOCK LOCK LOCK GOT AddCensusDataToBuffer " << kLockCnt << std::endl;
   kCensusDataBuffer->push(data);
   if (kCensusDataBuffer->size() >= kExportThreshold) {
       CensusDataBufferCV.notify_all();
   }
+  std::cout << "-----------------LOCK LOCK LOCK RELEASE AddCensusDataToBuffer " << kLockCnt << std::endl;
+  kLockCnt++;
+  // Py_END_ALLOW_THREADS;
 }
 
 

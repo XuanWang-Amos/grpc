@@ -26,6 +26,7 @@ cdef const char* CLIENT_CALL_TRACER = "gcp_opencensus_client_call_tracer"
 cdef const char* SERVER_CALL_TRACER_FACTORY = "gcp_opencensus_server_call_tracer_factory"
 cdef bint GLOBAL_SHUTDOWN_EXPORT_THREAD = False
 cdef object global_export_thread
+cdef int lock_cnt = 0
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -116,7 +117,6 @@ def set_gcp_observability_config(py_config) -> bool:
 
   py_config.set_configuration(_decode(c_config.project_id), sampling_rate,
                               py_labels, tracing_enabled, stats_enabled)
-  sys.stderr.write(f"After set_configuration: {py_config}\n"); sys.stderr.flush()
   return True
 
 
@@ -184,16 +184,20 @@ cdef void _export_census_data(object exporter):
   while True:
     with nogil:
       while not GLOBAL_SHUTDOWN_EXPORT_THREAD:
+        #printf("-----------------LOCK LOCK LOCK GET _export_census_data\n")
         lk = new unique_lock[mutex](kCensusDataBufferMutex)
+        #printf("-----------------LOCK LOCK LOCK GOT _export_census_data\n")
         # Wait for next batch of census data OR timeout at fixed interval.
         # Batch export census data to minimize the time we acquiring the GIL.
         AwaitNextBatchLocked(dereference(lk), 500)
 
         # Break only when buffer have data
         if not kCensusDataBuffer.empty():
+          #printf("-----------------LOCK LOCK LOCK RELEASE _export_census_data\n")
           del lk
           break
         else:
+          # printf("-----------------LOCK LOCK LOCK RELEASE _export_census_data\n")
           del lk
 
     _flush_census_data(exporter)
@@ -204,9 +208,13 @@ cdef void _export_census_data(object exporter):
 
 
 cdef void _flush_census_data(object exporter):
+  global lock_cnt
+  printf("-----------------LOCK LOCK LOCK GET _flush_census_data %d\n", lock_cnt)
   lk = new unique_lock[mutex](kCensusDataBufferMutex)
+  printf("-----------------LOCK LOCK LOCK GOT _flush_census_data %d\n", lock_cnt)
   with nogil:
     if kCensusDataBuffer.empty():
+      printf("-----------------LOCK LOCK LOCK RELEASE _flush_census_data %d\n", lock_cnt)
       del lk
       return
   printf("> Exporting Thread: >>>>>>>> queue NOT empty, flushing data...\n")
@@ -225,9 +233,11 @@ cdef void _flush_census_data(object exporter):
       py_spans_batch.append(py_span)
     kCensusDataBuffer.pop()
 
+  printf("-----------------LOCK LOCK LOCK RELEASE _flush_census_data %d\n", lock_cnt)
+  lock_cnt += 1
+  del lk
   exporter.export_stats_data(py_metrics_batch)
   exporter.export_tracing_data(py_spans_batch)
-  del lk
 
 cdef void _shutdown_exporting_thread():
   with nogil:

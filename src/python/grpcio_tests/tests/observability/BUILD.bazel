@@ -12,8 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 load("@grpc_python_dependencies//:requirements.bzl", "requirement")
+load("//bazel:cython_library.bzl", "pyx_library")
 
 package(default_visibility = ["//visibility:public"])
+
+pyx_library(
+    name = "native_debug",
+    srcs = ["native_debug.pyx"],
+    deps = ["@com_google_absl//absl/debugging:failure_signal_handler"],
+)
 
 py_test(
     name = "_observability_test",
@@ -22,7 +29,7 @@ py_test(
     imports = ["../../"],
     main = "_observability_test.py",
     deps = [
-        # "//src/python/grpcio/grpc:test_common",
+        ":native_debug",
         "//src/python/grpcio/grpc:grpcio",
         "//src/python/grpcio_tests/tests/testing",
         "//src/python/grpcio_observability/grpc_observability:pyobservability",
