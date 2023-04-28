@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import types
-import logging
-import threading
 import abc
+import logging
 import sys
-from typing import Any, Optional, TypeVar, Generic
+import threading
+import types
+from typing import Any, Generic, Optional, TypeVar
 
 import grpc
 from grpc._cython import cygrpc as _cygrpc
@@ -26,24 +26,27 @@ _LOGGER = logging.getLogger(__name__)
 
 PyCapsule = TypeVar('PyCapsule')
 
+
 class GrpcObservability(Generic[PyCapsule], metaclass=abc.ABCMeta):
     # we need to add hooks so that the GCP observability package can register functions with
     # the grpcio module and so can any other observability module conforming to the interface.
     _TRACING_ENABLED: bool = False
     _STATS_ENABLED: bool = False
-    
+
     @abc.abstractmethod
     def create_client_call_tracer_capsule(self, method: bytes) -> PyCapsule:
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def delete_client_call_tracer(self, client_call_tracer_capsule: PyCapsule) -> None:
+    def delete_client_call_tracer(
+            self, client_call_tracer_capsule: PyCapsule) -> None:
         # delte client call tracer have to be called on o11y package side.
         # Call it for both segregated and integrated call (`_process_integrated_call_tag`)
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def save_trace_context(self, trace_id: str, span_id: str, is_sampled: bool) -> None:
+    def save_trace_context(self, trace_id: str, span_id: str,
+                           is_sampled: bool) -> None:
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -51,7 +54,8 @@ class GrpcObservability(Generic[PyCapsule], metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def record_rpc_latency(self, method: str, rpc_latency: float, status_code: Any) -> None:
+    def record_rpc_latency(self, method: str, rpc_latency: float,
+                           status_code: Any) -> None:
         raise NotImplementedError()
 
     def _enable_tracing(self, enable: bool) -> None:

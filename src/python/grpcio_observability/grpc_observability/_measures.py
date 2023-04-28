@@ -45,9 +45,9 @@ def rpc_client_roundtrip_latency() -> measure_module.MeasureFloat:
 
 
 def rpc_client_api_latency() -> measure_module.MeasureFloat:
-    return measure_module.MeasureInt("grpc.io/client/api_latency",
-                                     "End-to-end time taken to complete an RPC",
-                                     UNIT_MILLISECONDS)
+    return measure_module.MeasureInt(
+        "grpc.io/client/api_latency",
+        "End-to-end time taken to complete an RPC", UNIT_MILLISECONDS)
 
 
 def rpc_client_send_bytes_per_prc() -> measure_module.MeasureFloat:

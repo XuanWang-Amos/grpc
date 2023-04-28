@@ -14,12 +14,13 @@
 
 from typing import Mapping
 
-from opencensus.stats import view as view_module
+from grpc_observability import _measures
 from opencensus.stats import aggregation as aggregation_module
+from opencensus.stats import view as view_module
 from opencensus.tags.tag_key import TagKey
 
-from grpc_observability import _measures
 # from grpc_observability import observability
+
 
 # These measure definitions should be kept in sync across opencensus
 # implementations--see
@@ -102,7 +103,8 @@ def client_api_latency(labels: Mapping[str, str]) -> view_module.View:
     return view
 
 
-def client_sent_compressed_message_bytes_per_rpc(labels: Mapping[str, str]) -> view_module.View:
+def client_sent_compressed_message_bytes_per_rpc(
+        labels: Mapping[str, str]) -> view_module.View:
     view = view_module.View(
         "grpc.io/client/sent_compressed_message_bytes_per_rpc",
         "MOCK Description", [TagKey(key) for key in labels.keys()] +
@@ -112,12 +114,14 @@ def client_sent_compressed_message_bytes_per_rpc(labels: Mapping[str, str]) -> v
     return view
 
 
-def client_received_compressed_message_bytes_per_rpc(labels: Mapping[str, str]) -> view_module.View:
+def client_received_compressed_message_bytes_per_rpc(
+        labels: Mapping[str, str]) -> view_module.View:
     view = view_module.View(
         "grpc.io/client/received_compressed_message_bytes_per_rpc",
         "MOCK Description", [TagKey(key) for key in labels.keys()] +
         [client_method_tag_key(),
-         client_status_tag_key()], _measures.rpc_client_received_bytes_per_rpc(),
+         client_status_tag_key()],
+        _measures.rpc_client_received_bytes_per_rpc(),
         bytes_distribution_aggregation())
     return view
 
@@ -142,7 +146,8 @@ def server_completed_rpcs(labels: Mapping[str, str]) -> view_module.View:
     return view
 
 
-def server_sent_compressed_message_bytes_per_rpc(labels: Mapping[str, str]) -> view_module.View:
+def server_sent_compressed_message_bytes_per_rpc(
+        labels: Mapping[str, str]) -> view_module.View:
     view = view_module.View(
         "grpc.io/server/sent_compressed_message_bytes_per_rpc",
         "MOCK Description", [TagKey(key) for key in labels.keys()] +
@@ -152,12 +157,14 @@ def server_sent_compressed_message_bytes_per_rpc(labels: Mapping[str, str]) -> v
     return view
 
 
-def server_received_compressed_message_bytes_per_rpc(labels: Mapping[str, str]) -> view_module.View:
+def server_received_compressed_message_bytes_per_rpc(
+        labels: Mapping[str, str]) -> view_module.View:
     view = view_module.View(
         "grpc.io/server/received_compressed_message_bytes_per_rpc",
         "MOCK Description", [TagKey(key) for key in labels.keys()] +
         [server_method_tag_key(),
-         server_status_tag_key()], _measures.rpc_server_received_bytes_per_rpc(),
+         server_status_tag_key()],
+        _measures.rpc_server_received_bytes_per_rpc(),
         bytes_distribution_aggregation())
     return view
 

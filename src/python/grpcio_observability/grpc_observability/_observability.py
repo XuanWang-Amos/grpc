@@ -12,23 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-import logging
 import abc
-import enum
 import collections
-import time
+from dataclasses import dataclass
+from dataclasses import field
+import enum
 import importlib
+import logging
+import sys
 import threading
-from dataclasses import dataclass, field
-from typing import Any, Optional, TypeVar, Generic, List, Mapping
-
-from opencensus.trace import execution_context
-from opencensus.trace import span_context as span_context_module
-from opencensus.trace import trace_options as trace_options_module
+import time
+from typing import Any, Generic, List, Mapping, Optional, TypeVar
 
 import grpc
 from grpc_observability import _cyobservability
+from opencensus.trace import execution_context
+from opencensus.trace import span_context as span_context_module
+from opencensus.trace import trace_options as trace_options_module
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,7 +49,8 @@ class GcpObservabilityPythonConfig:
     def get():
         with GcpObservabilityPythonConfig._lock:
             if GcpObservabilityPythonConfig._singleton is None:
-                GcpObservabilityPythonConfig._singleton = GcpObservabilityPythonConfig()
+                GcpObservabilityPythonConfig._singleton = GcpObservabilityPythonConfig(
+                )
         return GcpObservabilityPythonConfig._singleton
 
     def set_configuration(self,
@@ -72,7 +73,8 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
         # 1. Read config.
         self.exporter = None
         self.config = GcpObservabilityPythonConfig.get()
-        config_valid = _cyobservability.set_gcp_observability_config(self.config)
+        config_valid = _cyobservability.set_gcp_observability_config(
+            self.config)
         if not config_valid:
             raise ValueError("Invalid configuration")
 
@@ -87,14 +89,17 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
         else:
             # 2. Creating measures and register views.
             # 3. Create and Saves Tracer and Sampler to ContextVar.
-            open_census = importlib.import_module("grpc_observability._open_census")
-            self.exporter = open_census.OpenCensusExporter(self.config.get().labels)
+            open_census = importlib.import_module(
+                "grpc_observability._open_census")
+            self.exporter = open_census.OpenCensusExporter(
+                self.config.get().labels)
 
         # 4. Start exporting thread.
         try:
             _cyobservability.cyobservability_init(self.exporter)
         except Exception as e:
-            _LOGGER.exception("grpc_observability init failed with: {}".format(e))
+            _LOGGER.exception(
+                "grpc_observability init failed with: {}".format(e))
 
         # 5. Init grpc.
         # 5.1 Refister grpc_observability
@@ -132,21 +137,24 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
         capsule = _cyobservability.create_server_call_tracer_factory_capsule()
         return capsule
 
-    def delete_client_call_tracer(self, client_call_tracer_capsule: PyCapsule) -> None:
+    def delete_client_call_tracer(
+            self, client_call_tracer_capsule: PyCapsule) -> None:
         _cyobservability.delete_client_call_tracer(client_call_tracer_capsule)
 
-    def save_trace_context(self, trace_id: str, span_id: str, is_sampled: bool) -> None:
+    def save_trace_context(self, trace_id: str, span_id: str,
+                           is_sampled: bool) -> None:
         trace_options = trace_options_module.TraceOptions(0)
         trace_options.set_enabled(is_sampled)
-        span_context = span_context_module.SpanContext(trace_id=trace_id,
-                                                    span_id=span_id,
-                                                    trace_options=trace_options)
+        span_context = span_context_module.SpanContext(
+            trace_id=trace_id, span_id=span_id, trace_options=trace_options)
         current_tracer = execution_context.get_opencensus_tracer()
         current_tracer.span_context = span_context
 
-    def record_rpc_latency(self, method: str, rpc_latency: float, status_code: Any) -> None:
+    def record_rpc_latency(self, method: str, rpc_latency: float,
+                           status_code: Any) -> None:
         status_code = GRPC_STATUS_CODE_TO_STRING.get(status_code, "UNKNOWN")
-        _cyobservability._record_rpc_latency(self.exporter, method, rpc_latency, status_code)
+        _cyobservability._record_rpc_latency(self.exporter, method, rpc_latency,
+                                             status_code)
 
 
 GRPC_STATUS_CODE_TO_STRING = {

@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from libc.stdio cimport printf
 from libcpp.string cimport string
 from libcpp.vector cimport vector
-from libc.stdio cimport printf
 
 ctypedef   signed long long int64_t
 

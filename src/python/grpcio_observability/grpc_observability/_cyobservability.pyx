@@ -15,12 +15,13 @@
 cimport cpython
 from cython.operator cimport dereference
 
-import sys
-import os
+from dataclasses import dataclass
+from dataclasses import field
 import logging
-from dataclasses import dataclass, field
+import os
+import sys
 from threading import Thread
-from typing import Any, AnyStr, List, Tuple, Mapping, TypeVar, Optional
+from typing import Any, AnyStr, List, Mapping, Optional, Tuple, TypeVar
 
 import grpc_observability
 

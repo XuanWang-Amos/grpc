@@ -14,6 +14,7 @@
 """Invocation-side implementation of gRPC Python."""
 
 import copy
+from datetime import datetime
 import functools
 import logging
 import os
@@ -21,7 +22,6 @@ import sys
 import threading
 import time
 import types
-from datetime import datetime
 from typing import (Any, Callable, Iterator, List, Optional, Sequence, Set,
                     Tuple, Union)
 

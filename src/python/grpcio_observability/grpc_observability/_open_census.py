@@ -15,30 +15,28 @@
 from __future__ import annotations
 
 import abc
-import sys
-import logging
-from typing import Any, AnyStr, Optional, List, Tuple, Mapping
 from datetime import datetime
+import logging
+import sys
+from typing import Any, AnyStr, List, Mapping, Optional, Tuple
 
 from google.rpc import code_pb2
-
+import grpc_observability
+from grpc_observability import _measures
+from grpc_observability import _views
 from opencensus.stats import stats as stats_module
 from opencensus.tags.tag_key import TagKey
-from opencensus.tags.tag_value import TagValue
 from opencensus.tags.tag_map import TagMap
-from opencensus.trace.span import SpanKind
-from opencensus.trace.status import Status
-from opencensus.trace.tracer import Tracer
+from opencensus.tags.tag_value import TagValue
+from opencensus.trace import execution_context
+from opencensus.trace import samplers
 from opencensus.trace import span_context as span_context_module
-from opencensus.trace import execution_context, samplers
 from opencensus.trace import span_data as span_data_module
 from opencensus.trace import time_event
 from opencensus.trace import trace_options as trace_options_module
-
-import grpc_observability
-from grpc_observability import _views
-from grpc_observability import _measures
-
+from opencensus.trace.span import SpanKind
+from opencensus.trace.status import Status
+from opencensus.trace.tracer import Tracer
 
 logger = logging.getLogger(__name__)
 
@@ -65,22 +63,37 @@ class OpenCensusExporter(grpc_observability.Exporter):
 
     def _register_open_census_views(self, view_manager) -> None:
         # Client
-        view_manager.register_view(_views.client_started_rpcs(self.default_labels))
-        view_manager.register_view(_views.client_completed_rpcs(self.default_labels))
-        view_manager.register_view(_views.client_roundtrip_latency(self.default_labels))
-        view_manager.register_view(_views.client_api_latency(self.default_labels))
-        view_manager.register_view(_views.client_sent_compressed_message_bytes_per_rpc(self.default_labels))
-        view_manager.register_view(_views.client_received_compressed_message_bytes_per_rpc(self.default_labels))
+        view_manager.register_view(
+            _views.client_started_rpcs(self.default_labels))
+        view_manager.register_view(
+            _views.client_completed_rpcs(self.default_labels))
+        view_manager.register_view(
+            _views.client_roundtrip_latency(self.default_labels))
+        view_manager.register_view(
+            _views.client_api_latency(self.default_labels))
+        view_manager.register_view(
+            _views.client_sent_compressed_message_bytes_per_rpc(
+                self.default_labels))
+        view_manager.register_view(
+            _views.client_received_compressed_message_bytes_per_rpc(
+                self.default_labels))
 
         # Server
-        view_manager.register_view(_views.server_started_rpcs(self.default_labels))
-        view_manager.register_view(_views.server_completed_rpcs(self.default_labels))
-        view_manager.register_view(_views.server_sent_compressed_message_bytes_per_rpc(self.default_labels))
-        view_manager.register_view(_views.server_received_compressed_message_bytes_per_rpc(self.default_labels))
-        view_manager.register_view(_views.server_server_latency(self.default_labels))
+        view_manager.register_view(
+            _views.server_started_rpcs(self.default_labels))
+        view_manager.register_view(
+            _views.server_completed_rpcs(self.default_labels))
+        view_manager.register_view(
+            _views.server_sent_compressed_message_bytes_per_rpc(
+                self.default_labels))
+        view_manager.register_view(
+            _views.server_received_compressed_message_bytes_per_rpc(
+                self.default_labels))
+        view_manager.register_view(
+            _views.server_server_latency(self.default_labels))
 
-
-    def export_stats_data(self, stats_data: List[grpc_observability.StatsData]) -> None:
+    def export_stats_data(
+            self, stats_data: List[grpc_observability.StatsData]) -> None:
         stats = stats_module.stats
         stats_recorder = stats.stats_recorder
         mmap = stats_recorder.new_measurement_map()
@@ -97,24 +110,29 @@ class OpenCensusExporter(grpc_observability.Exporter):
                 tag_map.insert(TagKey(key), TagValue(value))
 
             if metric.measure_double:
-                sys.stderr.write(f"---->>> Metric name:{measure.name}, value: {metric.value_float}, tags: {tag_map.map}\n")
+                sys.stderr.write(
+                    f"---->>> Metric name:{measure.name}, value: {metric.value_float}, tags: {tag_map.map}\n"
+                )
                 sys.stderr.flush()
                 mmap.measure_float_put(measure, metric.value_float)
             else:
-                sys.stderr.write(f"---->>> Metric name:{measure.name}, value: {metric.value_int}, tags: {tag_map.map}\n")
+                sys.stderr.write(
+                    f"---->>> Metric name:{measure.name}, value: {metric.value_int}, tags: {tag_map.map}\n"
+                )
                 sys.stderr.flush()
                 mmap.measure_int_put(measure, metric.value_int)
 
             mmap.record(tag_map)
 
-
-    def export_tracing_data(self, tracing_data: List[grpc_observability.TracingData]) -> None:
+    def export_tracing_data(
+            self, tracing_data: List[grpc_observability.TracingData]) -> None:
         for span_data in tracing_data:
             span_context = span_context_module.SpanContext(
                 trace_id=span_data.trace_id,
                 span_id=span_data.span_id,
                 trace_options=trace_options_module.TraceOptions(1))
-            span_data = _get_span_datas(span_data, span_context, self.default_labels)
+            span_data = _get_span_datas(span_data, span_context,
+                                        self.default_labels)
             sys.stderr.write(f"---->>> Span: {span_data}\n")
 
     # def set_tracer(self) -> None:
@@ -129,6 +147,7 @@ class OpenCensusExporter(grpc_observability.Exporter):
     #     sampler = samplers.ProbabilitySampler(rate=self.sampling_rate)
     #     # TODO: check existing SpanContext
     #     tracer = Tracer(sampler=sampler, span_context=span_context)
+
 
 def _get_span_annotations(
         span_annotations: List[Tuple[bytes,
@@ -213,14 +232,24 @@ def _get_span_datas(span_data, span_context, labels: Mapping[str, str]):
 
     return span_datas
 
+
 METRICS_NAME_TO_MEASURE = {
-  grpc_observability.MetricsName.CLIENT_STARTED_RPCS: _measures.rpc_client_started_rpcs(),
-  grpc_observability.MetricsName.CLIENT_ROUNDTRIP_LATENCY: _measures.rpc_client_roundtrip_latency(),
-  grpc_observability.MetricsName.CLIENT_API_LATENCY: _measures.rpc_client_api_latency(),
-  grpc_observability.MetricsName.CLIENT_SEND_BYTES_PER_RPC: _measures.rpc_client_send_bytes_per_prc(),
-  grpc_observability.MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC: _measures.rpc_client_received_bytes_per_rpc(),
-  grpc_observability.MetricsName.SERVER_STARTED_RPCS: _measures.rpc_server_started_rpcs(),
-  grpc_observability.MetricsName.SERVER_SENT_BYTES_PER_RPC: _measures.rpc_server_sent_bytes_per_rpc(),
-  grpc_observability.MetricsName.SERVER_RECEIVED_BYTES_PER_RPC: _measures.rpc_server_received_bytes_per_rpc(),
-  grpc_observability.MetricsName.SERVER_SERVER_LATENCY: _measures.rpc_server_server_latency(),
+    grpc_observability.MetricsName.CLIENT_STARTED_RPCS:
+        _measures.rpc_client_started_rpcs(),
+    grpc_observability.MetricsName.CLIENT_ROUNDTRIP_LATENCY:
+        _measures.rpc_client_roundtrip_latency(),
+    grpc_observability.MetricsName.CLIENT_API_LATENCY:
+        _measures.rpc_client_api_latency(),
+    grpc_observability.MetricsName.CLIENT_SEND_BYTES_PER_RPC:
+        _measures.rpc_client_send_bytes_per_prc(),
+    grpc_observability.MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC:
+        _measures.rpc_client_received_bytes_per_rpc(),
+    grpc_observability.MetricsName.SERVER_STARTED_RPCS:
+        _measures.rpc_server_started_rpcs(),
+    grpc_observability.MetricsName.SERVER_SENT_BYTES_PER_RPC:
+        _measures.rpc_server_sent_bytes_per_rpc(),
+    grpc_observability.MetricsName.SERVER_RECEIVED_BYTES_PER_RPC:
+        _measures.rpc_server_received_bytes_per_rpc(),
+    grpc_observability.MetricsName.SERVER_SERVER_LATENCY:
+        _measures.rpc_server_server_latency(),
 }

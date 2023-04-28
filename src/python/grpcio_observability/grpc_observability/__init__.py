@@ -14,16 +14,18 @@
 
 from __future__ import annotations
 
-import enum
 import abc
-from dataclasses import dataclass, field
-from typing import Any, AnyStr, List, Tuple, Mapping, TypeVar, Optional
+from dataclasses import dataclass
+from dataclasses import field
+import enum
+from typing import Any, AnyStr, List, Mapping, Optional, Tuple, TypeVar
 
 from grpc_observability import _cyobservability
 from grpc_observability._observability import GCPOpenCensusObservability
 
 
 class Exporter(metaclass=abc.ABCMeta):
+
     @abc.abstractmethod
     def export_stats_data(self, stats_data: List[TracingData]) -> None:
         raise NotImplementedError()
@@ -39,34 +41,47 @@ class MetricsName(enum.Enum):
                            'CLIENT_STARTED_RPCS')
     CLIENT_API_LATENCY = (_cyobservability.MetricsName.CLIENT_API_LATENCY,
                           'CLIENT_API_LATENCY')
-    CLIENT_SNET_MESSSAGES_PER_RPC = (_cyobservability.MetricsName.CLIENT_SNET_MESSSAGES_PER_RPC,
-                                     'CLIENT_API_LATENCY')
-    CLIENT_SEND_BYTES_PER_RPC = (_cyobservability.MetricsName.CLIENT_SEND_BYTES_PER_RPC,
-                                 'CLIENT_SEND_BYTES_PER_RPC')
-    CLIENT_RECEIVED_MESSAGES_PER_RPC = (_cyobservability.MetricsName.CLIENT_RECEIVED_MESSAGES_PER_RPC,
-                                        'CLIENT_RECEIVED_MESSAGES_PER_RPC')
-    CLIENT_RECEIVED_BYTES_PER_RPC = (_cyobservability.MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC,
-                                     'CLIENT_RECEIVED_BYTES_PER_RPC')
-    CLIENT_ROUNDTRIP_LATENCY = (_cyobservability.MetricsName.CLIENT_ROUNDTRIP_LATENCY,
-                                'CLIENT_ROUNDTRIP_LATENCY')
+    CLIENT_SNET_MESSSAGES_PER_RPC = (
+        _cyobservability.MetricsName.CLIENT_SNET_MESSSAGES_PER_RPC,
+        'CLIENT_API_LATENCY')
+    CLIENT_SEND_BYTES_PER_RPC = (
+        _cyobservability.MetricsName.CLIENT_SEND_BYTES_PER_RPC,
+        'CLIENT_SEND_BYTES_PER_RPC')
+    CLIENT_RECEIVED_MESSAGES_PER_RPC = (
+        _cyobservability.MetricsName.CLIENT_RECEIVED_MESSAGES_PER_RPC,
+        'CLIENT_RECEIVED_MESSAGES_PER_RPC')
+    CLIENT_RECEIVED_BYTES_PER_RPC = (
+        _cyobservability.MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC,
+        'CLIENT_RECEIVED_BYTES_PER_RPC')
+    CLIENT_ROUNDTRIP_LATENCY = (
+        _cyobservability.MetricsName.CLIENT_ROUNDTRIP_LATENCY,
+        'CLIENT_ROUNDTRIP_LATENCY')
     CLIENT_SERVER_LATENCY = (_cyobservability.MetricsName.CLIENT_SERVER_LATENCY,
                              'CLIENT_SERVER_LATENCY')
-    CLIENT_RETRIES_PER_CALL = (_cyobservability.MetricsName.CLIENT_RETRIES_PER_CALL,
-                               'CLIENT_RETRIES_PER_CALL')
-    CLIENT_TRANSPARENT_RETRIES_PER_CALL = (_cyobservability.MetricsName.CLIENT_TRANSPARENT_RETRIES_PER_CALL,
-                                           'CLIENT_TRANSPARENT_RETRIES_PER_CALL')
-    CLIENT_RETRY_DELAY_PER_CALL = (_cyobservability.MetricsName.CLIENT_RETRY_DELAY_PER_CALL,
-                                   'CLIENT_RETRY_DELAY_PER_CALL')
-    CLIENT_TRANSPORT_LATENCY = (_cyobservability.MetricsName.CLIENT_TRANSPORT_LATENCY,
-                                'CLIENT_TRANSPORT_LATENCY')
-    SERVER_SENT_MESSAGES_PER_RPC = (_cyobservability.MetricsName.SERVER_SENT_MESSAGES_PER_RPC,
-                                    'SERVER_SENT_MESSAGES_PER_RPC')
-    SERVER_SENT_BYTES_PER_RPC = (_cyobservability.MetricsName.SERVER_SENT_BYTES_PER_RPC,
-                                 'SERVER_SENT_BYTES_PER_RPC')
-    SERVER_RECEIVED_MESSAGES_PER_RPC = (_cyobservability.MetricsName.SERVER_RECEIVED_MESSAGES_PER_RPC,
-                                        'SERVER_RECEIVED_MESSAGES_PER_RPC')
-    SERVER_RECEIVED_BYTES_PER_RPC = (_cyobservability.MetricsName.SERVER_RECEIVED_BYTES_PER_RPC,
-                                     'SERVER_RECEIVED_BYTES_PER_RPC')
+    CLIENT_RETRIES_PER_CALL = (
+        _cyobservability.MetricsName.CLIENT_RETRIES_PER_CALL,
+        'CLIENT_RETRIES_PER_CALL')
+    CLIENT_TRANSPARENT_RETRIES_PER_CALL = (
+        _cyobservability.MetricsName.CLIENT_TRANSPARENT_RETRIES_PER_CALL,
+        'CLIENT_TRANSPARENT_RETRIES_PER_CALL')
+    CLIENT_RETRY_DELAY_PER_CALL = (
+        _cyobservability.MetricsName.CLIENT_RETRY_DELAY_PER_CALL,
+        'CLIENT_RETRY_DELAY_PER_CALL')
+    CLIENT_TRANSPORT_LATENCY = (
+        _cyobservability.MetricsName.CLIENT_TRANSPORT_LATENCY,
+        'CLIENT_TRANSPORT_LATENCY')
+    SERVER_SENT_MESSAGES_PER_RPC = (
+        _cyobservability.MetricsName.SERVER_SENT_MESSAGES_PER_RPC,
+        'SERVER_SENT_MESSAGES_PER_RPC')
+    SERVER_SENT_BYTES_PER_RPC = (
+        _cyobservability.MetricsName.SERVER_SENT_BYTES_PER_RPC,
+        'SERVER_SENT_BYTES_PER_RPC')
+    SERVER_RECEIVED_MESSAGES_PER_RPC = (
+        _cyobservability.MetricsName.SERVER_RECEIVED_MESSAGES_PER_RPC,
+        'SERVER_RECEIVED_MESSAGES_PER_RPC')
+    SERVER_RECEIVED_BYTES_PER_RPC = (
+        _cyobservability.MetricsName.SERVER_RECEIVED_BYTES_PER_RPC,
+        'SERVER_RECEIVED_BYTES_PER_RPC')
     SERVER_SERVER_LATENCY = (_cyobservability.MetricsName.SERVER_SERVER_LATENCY,
                              'SERVER_SERVER_LATENCY')
     SERVER_STARTED_RPCS = (_cyobservability.MetricsName.SERVER_STARTED_RPCS,
@@ -97,4 +112,5 @@ class TracingData:
     span_annotations: List[Tuple[str, str]] = field(default_factory=list)
 
 
-__all__ = ('GCPOpenCensusObservability', 'Exporter', 'MetricsName', 'StatsData', 'TracingData')
+__all__ = ('GCPOpenCensusObservability', 'Exporter', 'MetricsName', 'StatsData',
+           'TracingData')

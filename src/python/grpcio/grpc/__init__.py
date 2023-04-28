@@ -21,11 +21,11 @@ import sys
 
 from grpc import _compression
 from grpc._cython import cygrpc as _cygrpc
+from grpc._observability import GrpcObservability
+from grpc._observability import observability_init
 from grpc._runtime_protos import protos
 from grpc._runtime_protos import protos_and_services
 from grpc._runtime_protos import services
-from grpc._observability import observability_init
-from grpc._observability import GrpcObservability
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 

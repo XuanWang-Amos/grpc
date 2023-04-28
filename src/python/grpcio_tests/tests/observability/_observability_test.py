@@ -1,12 +1,11 @@
-import unittest
-import weakref
-import sys
+from concurrent import futures
 import logging
 import os
-import time
 import random
-from concurrent import futures
+import sys
+import time
 from typing import List
+import unittest
 
 import grpc
 import grpc_observability
@@ -50,14 +49,18 @@ _SPAN_PREFIXS = ['Recv', 'Sent', 'Attempt']
 
 
 class TestExporter(grpc_observability.Exporter):
-    def __init__(self, metrics: List[grpc_observability.StatsData], spans: List[grpc_observability.TracingData]):
+
+    def __init__(self, metrics: List[grpc_observability.StatsData],
+                 spans: List[grpc_observability.TracingData]):
         self.span_collecter = spans
         self.metric_collecter = metrics
 
-    def export_stats_data(self, stats_data: List[grpc_observability.StatsData]) -> None:
+    def export_stats_data(
+            self, stats_data: List[grpc_observability.StatsData]) -> None:
         self.metric_collecter.extend(stats_data)
 
-    def export_tracing_data(self, tracing_data: List[grpc_observability.TracingData]) -> None:
+    def export_tracing_data(
+            self, tracing_data: List[grpc_observability.TracingData]) -> None:
         self.span_collecter.extend(tracing_data)
 
 
@@ -101,6 +104,7 @@ class _MethodHandler(grpc.RpcMethodHandler):
 
 
 class _GenericHandler(grpc.GenericRpcHandler):
+
     def service(self, handler_call_details):
         if handler_call_details.method == _UNARY_UNARY:
             return _MethodHandler(False, False)
@@ -125,7 +129,8 @@ class ObservabilityTest(unittest.TestCase):
         os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = ''
 
     def testRecordUnaryUnary(self):
-        os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
+        os.environ[
+            'GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
         with grpc_observability.GCPOpenCensusObservability() as o11y:
             o11y.init(exporter=self.test_exporter)
 
@@ -139,19 +144,16 @@ class ObservabilityTest(unittest.TestCase):
 
         self._server.stop(0)
 
-
     def testThrowErrorWithoutConfig(self):
         with self.assertRaises(ValueError):
             with grpc_observability.GCPOpenCensusObservability() as o11y:
                 o11y.init(exporter=self.test_exporter)
-
 
     def testThrowErrorWithInvalidConfig(self):
         os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = _INVALID_CONFIG
         with self.assertRaises(ValueError):
             with grpc_observability.GCPOpenCensusObservability() as o11y:
                 o11y.init(exporter=self.test_exporter)
-
 
     def testRecordUnaryUnaryStatsOnly(self):
         os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_STATS_ONLY
@@ -167,7 +169,6 @@ class ObservabilityTest(unittest.TestCase):
 
         self._server.stop(0)
 
-
     def testRecordUnaryUnaryTracingOnly(self):
         os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_ONLY
         with grpc_observability.GCPOpenCensusObservability() as o11y:
@@ -182,9 +183,9 @@ class ObservabilityTest(unittest.TestCase):
 
         self._server.stop(0)
 
-
     def testRecordUnaryStream(self):
-        os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
+        os.environ[
+            'GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
         with grpc_observability.GCPOpenCensusObservability() as o11y:
             o11y.init(exporter=self.test_exporter)
 
@@ -198,9 +199,9 @@ class ObservabilityTest(unittest.TestCase):
 
         self._server.stop(0)
 
-
     def testRecordStreamUnary(self):
-        os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
+        os.environ[
+            'GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
         with grpc_observability.GCPOpenCensusObservability() as o11y:
             o11y.init(exporter=self.test_exporter)
 
@@ -214,9 +215,9 @@ class ObservabilityTest(unittest.TestCase):
 
         self._server.stop(0)
 
-
     def testRecordStreamStream(self):
-        os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
+        os.environ[
+            'GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
         with grpc_observability.GCPOpenCensusObservability() as o11y:
             o11y.init(exporter=self.test_exporter)
 
@@ -230,9 +231,9 @@ class ObservabilityTest(unittest.TestCase):
 
         self._server.stop(0)
 
-
     def testNoRecordBeforeInit(self):
-        os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
+        os.environ[
+            'GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
         port = self._start_server()
         self.unary_unary_call(port)
 
@@ -254,9 +255,9 @@ class ObservabilityTest(unittest.TestCase):
 
         self._server.stop(0)
 
-
     def testNoRecordAfterExit(self):
-        os.environ['GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
+        os.environ[
+            'GRPC_GCP_OBSERVABILITY_CONFIG'] = _VALID_CONFIG_TRACING_STATS
         with grpc_observability.GCPOpenCensusObservability() as o11y:
             o11y.init(exporter=self.test_exporter)
 
@@ -303,29 +304,34 @@ class ObservabilityTest(unittest.TestCase):
 
     def _start_server(self) -> int:
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        self._server.add_generic_rpc_handlers(
-            (_GenericHandler(),))
+        self._server.add_generic_rpc_handlers((_GenericHandler(),))
         port = self._server.add_insecure_port('[::]:55555')
 
         self._server.start()
         return port
 
-    def _validate_metrics(self, metrics: List[grpc_observability.StatsData]) -> None:
+    def _validate_metrics(self,
+                          metrics: List[grpc_observability.StatsData]) -> None:
         metric_names = set(metric.name for metric in metrics)
         for name in grpc_observability.MetricsName:
             if name in _SKIP_VEFIRY:
                 continue
             if name not in metric_names:
-                logger.error('metric %s not found in exported metrics: %s!', name, metric_names)
+                logger.error('metric %s not found in exported metrics: %s!',
+                             name, metric_names)
             self.assertTrue(name in metric_names)
 
-    def _validate_spans(self, tracing_data: List[grpc_observability.TracingData]) -> None:
+    def _validate_spans(
+            self, tracing_data: List[grpc_observability.TracingData]) -> None:
         span_names = set(data.name for data in tracing_data)
         for prefix in _SPAN_PREFIXS:
             prefix_exist = any(prefix in name for name in span_names)
             if not prefix_exist:
-                logger.error('missing span with prefix %s in exported spans: %s!', prefix, span_names)
+                logger.error(
+                    'missing span with prefix %s in exported spans: %s!',
+                    prefix, span_names)
             self.assertTrue(prefix_exist)
+
 
 if __name__ == "__main__":
     logging.basicConfig()
