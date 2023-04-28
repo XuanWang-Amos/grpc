@@ -12,17 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import abc
-import collections
 from dataclasses import dataclass
 from dataclasses import field
-import enum
 import importlib
 import logging
 import sys
 import threading
 import time
-from typing import Any, Generic, List, Mapping, Optional, TypeVar
+from typing import Any, Mapping, Optional, TypeVar
 
 import grpc
 from grpc_observability import _cyobservability
@@ -33,6 +30,27 @@ from opencensus.trace import trace_options as trace_options_module
 _LOGGER = logging.getLogger(__name__)
 
 PyCapsule = TypeVar('PyCapsule')
+grpc_observability = Any  # grpc_observability.py imports this module.
+
+GRPC_STATUS_CODE_TO_STRING = {
+    grpc.StatusCode.OK: "OK",
+    grpc.StatusCode.CANCELLED: "CANCELLED",
+    grpc.StatusCode.UNKNOWN: "UNKNOWN",
+    grpc.StatusCode.INVALID_ARGUMENT: "INVALID_ARGUMENT",
+    grpc.StatusCode.DEADLINE_EXCEEDED: "DEADLINE_EXCEEDED",
+    grpc.StatusCode.NOT_FOUND: "NOT_FOUND",
+    grpc.StatusCode.ALREADY_EXISTS: "ALREADY_EXISTS",
+    grpc.StatusCode.PERMISSION_DENIED: "PERMISSION_DENIED",
+    grpc.StatusCode.UNAUTHENTICATED: "UNAUTHENTICATED",
+    grpc.StatusCode.RESOURCE_EXHAUSTED: "RESOURCE_EXHAUSTED",
+    grpc.StatusCode.FAILED_PRECONDITION: "FAILED_PRECONDITION",
+    grpc.StatusCode.ABORTED: "ABORTED",
+    grpc.StatusCode.OUT_OF_RANGE: "OUT_OF_RANGE",
+    grpc.StatusCode.UNIMPLEMENTED: "UNIMPLEMENTED",
+    grpc.StatusCode.INTERNAL: "INTERNAL",
+    grpc.StatusCode.UNAVAILABLE: "UNAVAILABLE",
+    grpc.StatusCode.DATA_LOSS: "DATA_LOSS",
+}
 
 
 @dataclass
@@ -54,11 +72,11 @@ class GcpObservabilityPythonConfig:
         return GcpObservabilityPythonConfig._singleton
 
     def set_configuration(self,
-                          project_id,
-                          sampling_rate=0.0,
-                          labels=None,
-                          tracing_enabled=False,
-                          stats_enabled=False) -> None:
+                          project_id: str,
+                          sampling_rate: Optional[float] = 0.0,
+                          labels: Optional[Mapping[str, str]] = None,
+                          tracing_enabled: bool = False,
+                          stats_enabled: bool = False) -> None:
         self.project_id = project_id
         self.stats_enabled = stats_enabled
         self.tracing_enabled = tracing_enabled
@@ -68,6 +86,7 @@ class GcpObservabilityPythonConfig:
 
 class GCPOpenCensusObservability(grpc.GrpcObservability):
     config: GcpObservabilityPythonConfig
+    exporter: "grpc_observability.Exporter"
 
     def __init__(self):
         # 1. Read config.
@@ -83,7 +102,7 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
         if self.config.stats_enabled:
             self._enable_stats(True)
 
-    def init(self, exporter=None) -> None:
+    def init(self, exporter: "grpc_observability.Exporter" = None) -> None:
         if exporter:
             self.exporter = exporter
         else:
@@ -104,10 +123,10 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
         # 5. Init grpc.
         # 5.1 Refister grpc_observability
         # 5.2 set_server_call_tracer_factory
-        grpc.observability_init(self)
+        grpc._observability_init(self)
 
     def exit(self) -> None:
-        # Sleep for 1s so all data can be flushed.
+        # Sleep for 0.5s so all data can be flushed.
         time.sleep(0.5)
         self._enable_tracing(False)
         self._enable_stats(False)
@@ -151,28 +170,7 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
         current_tracer.span_context = span_context
 
     def record_rpc_latency(self, method: str, rpc_latency: float,
-                           status_code: Any) -> None:
+                           status_code: grpc.StatusCode) -> None:
         status_code = GRPC_STATUS_CODE_TO_STRING.get(status_code, "UNKNOWN")
         _cyobservability._record_rpc_latency(self.exporter, method, rpc_latency,
                                              status_code)
-
-
-GRPC_STATUS_CODE_TO_STRING = {
-    grpc.StatusCode.OK: "OK",
-    grpc.StatusCode.CANCELLED: "CANCELLED",
-    grpc.StatusCode.UNKNOWN: "UNKNOWN",
-    grpc.StatusCode.INVALID_ARGUMENT: "INVALID_ARGUMENT",
-    grpc.StatusCode.DEADLINE_EXCEEDED: "DEADLINE_EXCEEDED",
-    grpc.StatusCode.NOT_FOUND: "NOT_FOUND",
-    grpc.StatusCode.ALREADY_EXISTS: "ALREADY_EXISTS",
-    grpc.StatusCode.PERMISSION_DENIED: "PERMISSION_DENIED",
-    grpc.StatusCode.UNAUTHENTICATED: "UNAUTHENTICATED",
-    grpc.StatusCode.RESOURCE_EXHAUSTED: "RESOURCE_EXHAUSTED",
-    grpc.StatusCode.FAILED_PRECONDITION: "FAILED_PRECONDITION",
-    grpc.StatusCode.ABORTED: "ABORTED",
-    grpc.StatusCode.OUT_OF_RANGE: "OUT_OF_RANGE",
-    grpc.StatusCode.UNIMPLEMENTED: "UNIMPLEMENTED",
-    grpc.StatusCode.INTERNAL: "INTERNAL",
-    grpc.StatusCode.UNAVAILABLE: "UNAVAILABLE",
-    grpc.StatusCode.DATA_LOSS: "DATA_LOSS",
-}

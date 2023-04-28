@@ -1,9 +1,6 @@
 from concurrent import futures
 import logging
 import os
-import random
-import sys
-import time
 from typing import List
 import unittest
 
@@ -20,15 +17,17 @@ _UNARY_STREAM = '/test/UnaryStream'
 _STREAM_UNARY = '/test/StreamUnary'
 _STREAM_STREAM = '/test/StreamStream'
 STREAM_LENGTH = 5
+
 _VALID_CONFIG_TRACING_STATS = """
 {
     "project_id":"test-project",
     "cloud_trace":{
        "sampling_rate":1.00
     },
-    "cloud_monitoring":{}
+    "cloud_monitoring":{},
 }
 """
+
 _VALID_CONFIG_TRACING_ONLY = """
 {
     "project_id":"test-project",
@@ -44,6 +43,7 @@ _VALID_CONFIG_STATS_ONLY = """
 }
 """
 _INVALID_CONFIG = 'INVALID'
+# The following metrcis might not exist
 _SKIP_VEFIRY = [grpc_observability.MetricsName.CLIENT_TRANSPORT_LATENCY]
 _SPAN_PREFIXS = ['Recv', 'Sent', 'Attempt']
 
@@ -54,6 +54,7 @@ class TestExporter(grpc_observability.Exporter):
                  spans: List[grpc_observability.TracingData]):
         self.span_collecter = spans
         self.metric_collecter = metrics
+        self._server = None
 
     def export_stats_data(
             self, stats_data: List[grpc_observability.StatsData]) -> None:

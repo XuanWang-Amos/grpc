@@ -236,9 +236,7 @@ cdef void _call(
       grpc_slice_unref(method_slice)
       if host_slice_ptr:
         grpc_slice_unref(host_slice)
-
-      mapbe_set_client_call_tracer_on_call(call_state, method)
-
+      maybe_set_client_call_tracer_on_call(call_state, method)
       if context is not None:
         set_census_context_on_call(call_state, context)
       if credentials is not None:

@@ -53,10 +53,32 @@ VIEW_NAMES = [
     #   "grpc.io/server/server_latency"
 ]
 
+METRICS_NAME_TO_MEASURE = {
+    grpc_observability.MetricsName.CLIENT_STARTED_RPCS:
+        _measures.rpc_client_started_rpcs(),
+    grpc_observability.MetricsName.CLIENT_ROUNDTRIP_LATENCY:
+        _measures.rpc_client_roundtrip_latency(),
+    grpc_observability.MetricsName.CLIENT_API_LATENCY:
+        _measures.rpc_client_api_latency(),
+    grpc_observability.MetricsName.CLIENT_SEND_BYTES_PER_RPC:
+        _measures.rpc_client_send_bytes_per_prc(),
+    grpc_observability.MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC:
+        _measures.rpc_client_received_bytes_per_rpc(),
+    grpc_observability.MetricsName.SERVER_STARTED_RPCS:
+        _measures.rpc_server_started_rpcs(),
+    grpc_observability.MetricsName.SERVER_SENT_BYTES_PER_RPC:
+        _measures.rpc_server_sent_bytes_per_rpc(),
+    grpc_observability.MetricsName.SERVER_RECEIVED_BYTES_PER_RPC:
+        _measures.rpc_server_received_bytes_per_rpc(),
+    grpc_observability.MetricsName.SERVER_SERVER_LATENCY:
+        _measures.rpc_server_server_latency(),
+}
+
 
 class OpenCensusExporter(grpc_observability.Exporter):
+    default_labels: Mapping[str, str]
 
-    def __init__(self, labels: Mapping[str, str]):
+    def __init__(self, labels: Optional[Mapping[str, str]] = None):
         self.default_labels = labels
         view_manager = stats_module.stats.view_manager
         self._register_open_census_views(view_manager)
@@ -231,25 +253,3 @@ def _get_span_datas(span_data, span_context, labels: Mapping[str, str]):
     ]
 
     return span_datas
-
-
-METRICS_NAME_TO_MEASURE = {
-    grpc_observability.MetricsName.CLIENT_STARTED_RPCS:
-        _measures.rpc_client_started_rpcs(),
-    grpc_observability.MetricsName.CLIENT_ROUNDTRIP_LATENCY:
-        _measures.rpc_client_roundtrip_latency(),
-    grpc_observability.MetricsName.CLIENT_API_LATENCY:
-        _measures.rpc_client_api_latency(),
-    grpc_observability.MetricsName.CLIENT_SEND_BYTES_PER_RPC:
-        _measures.rpc_client_send_bytes_per_prc(),
-    grpc_observability.MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC:
-        _measures.rpc_client_received_bytes_per_rpc(),
-    grpc_observability.MetricsName.SERVER_STARTED_RPCS:
-        _measures.rpc_server_started_rpcs(),
-    grpc_observability.MetricsName.SERVER_SENT_BYTES_PER_RPC:
-        _measures.rpc_server_sent_bytes_per_rpc(),
-    grpc_observability.MetricsName.SERVER_RECEIVED_BYTES_PER_RPC:
-        _measures.rpc_server_received_bytes_per_rpc(),
-    grpc_observability.MetricsName.SERVER_SERVER_LATENCY:
-        _measures.rpc_server_server_latency(),
-}

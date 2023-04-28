@@ -74,7 +74,7 @@ class GrpcObservability(Generic[PyCapsule], metaclass=abc.ABCMeta):
         return self._tracing_enabled() or self._stats_enabled()
 
 
-def observability_init(grpc_observability: GrpcObservability) -> None:
+def _observability_init(grpc_observability: GrpcObservability) -> None:
     try:
         setattr(grpc, "_grpc_observability", grpc_observability)
         _cygrpc.set_server_call_tracer_factory()

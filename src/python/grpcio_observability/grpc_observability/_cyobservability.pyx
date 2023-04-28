@@ -15,13 +15,9 @@
 cimport cpython
 from cython.operator cimport dereference
 
-from dataclasses import dataclass
-from dataclasses import field
 import logging
-import os
-import sys
 from threading import Thread
-from typing import Any, AnyStr, List, Mapping, Optional, Tuple, TypeVar
+from typing import List, Mapping, Tuple
 
 import grpc_observability
 
@@ -32,6 +28,7 @@ cdef bint GLOBAL_SHUTDOWN_EXPORT_THREAD = False
 cdef object global_export_thread
 
 _LOGGER = logging.getLogger(__name__)
+
 
 class MetricsName:
   CLIENT_API_LATENCY = kRpcClientApiLatencyMeasureName
@@ -53,9 +50,13 @@ class MetricsName:
   SERVER_SERVER_LATENCY = kRpcServerServerLatencyMeasureName
   SERVER_STARTED_RPCS = kRpcServerStartedRpcsMeasureName
 
+# Delay map creation due to circular dependencies
+_CY_METRICS_NAME_TO_PY_METRICS_NAME_MAPPING = {}
 
 def cyobservability_init(object exporter) -> None:
-  gcpObservabilityInit() # remove print buffer
+  global _CY_METRICS_NAME_TO_PY_METRICS_NAME_MAPPING
+  _CY_METRICS_NAME_TO_PY_METRICS_NAME_MAPPING = {x.value[0]: x for x in grpc_observability.MetricsName}
+  NativeObservabilityInit()
   _start_exporting_thread(exporter)
 
 
@@ -67,11 +68,9 @@ def _start_exporting_thread(object exporter) -> None:
   global_export_thread.start()
 
 
-def set_gcp_observability_config(py_config) -> bool:
+def set_gcp_observability_config(object py_config) -> bool:
   py_labels = {}
   sampling_rate = 0.0
-  tracing_enabled = False
-  stats_enabled = False
 
   cdef cGcpObservabilityConfig c_config = ReadObservabilityConfig()
   if not c_config.is_valid:
@@ -82,15 +81,11 @@ def set_gcp_observability_config(py_config) -> bool:
 
   if PythonOpenCensusTracingEnabled():
     sampling_rate = c_config.cloud_trace.sampling_rate
-    tracing_enabled = True
     # Save sampling rate to global sampler.
     ProbabilitySampler.Get().SetThreshold(sampling_rate)
 
-  if PythonOpenCensusStatsEnabled():
-    stats_enabled = True
-
-  py_config.set_configuration(_decode(c_config.project_id), sampling_rate,
-                              py_labels, tracing_enabled, stats_enabled)
+  py_config.set_configuration(_decode(c_config.project_id), sampling_rate, py_labels,
+                              PythonOpenCensusTracingEnabled(), PythonOpenCensusStatsEnabled())
   return True
 
 
@@ -107,16 +102,16 @@ def create_client_call_tracer_capsule(bytes method, bytes trace_id,
 
 def create_server_call_tracer_factory_capsule() -> cpython.PyObject:
   cdef void* call_tracer_factory = CreateServerCallTracerFactory()
-
   capsule = cpython.PyCapsule_New(call_tracer_factory, SERVER_CALL_TRACER_FACTORY, NULL)
   return capsule
 
 
 def delete_client_call_tracer(object client_call_tracer_capsule) -> None:
-  if cpython.PyCapsule_IsValid(client_call_tracer_capsule, "gcp_opencensus_client_call_tracer"):
-    capsule_ptr = cpython.PyCapsule_GetPointer(client_call_tracer_capsule, "gcp_opencensus_client_call_tracer")
+  if cpython.PyCapsule_IsValid(client_call_tracer_capsule, CLIENT_CALL_TRACER):
+    capsule_ptr = cpython.PyCapsule_GetPointer(client_call_tracer_capsule, CLIENT_CALL_TRACER)
     call_tracer_ptr = <ClientCallTracer*>capsule_ptr
     del call_tracer_ptr
+
 
 def _c_label_to_labels(object cLabels) -> Mapping[str, str]:
   py_labels = {}
@@ -137,16 +132,16 @@ def at_observability_exit() -> None:
   _shutdown_exporting_thread()
 
 
-def cy_metric_name_to_py_metric_name(object metric_name) -> grpc_observability.MetricsName:
-  _CY_METRICS_NAME_TO_PY_METRICS_NAME_MAPPING = {x.value[0]: x for x in grpc_observability.MetricsName}
+def _cy_metric_name_to_py_metric_name(object metric_name) -> grpc_observability.MetricsName:
+  global _CY_METRICS_NAME_TO_PY_METRICS_NAME_MAPPING
   try:
       return _CY_METRICS_NAME_TO_PY_METRICS_NAME_MAPPING[metric_name]
   except KeyError:
       raise ValueError('Invalid metric name %s' % metric_name)
 
 
-def get_stats_data(object measurement, object labels) -> grpc_observability.StatsData:
-  metric_name = cy_metric_name_to_py_metric_name(measurement['name'])
+def _get_stats_data(object measurement, object labels) -> grpc_observability.StatsData:
+  metric_name = _cy_metric_name_to_py_metric_name(measurement['name'])
   if measurement['type'] == kMeasurementDouble:
     py_stat = grpc_observability.StatsData(name=metric_name, measure_double=True,
                                            value_float=measurement['value']['value_double'],
@@ -158,7 +153,7 @@ def get_stats_data(object measurement, object labels) -> grpc_observability.Stat
   return py_stat
 
 
-def get_tracing_data(object span_data, object span_labels, object span_annotations) -> grpc_observability.TracingData:
+def _get_tracing_data(object span_data, object span_labels, object span_annotations) -> grpc_observability.TracingData:
   py_span_labels = _c_label_to_labels(span_labels)
   py_span_annotations = _c_annotation_to_annotations(span_annotations)
   return grpc_observability.TracingData(name=_decode(span_data['name']),
@@ -174,7 +169,7 @@ def get_tracing_data(object span_data, object span_labels, object span_annotatio
                                    span_annotations = py_span_annotations)
 
 
-def _record_rpc_latency(object exporter, str method, float rpc_latency, status_code) -> None:
+def _record_rpc_latency(object exporter, str method, float rpc_latency, str status_code) -> None:
   measurement = {}
   measurement['name'] = kRpcClientApiLatencyMeasureName
   measurement['type'] = kMeasurementDouble
@@ -183,7 +178,7 @@ def _record_rpc_latency(object exporter, str method, float rpc_latency, status_c
   labels = {}
   labels[_decode(kClientMethod)] = method.strip("/")
   labels[_decode(kClientStatus)] = status_code
-  metric = get_stats_data(measurement, labels)
+  metric = _get_stats_data(measurement, labels)
   exporter.export_stats_data([metric])
 
 
@@ -194,6 +189,7 @@ cdef void _export_census_data(object exporter):
         lk = new unique_lock[mutex](kCensusDataBufferMutex)
         # Wait for next batch of census data OR timeout at fixed interval.
         # Batch export census data to minimize the time we acquiring the GIL.
+        # TODO(xuanwn): change interval to a more appropriate number
         AwaitNextBatchLocked(dereference(lk), 500)
 
         # Break only when buffer have data
@@ -206,8 +202,8 @@ cdef void _export_census_data(object exporter):
     _flush_census_data(exporter)
 
     if GLOBAL_SHUTDOWN_EXPORT_THREAD:
-      # printf("------------ shutting down exporting thread\n")
       break # Break to shutdown exporting thead
+
 
 cdef void _flush_census_data(object exporter):
   lk = new unique_lock[mutex](kCensusDataBufferMutex)
@@ -221,17 +217,18 @@ cdef void _flush_census_data(object exporter):
     cCensusData = kCensusDataBuffer.front()
     if cCensusData.type == kMetricData:
       py_labels = _c_label_to_labels(cCensusData.labels)
-      py_metric = get_stats_data(cCensusData.measurement_data, py_labels)
+      py_metric = _get_stats_data(cCensusData.measurement_data, py_labels)
       py_metrics_batch.append(py_metric)
     else:
-      py_span = get_tracing_data(cCensusData.span_data, cCensusData.span_data.span_labels,
-                              cCensusData.span_data.span_annotations)
+      py_span = _get_tracing_data(cCensusData.span_data, cCensusData.span_data.span_labels,
+                                  cCensusData.span_data.span_annotations)
       py_spans_batch.append(py_span)
     kCensusDataBuffer.pop()
 
   del lk
   exporter.export_stats_data(py_metrics_batch)
   exporter.export_tracing_data(py_spans_batch)
+
 
 cdef void _shutdown_exporting_thread():
   with nogil:

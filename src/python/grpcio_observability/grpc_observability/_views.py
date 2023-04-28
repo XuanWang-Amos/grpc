@@ -65,6 +65,7 @@ def millis_distribution_aggregation(
 
 
 # Client
+# TODO(xuanwn): Change MOCK Descriptions.
 def client_started_rpcs(labels: Mapping[str, str]) -> view_module.View:
     view = view_module.View("grpc.io/client/started_rpcs", "MOCK Description",
                             [TagKey(key) for key in labels.keys()] +

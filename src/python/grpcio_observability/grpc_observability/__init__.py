@@ -18,7 +18,7 @@ import abc
 from dataclasses import dataclass
 from dataclasses import field
 import enum
-from typing import Any, AnyStr, List, Mapping, Optional, Tuple, TypeVar
+from typing import List, Mapping, Tuple
 
 from grpc_observability import _cyobservability
 from grpc_observability._observability import GCPOpenCensusObservability

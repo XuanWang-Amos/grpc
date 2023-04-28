@@ -80,7 +80,7 @@ cdef extern from "python_census_context.h" namespace "grpc_observability":
 
 cdef extern from "observability_main.h" namespace "grpc_observability":
   cdef cGcpObservabilityConfig ReadObservabilityConfig() nogil
-  cdef void gcpObservabilityInit() except +
+  cdef void NativeObservabilityInit() except +
   cdef void* CreateClientCallTracer(char* method, char* trace_id, char* parent_span_id) except +
   cdef void* CreateServerCallTracerFactory() except +
   cdef queue[cCensusData]* kCensusDataBuffer

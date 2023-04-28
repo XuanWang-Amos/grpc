@@ -16,7 +16,6 @@
 #include "server_call_tracer.h"
 #include "client_call_tracer.h"
 
-#include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
 
 namespace grpc_observability {
@@ -24,6 +23,7 @@ namespace grpc_observability {
 std::queue<CensusData>* kCensusDataBuffer;
 std::mutex kCensusDataBufferMutex;
 std::condition_variable CensusDataBufferCV;
+// TODO(xuanwn): Change it to a more appropriate number
 constexpr int kExportThreshold = 2;
 
 
@@ -55,7 +55,7 @@ void RecordSpan(SpanCensusData span_census_data) {
 }
 
 
-void gcpObservabilityInit() {
+void NativeObservabilityInit() {
     setbuf(stdout, nullptr);
     kCensusDataBuffer= new std::queue<CensusData>;
 }
@@ -77,6 +77,7 @@ void AwaitNextBatchLocked(std::unique_lock<std::mutex>& lock, int timeout_ms) {
   auto now = std::chrono::system_clock::now();
   auto status = CensusDataBufferCV.wait_until(lock, now + std::chrono::milliseconds(timeout_ms));
 }
+
 
 void AddCensusDataToBuffer(CensusData data) {
   std::unique_lock<std::mutex> lk(kCensusDataBufferMutex);
@@ -103,7 +104,7 @@ GcpObservabilityConfig ReadObservabilityConfig() {
   if (!config->cloud_trace.has_value()) {
     EnablePythonOpenCensusTracing(false);
   } else {
-      EnablePythonOpenCensusTracing(true);
+    EnablePythonOpenCensusTracing(true);
   }
   if (!config->cloud_monitoring.has_value()) {
     EnablePythonOpenCensusStats(false);

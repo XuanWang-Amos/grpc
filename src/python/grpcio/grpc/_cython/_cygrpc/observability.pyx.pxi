@@ -1,17 +1,18 @@
-import sys
-import time
-import os
+import grpc
 import codecs
-
 from typing import Optional
 
 from libcpp.cast cimport static_cast
 from libc.stdio cimport printf
 
-import grpc
 
 cdef const char* CLIENT_CALL_TRACER = "gcp_opencensus_client_call_tracer"
 cdef const char* SERVER_CALL_TRACER_FACTORY = "gcp_opencensus_server_call_tracer_factory"
+
+
+def get_grpc_observability() -> Optional[grpc.GrpcObservability]:
+  return getattr(grpc, '_grpc_observability', None)
+
 
 def set_server_call_tracer_factory() -> None:
   observability = get_grpc_observability()
@@ -24,19 +25,18 @@ def set_server_call_tracer_factory() -> None:
 
 def maybe_save_server_trace_context(RequestCallEvent event) -> None:
   observability = get_grpc_observability()
-  if not (observability and observability._observability_enabled()):
+  if not (observability and observability._tracing_enabled()):
     return
   cdef ServerCallTracer* server_call_tracer
   server_call_tracer = static_cast['ServerCallTracer*'](_get_call_tracer(event.call.c_call))
-  if observability._tracing_enabled():
-    # TraceId and SpanId is hex string, need to convert to str
-    trace_id = _decode(codecs.decode(server_call_tracer.TraceId(), 'hex_codec'))
-    span_id = _decode(codecs.decode(server_call_tracer.SpanId(), 'hex_codec'))
-    is_sampled = server_call_tracer.IsSampled()
-    observability.save_trace_context(trace_id, span_id, is_sampled)
+  # TraceId and SpanId is hex string, need to convert to str
+  trace_id = _decode(codecs.decode(server_call_tracer.TraceId(), 'hex_codec'))
+  span_id = _decode(codecs.decode(server_call_tracer.SpanId(), 'hex_codec'))
+  is_sampled = server_call_tracer.IsSampled()
+  observability.save_trace_context(trace_id, span_id, is_sampled)
 
 
-def maybe_record_rpc_latency(state) -> None:
+def maybe_record_rpc_latency(object state) -> None:
   observability = get_grpc_observability()
   if not (observability and observability._stats_enabled()):
     return
@@ -45,11 +45,7 @@ def maybe_record_rpc_latency(state) -> None:
   observability.record_rpc_latency(state.method, rpc_latency_ms, state.code)
 
 
-def get_grpc_observability() -> Optional[grpc.GrpcObservability]:
-  return getattr(grpc, '_grpc_observability', None)
-
-
-cdef void mapbe_set_client_call_tracer_on_call(_CallState call_state, bytes method):
+cdef void maybe_set_client_call_tracer_on_call(_CallState call_state, bytes method) except *:
   observability = get_grpc_observability()
   if not (observability and observability._observability_enabled()):
     return

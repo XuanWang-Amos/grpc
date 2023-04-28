@@ -21,6 +21,7 @@
 #include <mutex>
 #include <map>
 
+// TODO(xuanwn): clean up includes
 #include "absl/base/thread_annotations.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
@@ -83,6 +84,7 @@ struct GcpObservabilityConfig {
       project_id(project_id), labels(labels), is_valid(true) {}
 };
 
+// extern is requeired for Cython
 extern std::queue<CensusData>* kCensusDataBuffer;
 extern std::mutex kCensusDataBufferMutex;
 extern std::condition_variable CensusDataBufferCV;
@@ -91,9 +93,8 @@ void* CreateClientCallTracer(char* method, char* trace_id, char* parent_span_id)
 
 void* CreateServerCallTracerFactory();
 
-void gcpObservabilityInit();
+void NativeObservabilityInit();
 
-// void AwaitNextBatchLocked(int timeout_ms);
 void AwaitNextBatchLocked(std::unique_lock<std::mutex>& lock, int timeout_ms);
 
 void AddCensusDataToBuffer(CensusData buffer);
