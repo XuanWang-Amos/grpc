@@ -14,12 +14,12 @@
 
 import abc
 import threading
-from typing import Any, Callable, Optional, List, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 import grpc
 from grpc._typing import MetadataType
-from grpc_testing import _common
 from grpc_testing import Time
+from grpc_testing import _common
 
 _CLIENT_INACTIVE = grpc.StatusCode.UNKNOWN
 
@@ -48,12 +48,14 @@ class Handler(_common.ServerRpcHandler):
 
     @abc.abstractmethod
     def unary_response_termination(
-            self) -> Tuple[Any, Optional[MetadataType], grpc.StatusCode, Optional[str]]:
+        self
+    ) -> Tuple[Any, Optional[MetadataType], grpc.StatusCode, Optional[str]]:
         raise NotImplementedError()
 
     @abc.abstractmethod
     def stream_response_termination(
-            self) -> Tuple[Optional[MetadataType], grpc.StatusCode, Optional[str]]:
+            self
+    ) -> Tuple[Optional[MetadataType], grpc.StatusCode, Optional[str]]:
         raise NotImplementedError()
 
 
@@ -178,7 +180,8 @@ class _Handler(Handler):
             termination_callback()
 
     def unary_response_termination(
-            self) -> Tuple[Any, Optional[MetadataType], grpc.StatusCode, Optional[str]]:
+        self
+    ) -> Tuple[Any, Optional[MetadataType], grpc.StatusCode, Optional[str]]:
         with self._condition:
             while True:
                 if self._code is _CLIENT_INACTIVE:
@@ -197,7 +200,8 @@ class _Handler(Handler):
                     )
 
     def stream_response_termination(
-            self) -> Tuple[Optional[MetadataType], grpc.StatusCode, Optional[str]]:
+            self
+    ) -> Tuple[Optional[MetadataType], grpc.StatusCode, Optional[str]]:
         with self._condition:
             while True:
                 if self._code is _CLIENT_INACTIVE:
