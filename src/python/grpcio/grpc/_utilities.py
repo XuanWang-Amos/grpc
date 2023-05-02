@@ -17,7 +17,7 @@ import collections
 import logging
 import threading
 import time
-from typing import Callable, Mapping, Optional, Iterable
+from typing import Callable, Iterable, Mapping, Optional
 
 import grpc  # pytype: disable=pyi-error
 from grpc import _common  # pytype: disable=pyi-error

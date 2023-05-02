@@ -610,8 +610,7 @@ class _SingleThreadedRendezvous(_Rendezvous, grpc.Call, grpc.Future):  # pylint:
             if self._state.code is None:
                 if not self._state.callbacks:
                     self._state.callbacks = []
-                self._state.callbacks.append(functools.partial(
-                    fn, self))
+                self._state.callbacks.append(functools.partial(fn, self))
                 return
 
         fn(self)
