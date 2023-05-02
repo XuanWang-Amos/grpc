@@ -35,7 +35,8 @@ class GrpcObservability(Generic[PyCapsule], metaclass=abc.ABCMeta):
     _STATS_ENABLED: bool = False
 
     @abc.abstractmethod
-    def create_client_call_tracer_capsule(self, method_name: bytes) -> PyCapsule:
+    def create_client_call_tracer_capsule(self,
+                                          method_name: bytes) -> PyCapsule:
         raise NotImplementedError()
 
     @abc.abstractmethod
