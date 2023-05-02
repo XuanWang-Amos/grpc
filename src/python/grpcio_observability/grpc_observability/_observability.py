@@ -137,7 +137,8 @@ class GCPOpenCensusObservability(grpc.GrpcObservability):
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.exit()
 
-    def create_client_call_tracer_capsule(self, method_name: bytes) -> PyCapsule:
+    def create_client_call_tracer_capsule(self,
+                                          method_name: bytes) -> PyCapsule:
         current_span = execution_context.get_current_span()
         if current_span:
             # Propagate existing OC context
