@@ -14,7 +14,7 @@
 
 import logging
 import threading
-from typing import Any, Callable, Optional, Iterable, List
+from typing import Any, Callable, Iterable, List, Optional
 
 import grpc
 from grpc._typing import MetadataType
