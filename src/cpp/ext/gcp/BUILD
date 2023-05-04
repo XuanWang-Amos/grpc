@@ -74,6 +74,7 @@ grpc_cc_library(
     hdrs = [
         "observability_config.h",
     ],
+    # visibility = ["//test:__subpackages__"],
     external_deps = [
         "absl/status",
         "absl/status:statusor",
@@ -81,7 +82,6 @@ grpc_cc_library(
         "absl/types:optional",
     ],
     language = "c++",
-    # visibility = ["//test:__subpackages__"],
     deps = [
         "//:gpr",
         "//:grpc_base",
