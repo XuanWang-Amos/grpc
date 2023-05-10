@@ -27,8 +27,8 @@ from opencensus.trace import trace_options as trace_options_module
 
 _LOGGER = logging.getLogger(__name__)
 
-ClientCallTracerCapsule = Any # it appears only once in the function signature
-ServerCallTracerFactoryCapsule = Any # it appears only once in the function signature
+ClientCallTracerCapsule = Any  # it appears only once in the function signature
+ServerCallTracerFactoryCapsule = Any  # it appears only once in the function signature
 grpc_observability = Any  # grpc_observability.py imports this module.
 
 GRPC_STATUS_CODE_TO_STRING = {
