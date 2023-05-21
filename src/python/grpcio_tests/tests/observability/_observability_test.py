@@ -152,8 +152,7 @@ class ObservabilityTest(unittest.TestCase):
             self._server.stop(0)
 
     def testRecordUnaryUnary(self):
-        os.environ[
-            CONFIG_ENV_VAR_NAME] = _VALID_CONFIG_TRACING_STATS
+        os.environ[CONFIG_ENV_VAR_NAME] = _VALID_CONFIG_TRACING_STATS
         with grpc_observability.GCPOpenCensusObservability(
                 exporter=self.test_exporter):
             self._start_server()
@@ -192,8 +191,7 @@ class ObservabilityTest(unittest.TestCase):
         self.assertEqual(len(self.all_span), 0)
 
     def testThrowErrorWhenCallingMultipleInit(self):
-        os.environ[
-            CONFIG_ENV_VAR_NAME] = _VALID_CONFIG_TRACING_STATS
+        os.environ[CONFIG_ENV_VAR_NAME] = _VALID_CONFIG_TRACING_STATS
         with self.assertRaises(ValueError):
             with grpc_observability.GCPOpenCensusObservability(
                     exporter=self.test_exporter) as o11y:
@@ -222,8 +220,7 @@ class ObservabilityTest(unittest.TestCase):
         self._validate_spans(self.all_span)
 
     def testRecordUnaryStream(self):
-        os.environ[
-            CONFIG_ENV_VAR_NAME] = _VALID_CONFIG_TRACING_STATS
+        os.environ[CONFIG_ENV_VAR_NAME] = _VALID_CONFIG_TRACING_STATS
         with grpc_observability.GCPOpenCensusObservability(
                 exporter=self.test_exporter):
             self._start_server()
@@ -235,8 +232,7 @@ class ObservabilityTest(unittest.TestCase):
         self._validate_spans(self.all_span)
 
     def testRecordStreamUnary(self):
-        os.environ[
-            CONFIG_ENV_VAR_NAME] = _VALID_CONFIG_TRACING_STATS
+        os.environ[CONFIG_ENV_VAR_NAME] = _VALID_CONFIG_TRACING_STATS
         with grpc_observability.GCPOpenCensusObservability(
                 exporter=self.test_exporter):
             self._start_server()
@@ -248,8 +244,7 @@ class ObservabilityTest(unittest.TestCase):
         self._validate_spans(self.all_span)
 
     def testRecordStreamStream(self):
-        os.environ[
-            CONFIG_ENV_VAR_NAME] = _VALID_CONFIG_TRACING_STATS
+        os.environ[CONFIG_ENV_VAR_NAME] = _VALID_CONFIG_TRACING_STATS
         with grpc_observability.GCPOpenCensusObservability(
                 exporter=self.test_exporter):
             self._start_server()
@@ -261,8 +256,7 @@ class ObservabilityTest(unittest.TestCase):
         self._validate_spans(self.all_span)
 
     def testNoRecordBeforeInit(self):
-        os.environ[
-            CONFIG_ENV_VAR_NAME] = _VALID_CONFIG_TRACING_STATS
+        os.environ[CONFIG_ENV_VAR_NAME] = _VALID_CONFIG_TRACING_STATS
         self._start_server()
         self.unary_unary_call()
         self.assertEqual(len(self.all_metric), 0)
@@ -280,8 +274,7 @@ class ObservabilityTest(unittest.TestCase):
         self._validate_spans(self.all_span)
 
     def testNoRecordAfterExit(self):
-        os.environ[
-            CONFIG_ENV_VAR_NAME] = _VALID_CONFIG_TRACING_STATS
+        os.environ[CONFIG_ENV_VAR_NAME] = _VALID_CONFIG_TRACING_STATS
         with grpc_observability.GCPOpenCensusObservability(
                 exporter=self.test_exporter):
             self._start_server()
@@ -330,7 +323,9 @@ class ObservabilityTest(unittest.TestCase):
         # cofig_file have only tracing enabled
         _VALID_CONFIG_TRACING_STATS_DICT = {
             'project_id': 'test-project',
-            'cloud_trace': {'sampling_rate': 1.00}
+            'cloud_trace': {
+                'sampling_rate': 1.00
+            }
         }
         # env var have only stats enabled
         os.environ[CONFIG_ENV_VAR_NAME] = _VALID_CONFIG_STATS_ONLY
