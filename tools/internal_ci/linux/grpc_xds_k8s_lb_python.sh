@@ -178,7 +178,6 @@ main() {
   for test in "${test_suites[@]}"; do
     run_test $test || (( ++failed_tests ))
   done
-  echo "Failed test suites: ${failed_tests}"
 }
 
 main "$@"
