@@ -71,7 +71,7 @@ class ApiListenerTest(xds_k8s_testcase.RegularXdsKubernetesTestCase):
             test_client = self.startTestClient(test_server)
 
         with self.subTest('08_test_client_xds_config_exists'):
-            assert(True, False)
+            assert(True is False)
             self.assertXdsConfigExists(test_client)
 
         with self.subTest('09_test_server_received_rpcs'):
