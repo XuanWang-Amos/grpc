@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <initializer_list>
+#include <iostream>
 #include <map>
 #include <string>
 #include <utility>
@@ -929,22 +930,27 @@ absl::StatusOr<Json> JsonReader::Parse(absl::string_view input) {
   JsonReader reader(input);
   Status status = reader.Run();
   if (reader.truncated_errors_) {
-    std::cout << "too many errors encountered during JSON parsing -- fix reported: " << std::endl;
+    std::cout
+        << "too many errors encountered during JSON parsing -- fix reported: "
+        << std::endl;
     reader.errors_.push_back(
         "too many errors encountered during JSON parsing -- fix reported "
         "errors and try again to see additional errors");
   }
   if (status == Status::GRPC_JSON_INTERNAL_ERROR) {
-    std::cout << "internal error in JSON parser at index: " << reader.CurrentIndex() << std::endl;
+    std::cout << "internal error in JSON parser at index: "
+              << reader.CurrentIndex() << std::endl;
     reader.errors_.push_back(absl::StrCat(
         "internal error in JSON parser at index ", reader.CurrentIndex()));
   } else if (status == Status::GRPC_JSON_PARSE_ERROR) {
-    std::cout << "JSON parse error at index: " << reader.CurrentIndex() << std::endl;
+    std::cout << "JSON parse error at index: " << reader.CurrentIndex()
+              << std::endl;
     reader.errors_.push_back(
         absl::StrCat("JSON parse error at index ", reader.CurrentIndex()));
   }
   if (!reader.errors_.empty()) {
-    std::cout << "JSON parsing failed: [ " << absl::StrJoin(reader.errors_, "; ") << "]" << std::endl;
+    std::cout << "JSON parsing failed: [ "
+              << absl::StrJoin(reader.errors_, "; ") << "]" << std::endl;
     return absl::InvalidArgumentError(absl::StrCat(
         "JSON parsing failed: [", absl::StrJoin(reader.errors_, "; "), "]"));
   }

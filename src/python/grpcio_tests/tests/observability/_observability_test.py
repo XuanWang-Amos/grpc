@@ -15,8 +15,8 @@
 from concurrent import futures
 import json
 import logging
-import random
 import os
+import random
 from typing import Any, Dict, List
 import unittest
 
@@ -39,12 +39,16 @@ CONFIG_FILE_ENV_VAR_NAME = 'GRPC_GCP_OBSERVABILITY_CONFIG_FILE'
 
 _VALID_CONFIG_TRACING_STATS = {
     'project_id': 'test-project',
-    'cloud_trace': {'sampling_rate': 1.00},
+    'cloud_trace': {
+        'sampling_rate': 1.00
+    },
     'cloud_monitoring': {}
 }
 _VALID_CONFIG_TRACING_ONLY = {
     'project_id': 'test-project',
-    'cloud_trace': {'sampling_rate': 1.00},
+    'cloud_trace': {
+        'sampling_rate': 1.00
+    },
 }
 _VALID_CONFIG_STATS_ONLY = {
     'project_id': 'test-project',
@@ -298,7 +302,9 @@ class ObservabilityTest(unittest.TestCase):
         _HIGHER_BOUND = 15 * 3
         _VALID_CONFIG_TRACING_ONLY_SAMPLE_HALF = {
             'project_id': 'test-project',
-            'cloud_trace': {'sampling_rate': 0.5},
+            'cloud_trace': {
+                'sampling_rate': 0.5
+            },
         }
         self._set_config_file(_VALID_CONFIG_TRACING_ONLY_SAMPLE_HALF)
         with grpc_observability.GCPOpenCensusObservability(
