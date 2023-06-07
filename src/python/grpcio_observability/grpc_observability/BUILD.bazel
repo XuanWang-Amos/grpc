@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@grpc_python_dependencies//:requirements.bzl", "requirement")
 load("//bazel:cython_library.bzl", "pyx_library")
 
 package(default_visibility = ["//visibility:public"])
@@ -62,8 +63,8 @@ py_library(
         "_observability.py",
         "_gcp_observability.py",
         "_open_census_exporter.py",
-        # "_measures.py",
-        # "_views.py",
+        "_measures.py",
+        "_views.py",
     ],
     imports = [
         ".",
@@ -74,5 +75,6 @@ py_library(
         ":cyobservability",
         "//src/python/grpcio/grpc:grpcio",
         "@opencensus_python",
+        requirement("opencensus-ext-stackdriver"),
     ],
 )

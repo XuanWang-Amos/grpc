@@ -12,44 +12,116 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
+import abc
 from datetime import datetime
 import logging
 import sys
-from typing import List, Mapping, Optional, Tuple
+from typing import Any, AnyStr, List, Mapping, Optional, Tuple
 
 from google.rpc import code_pb2
-from grpc_observability import _observability  # pytype: disable=pyi-error
+import grpc_observability
+from grpc_observability import _measures
 from grpc_observability import _views
-from opencensus.ext.stackdriver import stats_exporter as stackdriver
 from opencensus.stats import stats as stats_module
 from opencensus.tags.tag_key import TagKey
 from opencensus.tags.tag_map import TagMap
 from opencensus.tags.tag_value import TagValue
+from opencensus.trace import execution_context
+from opencensus.trace import samplers
 from opencensus.trace import span_context as span_context_module
 from opencensus.trace import span_data as span_data_module
 from opencensus.trace import time_event
 from opencensus.trace import trace_options as trace_options_module
 from opencensus.trace.span import SpanKind
 from opencensus.trace.status import Status
+from opencensus.trace.tracer import Tracer
 
 logger = logging.getLogger(__name__)
 
+VIEW_NAMES = [
+    "grpc.io/client/started_rpcs",
+    #   "grpc.io/client/completed_rpcs",
+    #   "grpc.io/client/roundtrip_latency",
+    #   "grpc.io/client/sent_compressed_message_bytes_per_rpc",
+    #   "grpc.io/client/received_compressed_message_bytes_per_rpc",
+    #   "grpc.io/server/started_rpcs",
+    #   "grpc.io/server/completed_rpcs",
+    #   "grpc.io/server/sent_compressed_message_bytes_per_rpc",
+    #   "grpc.io/server/received_compressed_message_bytes_per_rpc",
+    #   "grpc.io/server/server_latency"
+]
 
-class OpenCensusExporter(_observability.Exporter):
+METRICS_NAME_TO_MEASURE = {
+    grpc_observability.MetricsName.CLIENT_STARTED_RPCS:
+        _measures.rpc_client_started_rpcs(),
+    grpc_observability.MetricsName.CLIENT_ROUNDTRIP_LATENCY:
+        _measures.rpc_client_roundtrip_latency(),
+    grpc_observability.MetricsName.CLIENT_API_LATENCY:
+        _measures.rpc_client_api_latency(),
+    grpc_observability.MetricsName.CLIENT_SEND_BYTES_PER_RPC:
+        _measures.rpc_client_send_bytes_per_prc(),
+    grpc_observability.MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC:
+        _measures.rpc_client_received_bytes_per_rpc(),
+    grpc_observability.MetricsName.SERVER_STARTED_RPCS:
+        _measures.rpc_server_started_rpcs(),
+    grpc_observability.MetricsName.SERVER_SENT_BYTES_PER_RPC:
+        _measures.rpc_server_sent_bytes_per_rpc(),
+    grpc_observability.MetricsName.SERVER_RECEIVED_BYTES_PER_RPC:
+        _measures.rpc_server_received_bytes_per_rpc(),
+    grpc_observability.MetricsName.SERVER_SERVER_LATENCY:
+        _measures.rpc_server_server_latency(),
+}
+
+
+class OpenCensusExporter(grpc_observability.Exporter):
     default_labels: Optional[Mapping[str, str]]
 
-    def __init__(self, user_labels: Optional[Mapping[str, str]] = None):
-        self.default_labels = user_labels
-        self._setup_open_census()
-        self._setup_stackdriver_exporter()
-        self._register_open_census_views()
+    def __init__(self, labels: Optional[Mapping[str, str]] = None):
+        self.default_labels = labels
+        view_manager = stats_module.stats.view_manager
+        self._register_open_census_views(view_manager)
 
-    def export_stats_data(self,
-                          stats_data: List[_observability.StatsData]) -> None:
-        measurement_map = self.stats_recorder.new_measurement_map()
+    def _register_open_census_views(self, view_manager) -> None:
+        # Client
+        view_manager.register_view(
+            _views.client_started_rpcs(self.default_labels))
+        view_manager.register_view(
+            _views.client_completed_rpcs(self.default_labels))
+        view_manager.register_view(
+            _views.client_roundtrip_latency(self.default_labels))
+        view_manager.register_view(
+            _views.client_api_latency(self.default_labels))
+        view_manager.register_view(
+            _views.client_sent_compressed_message_bytes_per_rpc(
+                self.default_labels))
+        view_manager.register_view(
+            _views.client_received_compressed_message_bytes_per_rpc(
+                self.default_labels))
+
+        # Server
+        view_manager.register_view(
+            _views.server_started_rpcs(self.default_labels))
+        view_manager.register_view(
+            _views.server_completed_rpcs(self.default_labels))
+        view_manager.register_view(
+            _views.server_sent_compressed_message_bytes_per_rpc(
+                self.default_labels))
+        view_manager.register_view(
+            _views.server_received_compressed_message_bytes_per_rpc(
+                self.default_labels))
+        view_manager.register_view(
+            _views.server_server_latency(self.default_labels))
+
+    def export_stats_data(
+            self, stats_data: List[grpc_observability.StatsData]) -> None:
+        stats = stats_module.stats
+        stats_recorder = stats.stats_recorder
+        mmap = stats_recorder.new_measurement_map()
 
         for metric in stats_data:
-            measure = _views.METRICS_NAME_TO_MEASURE.get(metric.name, None)
+            measure = METRICS_NAME_TO_MEASURE.get(metric.name, None)
             if measure is None:
                 continue
 
@@ -64,18 +136,18 @@ class OpenCensusExporter(_observability.Exporter):
                     f"---->>> Metric name:{measure.name}, value: {metric.value_float}, tags: {tag_map.map}\n"
                 )
                 sys.stderr.flush()
-                measurement_map.measure_float_put(measure, metric.value_float)
+                mmap.measure_float_put(measure, metric.value_float)
             else:
                 sys.stderr.write(
                     f"---->>> Metric name:{measure.name}, value: {metric.value_int}, tags: {tag_map.map}\n"
                 )
                 sys.stderr.flush()
-                measurement_map.measure_int_put(measure, metric.value_int)
+                mmap.measure_int_put(measure, metric.value_int)
 
-            measurement_map.record(tag_map)
+            mmap.record(tag_map)
 
     def export_tracing_data(
-            self, tracing_data: List[_observability.TracingData]) -> None:
+            self, tracing_data: List[grpc_observability.TracingData]) -> None:
         for span_data in tracing_data:
             span_context = span_context_module.SpanContext(
                 trace_id=span_data.trace_id,
@@ -85,48 +157,18 @@ class OpenCensusExporter(_observability.Exporter):
                                         self.default_labels)
             sys.stderr.write(f"---->>> Span: {span_data}\n")
 
-    def _setup_open_census(self) -> None:
-        # Stats defines a View Manager and a Stats Recorder in order for the
-        # collection of Stats.
-        stats = stats_module.stats
-        self.stats_recorder = stats.stats_recorder
-        self.view_manager = stats.view_manager
-
-    def _setup_stackdriver_exporter(self) -> None:
-        # exporter = stackdriver.new_stats_exporter(interval=5)
-        # self.view_manager.register_exporter(exporter)
-        pass
-
-    def _register_open_census_views(self) -> None:
-        # Client
-        self.view_manager.register_view(
-            _views.client_started_rpcs(self.default_labels))
-        self.view_manager.register_view(
-            _views.client_completed_rpcs(self.default_labels))
-        self.view_manager.register_view(
-            _views.client_roundtrip_latency(self.default_labels))
-        self.view_manager.register_view(
-            _views.client_api_latency(self.default_labels))
-        self.view_manager.register_view(
-            _views.client_sent_compressed_message_bytes_per_rpc(
-                self.default_labels))
-        self.view_manager.register_view(
-            _views.client_received_compressed_message_bytes_per_rpc(
-                self.default_labels))
-
-        # Server
-        self.view_manager.register_view(
-            _views.server_started_rpcs(self.default_labels))
-        self.view_manager.register_view(
-            _views.server_completed_rpcs(self.default_labels))
-        self.view_manager.register_view(
-            _views.server_sent_compressed_message_bytes_per_rpc(
-                self.default_labels))
-        self.view_manager.register_view(
-            _views.server_received_compressed_message_bytes_per_rpc(
-                self.default_labels))
-        self.view_manager.register_view(
-            _views.server_server_latency(self.default_labels))
+    # def set_tracer(self) -> None:
+    #     current_tracer = execution_context.get_opencensus_tracer()
+    #     trace_id = current_tracer.span_context.trace_id
+    #     span_id = current_tracer.span_context.span_id
+    #     if not span_id:
+    #         span_id = span_context_module.generate_span_id()
+    #     span_context = span_context_module.SpanContext(trace_id=trace_id,
+    #                                                    span_id=span_id)
+    #     # Create and Saves Tracer and Sampler to ContextVar
+    #     sampler = samplers.ProbabilitySampler(rate=self.sampling_rate)
+    #     # TODO: check existing SpanContext
+    #     tracer = Tracer(sampler=sampler, span_context=span_context)
 
 
 def _get_span_annotations(
@@ -181,7 +223,7 @@ def _status_to_span_status(status: str) -> Optional[Status]:
 
 
 def _get_span_datas(span_data, span_context, labels: Mapping[str, str]):
-    """Extracts a list of SpanData tuples from a span.
+    """Extracts a list of SpanData tuples from a span
 
     :rtype: list of opencensus.trace.span_data.SpanData
     :return list of SpanData tuples
