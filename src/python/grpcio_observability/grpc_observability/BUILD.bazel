@@ -62,10 +62,7 @@ py_library(
         "_observability.py",
         "_gcp_observability.py",
         "_open_census_exporter.py",
-        # The fllowing files are used only for OC stackdriver extension.
-        # TODO(xuanwn): Uncomment after those files are implemented.
         # "_measures.py",
-        # "_open_census.py",
         # "_views.py",
     ],
     imports = [
@@ -76,5 +73,6 @@ py_library(
     deps = [
         ":cyobservability",
         "//src/python/grpcio/grpc:grpcio",
+        "@opencensus_python",
     ],
 )
