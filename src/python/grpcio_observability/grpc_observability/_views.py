@@ -22,23 +22,23 @@ from opencensus.tags.tag_key import TagKey
 
 METRICS_NAME_TO_MEASURE = {
     MetricsName.CLIENT_STARTED_RPCS:
-        _measures.rpc_client_started_rpcs(),
+        _measures.CLIENT_STARTED_RPCS_MEASURE,
     MetricsName.CLIENT_ROUNDTRIP_LATENCY:
-        _measures.rpc_client_roundtrip_latency(),
+        _measures.CLIENT_ROUNDTRIP_LATENCY_MEASURE,
     MetricsName.CLIENT_API_LATENCY:
-        _measures.rpc_client_api_latency(),
+        _measures.CLIENT_API_LATENCY_MEASURE,
     MetricsName.CLIENT_SEND_BYTES_PER_RPC:
-        _measures.rpc_client_send_bytes_per_prc(),
+        _measures.CLIENT_SEND_BYTES_PER_RPC_MEASURE,
     MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC:
-        _measures.rpc_client_received_bytes_per_rpc(),
+        _measures.CLIENT_RECEIVED_BYTES_PER_RPC_MEASURE,
     MetricsName.SERVER_STARTED_RPCS:
-        _measures.rpc_server_started_rpcs(),
+        _measures.SERVER_STARTED_RPCS_MEASURE,
     MetricsName.SERVER_SENT_BYTES_PER_RPC:
-        _measures.rpc_server_sent_bytes_per_rpc(),
+        _measures.SERVER_SENT_BYTES_PER_RPC_MEASURE,
     MetricsName.SERVER_RECEIVED_BYTES_PER_RPC:
-        _measures.rpc_server_received_bytes_per_rpc(),
+        _measures.SERVER_RECEIVED_BYTES_PER_RPC_MEASURE,
     MetricsName.SERVER_SERVER_LATENCY:
-        _measures.rpc_server_server_latency(),
+        _measures.SERVER_SERVER_LATENCY_MEASURE,
 }
 
 
@@ -90,17 +90,16 @@ def client_started_rpcs(labels: Mapping[str, str]) -> view_module.View:
     view = view_module.View("grpc.io/client/started_rpcs", "MOCK Description",
                             [TagKey(key) for key in labels.keys()] +
                             [client_method_tag_key()],
-                            _measures.rpc_client_started_rpcs(),
+                            _measures.CLIENT_STARTED_RPCS_MEASURE,
                             aggregation_module.CountAggregation())
     return view
-
 
 def client_completed_rpcs(labels: Mapping[str, str]) -> view_module.View:
     view = view_module.View("grpc.io/client/completed_rpcs", "MOCK Description",
                             [TagKey(key) for key in labels.keys()] +
                             [client_method_tag_key(),
                              client_status_tag_key()],
-                            _measures.rpc_client_roundtrip_latency(),
+                            _measures.CLIENT_COMPLETED_RPCS_MEASURE,
                             aggregation_module.CountAggregation())
     return view
 
@@ -109,7 +108,7 @@ def client_roundtrip_latency(labels: Mapping[str, str]) -> view_module.View:
     view = view_module.View(
         "grpc.io/client/roundtrip_latency", "MOCK Description",
         [TagKey(key) for key in labels.keys()] + [client_method_tag_key()],
-        _measures.rpc_client_roundtrip_latency(),
+        _measures.CLIENT_ROUNDTRIP_LATENCY_MEASURE,
         millis_distribution_aggregation())
     return view
 
@@ -119,7 +118,7 @@ def client_api_latency(labels: Mapping[str, str]) -> view_module.View:
                             [TagKey(key) for key in labels.keys()] +
                             [client_method_tag_key(),
                              client_status_tag_key()],
-                            _measures.rpc_client_api_latency(),
+                            _measures.CLIENT_API_LATENCY_MEASURE,
                             millis_distribution_aggregation())
     return view
 
@@ -130,7 +129,7 @@ def client_sent_compressed_message_bytes_per_rpc(
         "grpc.io/client/sent_compressed_message_bytes_per_rpc",
         "MOCK Description", [TagKey(key) for key in labels.keys()] +
         [client_method_tag_key(),
-         client_status_tag_key()], _measures.rpc_client_send_bytes_per_prc(),
+         client_status_tag_key()], _measures.CLIENT_SEND_BYTES_PER_RPC_MEASURE,
         bytes_distribution_aggregation())
     return view
 
@@ -142,7 +141,7 @@ def client_received_compressed_message_bytes_per_rpc(
         "MOCK Description", [TagKey(key) for key in labels.keys()] +
         [client_method_tag_key(),
          client_status_tag_key()],
-        _measures.rpc_client_received_bytes_per_rpc(),
+        _measures.CLIENT_RECEIVED_BYTES_PER_RPC_MEASURE,
         bytes_distribution_aggregation())
     return view
 
@@ -152,7 +151,7 @@ def server_started_rpcs(labels: Mapping[str, str]) -> view_module.View:
     view = view_module.View("grpc.io/server/started_rpcs", "MOCK Description",
                             [TagKey(key) for key in labels.keys()] +
                             [server_method_tag_key()],
-                            _measures.rpc_server_started_rpcs(),
+                            _measures.SERVER_STARTED_RPCS_MEASURE,
                             aggregation_module.CountAggregation())
     return view
 
@@ -162,7 +161,7 @@ def server_completed_rpcs(labels: Mapping[str, str]) -> view_module.View:
                             [TagKey(key) for key in labels.keys()] +
                             [server_method_tag_key(),
                              server_status_tag_key()],
-                            _measures.rpc_server_server_latency(),
+                            _measures.SERVER_SERVER_LATENCY_MEASURE,
                             aggregation_module.CountAggregation())
     return view
 
@@ -173,7 +172,7 @@ def server_sent_compressed_message_bytes_per_rpc(
         "grpc.io/server/sent_compressed_message_bytes_per_rpc",
         "MOCK Description", [TagKey(key) for key in labels.keys()] +
         [server_method_tag_key(),
-         server_status_tag_key()], _measures.rpc_server_sent_bytes_per_rpc(),
+         server_status_tag_key()], _measures.SERVER_SENT_BYTES_PER_RPC_MEASURE,
         bytes_distribution_aggregation())
     return view
 
@@ -185,7 +184,7 @@ def server_received_compressed_message_bytes_per_rpc(
         "MOCK Description", [TagKey(key) for key in labels.keys()] +
         [server_method_tag_key(),
          server_status_tag_key()],
-        _measures.rpc_server_received_bytes_per_rpc(),
+        _measures.SERVER_RECEIVED_BYTES_PER_RPC_MEASURE,
         bytes_distribution_aggregation())
     return view
 
@@ -195,7 +194,7 @@ def server_server_latency(labels: Mapping[str, str]) -> view_module.View:
                             [TagKey(key) for key in labels.keys()] +
                             [server_method_tag_key(),
                              server_status_tag_key()],
-                            _measures.rpc_server_server_latency(),
+                            _measures.SERVER_SERVER_LATENCY_MEASURE,
                             millis_distribution_aggregation())
     return view
 

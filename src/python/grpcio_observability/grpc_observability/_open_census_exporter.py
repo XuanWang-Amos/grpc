@@ -13,8 +13,6 @@
 # limitations under the License.
 
 from datetime import datetime
-import logging
-import sys
 from typing import List, Mapping, Optional, Tuple
 
 from google.rpc import code_pb2
@@ -31,23 +29,54 @@ from opencensus.trace import time_event
 from opencensus.trace import trace_options as trace_options_module
 from opencensus.trace.span import SpanKind
 from opencensus.trace.status import Status
-
-logger = logging.getLogger(__name__)
+from opencensus.trace.tracer import Tracer
+from opencensus.trace import execution_context
+from opencensus.trace import samplers
+from opencensus.ext.stackdriver.trace_exporter import StackdriverExporter
 
 
 class OpenCensusExporter(_observability.Exporter):
     default_labels: Optional[Mapping[str, str]]
 
-    def __init__(self, user_labels: Optional[Mapping[str, str]] = None):
-        self.default_labels = user_labels
-        self._setup_open_census()
-        self._setup_stackdriver_exporter()
-        self._register_open_census_views()
+    def __init__(self, config):
+        self.config = config.get()
+        self.default_labels = self.config.labels
+        self.project_id = self.config.project_id
+        self.tracer = None
+        self.view_manager = None
+        self.measurement_map = None
+        self._setup_open_census_stackdriver_exporter()
+
+    def _setup_open_census_stackdriver_exporter(self) -> None:
+        if self.config.stats_enabled:
+            stats = stats_module.stats
+            stats_recorder = stats.stats_recorder
+            self.view_manager = stats.view_manager
+            options = stackdriver.Options(project_id=self.project_id,
+                                          resource="global")
+            stats_exporter = stackdriver.new_stats_exporter(options, interval=5)
+            self.view_manager.register_exporter(stats_exporter)
+            self.measurement_map = stats_recorder.new_measurement_map()
+            self._register_open_census_views()
+
+
+        if self.config.tracing_enabled:
+            current_tracer = execution_context.get_opencensus_tracer()
+            trace_id = current_tracer.span_context.trace_id
+            span_id = current_tracer.span_context.span_id
+            if not span_id:
+                span_id = span_context_module.generate_span_id()
+            span_context = span_context_module.SpanContext(trace_id=trace_id,
+                                                        span_id=span_id)
+            # Create and Saves Tracer and Sampler to ContextVar
+            sampler = samplers.ProbabilitySampler(rate=self.config.sampling_rate)
+            self.trace_exporter = StackdriverExporter(project_id=self.project_id)
+            self.tracer = Tracer(sampler=sampler,
+                                 span_context=span_context,
+                                 exporter=self.trace_exporter)
 
     def export_stats_data(self,
                           stats_data: List[_observability.StatsData]) -> None:
-        measurement_map = self.stats_recorder.new_measurement_map()
-
         for metric in stats_data:
             measure = _views.METRICS_NAME_TO_MEASURE.get(metric.name, None)
             if measure is None:
@@ -60,19 +89,11 @@ class OpenCensusExporter(_observability.Exporter):
                 tag_map.insert(TagKey(key), TagValue(value))
 
             if metric.measure_double:
-                sys.stderr.write(
-                    f"---->>> Metric name:{measure.name}, value: {metric.value_float}, tags: {tag_map.map}\n"
-                )
-                sys.stderr.flush()
-                measurement_map.measure_float_put(measure, metric.value_float)
+                self.measurement_map.measure_float_put(measure, metric.value_float)
             else:
-                sys.stderr.write(
-                    f"---->>> Metric name:{measure.name}, value: {metric.value_int}, tags: {tag_map.map}\n"
-                )
-                sys.stderr.flush()
-                measurement_map.measure_int_put(measure, metric.value_int)
+                self.measurement_map.measure_int_put(measure, metric.value_int)
+            self.measurement_map.record(tag_map)
 
-            measurement_map.record(tag_map)
 
     def export_tracing_data(
             self, tracing_data: List[_observability.TracingData]) -> None:
@@ -81,21 +102,10 @@ class OpenCensusExporter(_observability.Exporter):
                 trace_id=span_data.trace_id,
                 span_id=span_data.span_id,
                 trace_options=trace_options_module.TraceOptions(1))
-            span_data = _get_span_datas(span_data, span_context,
+            span_datas = _get_span_datas(span_data, span_context,
                                         self.default_labels)
-            sys.stderr.write(f"---->>> Span: {span_data}\n")
+            self.trace_exporter.export(span_datas)
 
-    def _setup_open_census(self) -> None:
-        # Stats defines a View Manager and a Stats Recorder in order for the
-        # collection of Stats.
-        stats = stats_module.stats
-        self.stats_recorder = stats.stats_recorder
-        self.view_manager = stats.view_manager
-
-    def _setup_stackdriver_exporter(self) -> None:
-        # exporter = stackdriver.new_stats_exporter(interval=5)
-        # self.view_manager.register_exporter(exporter)
-        pass
 
     def _register_open_census_views(self) -> None:
         # Client
