@@ -151,23 +151,6 @@ class ObservabilityTest(unittest.TestCase):
         if self._server:
             self._server.stop(0)
 
-    def testOpenCensusExporter(self):
-        _TEST_CONFIG = {
-            'project_id': 'xuanwn-observability',
-            'cloud_trace': {
-                'sampling_rate': 1.00
-            },
-            'cloud_monitoring': {},
-            'labels': {
-                "SERVICE_NAME": "xuan-test-service"
-            }
-        }
-        self._set_config_file(_TEST_CONFIG)
-        with grpc_observability.GCPOpenCensusObservability():
-            self._start_server()
-            self.unary_unary_call()
-        import time; time.sleep(30)
-
     def testRecordUnaryUnary(self):
         self._set_config_file(_VALID_CONFIG_TRACING_STATS)
         with grpc_observability.GCPOpenCensusObservability(
