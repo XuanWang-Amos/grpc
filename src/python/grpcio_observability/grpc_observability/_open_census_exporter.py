@@ -159,8 +159,7 @@ class OpenCensusExporter(_observability.Exporter):
 
 
 def _get_span_annotations(
-        span_annotations: List[Tuple[bytes,
-                                     bytes]]) -> List[time_event.Annotation]:
+        span_annotations: List[Tuple[str, str]]) -> List[time_event.Annotation]:
     annotations = []
 
     for time_stamp, description in span_annotations:
@@ -170,6 +169,8 @@ def _get_span_annotations(
     return annotations
 
 
+#pylint: disable=too-many-return-statements
+#pylint: disable=too-many-branches
 def _status_to_span_status(span_status: str) -> Optional[status.Status]:
     if status == "OK":
         return status.Status(code_pb2.OK, message=span_status)
