@@ -60,10 +60,10 @@ py_library(
     name = "pyobservability",
     srcs = [
         "__init__.py",
-        "_observability.py",
         "_gcp_observability.py",
-        "_open_census_exporter.py",
         "_measures.py",
+        "_observability.py",
+        "_open_census_exporter.py",
         "_views.py",
     ],
     imports = [
@@ -74,7 +74,7 @@ py_library(
     deps = [
         ":cyobservability",
         "//src/python/grpcio/grpc:grpcio",
-        "@opencensus_python",
+        requirement("opencensus"),
         requirement("opencensus-ext-stackdriver"),
     ],
 )

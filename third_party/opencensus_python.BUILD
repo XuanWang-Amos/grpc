@@ -1,9 +1,0 @@
-py_library(
-    name="opencensus_python",
-    srcs=glob([
-        "opencensus/**/*.py",
-        "context/opencensus-context/opencensus/**/*.py",
-    ]),
-    srcs_version="PY3",
-    visibility=["//visibility:public"],
-)

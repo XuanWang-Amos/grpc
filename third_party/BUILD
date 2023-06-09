@@ -11,7 +11,6 @@ exports_files([
     "enum34.BUILD",
     "futures.BUILD",
     "libuv.BUILD",
-    "opencensus_python.BUILD",
     "protobuf.patch",
     "rules_python.patch",
     "protoc-gen-validate.patch",

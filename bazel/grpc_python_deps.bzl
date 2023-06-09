@@ -45,14 +45,3 @@ def grpc_python_deps():
                 "https://github.com/cython/cython/archive/0.29.35.tar.gz",
             ],
         )
-
-    if "opencensus_python" not in native.existing_rules():
-        http_archive(
-            name = "opencensus_python",
-            build_file = "@com_github_grpc_grpc//third_party:opencensus_python.BUILD",
-            sha256 = "3e2ed9735e49ea324d402af576d8504fab6a7f664c8c6f20820e1abf242c1384",
-            strip_prefix = "opencensus-python-0.11.2",
-            urls = [
-                "https://github.com/census-instrumentation/opencensus-python/archive/refs/tags/v0.11.2.tar.gz",
-            ],
-        )
