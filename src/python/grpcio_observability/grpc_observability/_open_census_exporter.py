@@ -40,7 +40,8 @@ _gcp_observability = Any  # grpc_observability.py imports this module.
 
 # 60s is the default time for open census to call export.
 CENSUS_UPLOAD_INTERVAL_SECS = int(
-    os.environ.get('GRPC_PYTHON_CENSUS_EXPORT_UPLOAD_INTERVAL_SECS', 60))
+    os.environ.get("GRPC_PYTHON_CENSUS_EXPORT_UPLOAD_INTERVAL_SECS", 60)
+)
 
 
 class OpenCensusExporter(_observability.Exporter):
@@ -51,8 +52,9 @@ class OpenCensusExporter(_observability.Exporter):
     view_manager: stats_module.stats.view_manager
     measurement_map: MeasurementMap
 
-    def __init__(self,
-                 config: "_gcp_observability.GcpObservabilityPythonConfig"):
+    def __init__(
+        self, config: "_gcp_observability.GcpObservabilityPythonConfig"
+    ):
         self.config = config.get()
         self.default_labels = self.config.labels
         self.project_id = self.config.project_id
@@ -68,10 +70,12 @@ class OpenCensusExporter(_observability.Exporter):
             self.view_manager = stats.view_manager
             # If testing locally please add resource="global" to Options, otherwise
             # StackDriver might override project_id based on detected resource.
-            options = stats_exporter.Options(project_id=self.project_id,
-                                             resource="global")
+            options = stats_exporter.Options(
+                project_id=self.project_id, resource="global"
+            )
             metrics_exporter = stats_exporter.new_stats_exporter(
-                options, interval=CENSUS_UPLOAD_INTERVAL_SECS)
+                options, interval=CENSUS_UPLOAD_INTERVAL_SECS
+            )
             self.view_manager.register_exporter(metrics_exporter)
             self.measurement_map = stats_recorder.new_measurement_map()
             self._register_open_census_views()
@@ -82,19 +86,25 @@ class OpenCensusExporter(_observability.Exporter):
             span_id = current_tracer.span_context.span_id
             if not span_id:
                 span_id = span_context_module.generate_span_id()
-            span_context = span_context_module.SpanContext(trace_id=trace_id,
-                                                           span_id=span_id)
+            span_context = span_context_module.SpanContext(
+                trace_id=trace_id, span_id=span_id
+            )
             # Create and Saves Tracer and Sampler to ContextVar
             sampler = samplers.ProbabilitySampler(
-                rate=self.config.sampling_rate)
+                rate=self.config.sampling_rate
+            )
             self.trace_exporter = trace_exporter.StackdriverExporter(
-                project_id=self.project_id)
-            self.tracer = tracer.Tracer(sampler=sampler,
-                                        span_context=span_context,
-                                        exporter=self.trace_exporter)
+                project_id=self.project_id
+            )
+            self.tracer = tracer.Tracer(
+                sampler=sampler,
+                span_context=span_context,
+                exporter=self.trace_exporter,
+            )
 
-    def export_stats_data(self,
-                          stats_data: List[_observability.StatsData]) -> None:
+    def export_stats_data(
+        self, stats_data: List[_observability.StatsData]
+    ) -> None:
         for data in stats_data:
             measure = _views.METRICS_NAME_TO_MEASURE.get(data.name, None)
             if not measure:
@@ -108,58 +118,78 @@ class OpenCensusExporter(_observability.Exporter):
                 tag_map.insert(TagKey(key), TagValue(value))
 
             if data.measure_double:
-                self.measurement_map.measure_float_put(measure,
-                                                       data.value_float)
+                self.measurement_map.measure_float_put(
+                    measure, data.value_float
+                )
             else:
                 self.measurement_map.measure_int_put(measure, data.value_int)
             self.measurement_map.record(tag_map)
 
     def export_tracing_data(
-            self, tracing_data: List[_observability.TracingData]) -> None:
+        self, tracing_data: List[_observability.TracingData]
+    ) -> None:
         for span_data in tracing_data:
             # Only traced data will be exported, thus TraceOptions=1.
             span_context = span_context_module.SpanContext(
                 trace_id=span_data.trace_id,
                 span_id=span_data.span_id,
-                trace_options=trace_options_module.TraceOptions(1))
-            span_datas = _get_span_datas(span_data, span_context,
-                                         self.default_labels)
+                trace_options=trace_options_module.TraceOptions(1),
+            )
+            span_datas = _get_span_datas(
+                span_data, span_context, self.default_labels
+            )
             self.trace_exporter.export(span_datas)
 
     def _register_open_census_views(self) -> None:
         # Client
         self.view_manager.register_view(
-            _views.client_started_rpcs(self.default_labels))
+            _views.client_started_rpcs(self.default_labels)
+        )
         self.view_manager.register_view(
-            _views.client_completed_rpcs(self.default_labels))
+            _views.client_completed_rpcs(self.default_labels)
+        )
         self.view_manager.register_view(
-            _views.client_roundtrip_latency(self.default_labels))
+            _views.client_roundtrip_latency(self.default_labels)
+        )
         self.view_manager.register_view(
-            _views.client_api_latency(self.default_labels))
+            _views.client_api_latency(self.default_labels)
+        )
         self.view_manager.register_view(
             _views.client_sent_compressed_message_bytes_per_rpc(
-                self.default_labels))
+                self.default_labels
+            )
+        )
         self.view_manager.register_view(
             _views.client_received_compressed_message_bytes_per_rpc(
-                self.default_labels))
+                self.default_labels
+            )
+        )
 
         # Server
         self.view_manager.register_view(
-            _views.server_started_rpcs(self.default_labels))
+            _views.server_started_rpcs(self.default_labels)
+        )
         self.view_manager.register_view(
-            _views.server_completed_rpcs(self.default_labels))
+            _views.server_completed_rpcs(self.default_labels)
+        )
         self.view_manager.register_view(
             _views.server_sent_compressed_message_bytes_per_rpc(
-                self.default_labels))
+                self.default_labels
+            )
+        )
         self.view_manager.register_view(
             _views.server_received_compressed_message_bytes_per_rpc(
-                self.default_labels))
+                self.default_labels
+            )
+        )
         self.view_manager.register_view(
-            _views.server_server_latency(self.default_labels))
+            _views.server_server_latency(self.default_labels)
+        )
 
 
 def _get_span_annotations(
-        span_annotations: List[Tuple[str, str]]) -> List[time_event.Annotation]:
+    span_annotations: List[Tuple[str, str]]
+) -> List[time_event.Annotation]:
     annotations = []
 
     for time_stamp, description in span_annotations:
@@ -169,8 +199,8 @@ def _get_span_annotations(
     return annotations
 
 
-#pylint: disable=too-many-return-statements
-#pylint: disable=too-many-branches
+# pylint: disable=too-many-return-statements
+# pylint: disable=too-many-branches
 def _status_to_span_status(span_status: str) -> Optional[status.Status]:
     if status == "OK":
         return status.Status(code_pb2.OK, message=span_status)
@@ -211,9 +241,10 @@ def _status_to_span_status(span_status: str) -> Optional[status.Status]:
 
 
 def _get_span_datas(
-        span_data: _observability.TracingData,
-        span_context: span_context_module.SpanContext,
-        labels: Mapping[str, str]) -> List[span_data_module.SpanData]:
+    span_data: _observability.TracingData,
+    span_context: span_context_module.SpanContext,
+    labels: Mapping[str, str],
+) -> List[span_data_module.SpanData]:
     """Extracts a list of SpanData tuples from a span.
 
     Args:
@@ -229,23 +260,27 @@ def _get_span_datas(
     span_status = _status_to_span_status(span_data.status)
     span_annotations = _get_span_annotations(span_data.span_annotations)
     span_datas = [
-        span_data_module.SpanData(name=span_data.name,
-                                  context=span_context,
-                                  span_id=span_data.span_id,
-                                  parent_span_id=span_data.parent_span_id
-                                  if span_data.parent_span_id else None,
-                                  attributes=span_attributes,
-                                  start_time=span_data.start_time,
-                                  end_time=span_data.end_time,
-                                  child_span_count=span_data.child_span_count,
-                                  stack_trace=None,
-                                  annotations=span_annotations,
-                                  message_events=None,
-                                  links=None,
-                                  status=span_status,
-                                  same_process_as_parent_span=True
-                                  if span_data.parent_span_id else None,
-                                  span_kind=span.SpanKind.UNSPECIFIED)
+        span_data_module.SpanData(
+            name=span_data.name,
+            context=span_context,
+            span_id=span_data.span_id,
+            parent_span_id=span_data.parent_span_id
+            if span_data.parent_span_id
+            else None,
+            attributes=span_attributes,
+            start_time=span_data.start_time,
+            end_time=span_data.end_time,
+            child_span_count=span_data.child_span_count,
+            stack_trace=None,
+            annotations=span_annotations,
+            message_events=None,
+            links=None,
+            status=span_status,
+            same_process_as_parent_span=True
+            if span_data.parent_span_id
+            else None,
+            span_kind=span.SpanKind.UNSPECIFIED,
+        )
     ]
 
     return span_datas

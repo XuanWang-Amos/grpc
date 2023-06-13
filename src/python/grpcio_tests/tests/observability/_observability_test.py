@@ -172,7 +172,7 @@ class ObservabilityTest(unittest.TestCase):
                 pass
 
     def testThrowErrorWithInvalidConfig(self):
-        _INVALID_CONFIG = 'INVALID'
+        _INVALID_CONFIG = "INVALID"
         self._set_config_file(_INVALID_CONFIG)
         with self.assertRaises(ValueError):
             with grpc_observability.GCPOpenCensusObservability(
