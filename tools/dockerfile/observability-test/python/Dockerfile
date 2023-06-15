@@ -17,19 +17,30 @@
 # Stage 1: Build the interop test client and server
 #
 
-FROM debian:11 as build
+FROM debian:bullseye as build
 
-RUN apt-get update && apt-get install -y python3 python3-dev python3-pip clang curl git
-RUN ln -s $(which python3) /usr/bin/python
+RUN apt-get update -y && \
+        apt-get install -y \
+            build-essential \
+            clang \
+            python3 \
+            python3-dev \
+            curl \
+            git \
+            python3-pip
+
+RUN ln -s /usr/bin/python3 /usr/bin/python
+RUN mkdir /artifacts
 # RUN python3 -m pip install --upgrade opencensus==0.10.0 opencensus-ext-stackdriver==0.8.0
 
 WORKDIR /grpc
 COPY . .
 
-# /grpc/tools/bazel build test/cpp/interop:observability_interop_test
-RUN git submodule update --init --recursive && \
-  /grpc/tools/bazel build src/python/grpcio_tests/tests/interop:observability_client && \
-  /grpc/tools/bazel build src/python/grpcio_tests/tests/interop:observability_server
+RUN git submodule update --init --recursive
+RUN /grpc/tools/bazel build src/python/grpcio_tests/tests/interop:observability_client
+RUN /grpc/tools/bazel build src/python/grpcio_tests/tests/interop:observability_server
+RUN cp -rL /grpc/bazel-bin/src/python/grpcio_tests/tests/interop/observability_* /artifacts/
+
 
 #
 # Stage 2:
@@ -39,17 +50,12 @@ RUN git submodule update --init --recursive && \
 #   with the given parameters.
 #
 
-FROM debian:11
+FROM debian:bullseye
 
-# ENV GRPC_TRACE environment_autodetect
-ENV GRPC_VERBOSITY debug
-
-RUN apt-get update -y && apt-get install -y python3
-RUN ln -s /usr/bin/python3 /usr/bin/python
+COPY --from=build /artifacts ./
 
 WORKDIR /usr/share/grpc
 COPY --from=build /grpc/etc/roots.pem .
-
 
 WORKDIR /grpc/bazel-bin/src/python/grpcio_tests/tests/interop
 COPY --from=build /grpc/bazel-bin/src/python/grpcio_tests/tests/interop/observability_server .
@@ -57,5 +63,10 @@ COPY --from=build /grpc/bazel-bin/src/python/grpcio_tests/tests/interop/observab
 
 WORKDIR /grpc/tools/dockerfile/observability-test/python
 COPY --from=build /grpc/tools/dockerfile/observability-test/python/run.sh .
+
+ENV GRPC_VERBOSITY debug
+
+RUN apt-get update -y && apt-get install -y python3
+RUN ln -s /usr/bin/python3 /usr/bin/python
 
 ENTRYPOINT ["/grpc/tools/dockerfile/observability-test/python/run.sh"]
