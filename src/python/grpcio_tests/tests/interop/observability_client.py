@@ -230,10 +230,10 @@ class TestExporter(_observability.Exporter):
 
 def test_interoperability():
     args = parse_interop_client_args()
-    all_metric = []
-    all_span = []
-    test_exporter = TestExporter(all_metric, all_span)
-    with grpc_observability.GCPOpenCensusObservability(exporter=test_exporter):
+    # all_metric = []
+    # all_span = []
+    # test_exporter = TestExporter(all_metric, all_span)
+    with grpc_observability.GCPOpenCensusObservability():
         channel = _create_channel(args)
         stub = create_stub(channel, args)
         test_case = _test_case_from_arg(args.test_case)
