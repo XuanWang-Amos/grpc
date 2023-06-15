@@ -228,6 +228,7 @@ class TestExporter(_observability.Exporter):
     def export_tracing_data(self, tracing_data) -> None:
         self.span_collecter.extend(tracing_data)
 
+
 def test_interoperability():
     args = parse_interop_client_args()
     # all_metric = []
