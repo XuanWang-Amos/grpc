@@ -59,19 +59,10 @@ py_library(
 )
 
 py_binary(
-    name = "observability_interop_client",
+    name = "observability_client",
     srcs = ["observability_client.py"],
     python_version = "PY3",
     deps = [":observability_client_lib"],
-)
-
-py_binary(
-    name = "observability_interop_test",
-    srcs = ["interop_test.py"],
-    data = [
-        ":observability_interop_client",
-        ":observability_interop_server",
-    ],
 )
 
 py_library(
@@ -154,7 +145,7 @@ py_library(
 )
 
 py_binary(
-    name = "observability_interop_server",
+    name = "observability_server",
     srcs = ["observability_server.py"],
     main = "observability_server.py",
     python_version = "PY3",

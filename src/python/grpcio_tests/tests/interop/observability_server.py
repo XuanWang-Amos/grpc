@@ -18,6 +18,7 @@ from concurrent import futures
 import logging
 
 import grpc
+import grpc_observability
 
 from src.proto.grpc.testing import test_pb2_grpc
 from tests.interop import resources
@@ -59,21 +60,21 @@ def get_server_credentials(use_tls):
 
 def serve():
     args = parse_interop_server_arguments()
+    with grpc_observability.GCPOpenCensusObservability():
+        server = test_common.test_server()
+        test_pb2_grpc.add_TestServiceServicer_to_server(
+            service.TestService(), server
+        )
+        if args.use_tls or args.use_alts:
+            credentials = get_server_credentials(args.use_tls)
+            server.add_secure_port("[::]:{}".format(args.port), credentials)
+        else:
+            server.add_insecure_port("[::]:{}".format(args.port))
 
-    server = test_common.test_server()
-    test_pb2_grpc.add_TestServiceServicer_to_server(
-        service.TestService(), server
-    )
-    if args.use_tls or args.use_alts:
-        credentials = get_server_credentials(args.use_tls)
-        server.add_secure_port("[::]:{}".format(args.port), credentials)
-    else:
-        server.add_insecure_port("[::]:{}".format(args.port))
-
-    server.start()
-    _LOGGER.info("Server serving.")
-    server.wait_for_termination()
-    _LOGGER.info("Server stopped; exiting.")
+        server.start()
+        _LOGGER.info("Server serving.")
+        server.wait_for_termination()
+        _LOGGER.info("Server stopped; exiting.")
 
 
 if __name__ == "__main__":
