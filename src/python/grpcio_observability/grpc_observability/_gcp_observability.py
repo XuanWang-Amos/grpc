@@ -149,6 +149,8 @@ class GCPOpenCensusObservability(grpc._observability.ObservabilityPlugin):
         # TODO(xuanwn): explicit synchronization
         # https://github.com/grpc/grpc/issues/33262
         time.sleep(_cyobservability.CENSUS_EXPORT_BATCH_INTERVAL_SECS)
+        # Sleep for StackDriver to export data.
+        time.sleep(30)
         self.set_tracing(False)
         self.set_stats(False)
         _cyobservability.observability_deinit()

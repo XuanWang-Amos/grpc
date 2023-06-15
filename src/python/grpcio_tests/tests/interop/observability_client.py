@@ -42,6 +42,12 @@ def parse_interop_client_args():
         help="the port to which to connect",
     )
     parser.add_argument(
+        "--num_times",
+        default=1,
+        type=int,
+        help="Number of times to run the test case",
+    )
+    parser.add_argument(
         "--test_case",
         default="large_unary",
         type=str,
@@ -237,7 +243,8 @@ def test_interoperability():
         channel = _create_channel(args)
         stub = create_stub(channel, args)
         test_case = _test_case_from_arg(args.test_case)
-        test_case.test_interoperability(stub, args)
+        for _ in range(args.num_times):
+            test_case.test_interoperability(stub, args)
 
 
 if __name__ == "__main__":
