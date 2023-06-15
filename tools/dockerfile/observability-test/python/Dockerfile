@@ -19,7 +19,7 @@
 
 FROM debian:11 as build
 
-RUN apt-get update && apt-get install -y python3 python3-dev python3-pip curl git
+RUN apt-get update && apt-get install -y python3 python3-dev python3-pip clang curl git
 # RUN ln -s $(which python3) /usr/bin/python
 # RUN python3 -m pip install --upgrade opencensus==0.10.0 opencensus-ext-stackdriver==0.8.0
 
