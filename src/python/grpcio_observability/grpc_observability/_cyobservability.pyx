@@ -311,12 +311,10 @@ cdef void _flush_census_data(object exporter):
       py_labels = _c_label_to_labels(c_census_data.labels)
       py_measurement = _c_measurement_to_measurement(c_census_data.measurement_data)
       py_metric = _get_stats_data(py_measurement, py_labels)
-      import sys; sys.stderr.write(f">>> Exporting: {py_metric}\n"); sys.stderr.flush()
       py_metrics_batch.append(py_metric)
     else:
       py_span = _get_tracing_data(c_census_data.span_data, c_census_data.span_data.span_labels,
                                   c_census_data.span_data.span_annotations)
-      import sys; sys.stderr.write(f">>> Exporting: {py_span}\n"); sys.stderr.flush()
       py_spans_batch.append(py_span)
     g_census_data_buffer.pop()
 

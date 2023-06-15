@@ -105,6 +105,7 @@ class OpenCensusExporter(_observability.Exporter):
     def export_stats_data(
         self, stats_data: List[_observability.StatsData]
     ) -> None:
+        import sys; sys.stderr.write(f">>> Exporting stats data to OC\n"); sys.stderr.flush()
         for data in stats_data:
             measure = _views.METRICS_NAME_TO_MEASURE.get(data.name, None)
             if not measure:
@@ -128,6 +129,7 @@ class OpenCensusExporter(_observability.Exporter):
     def export_tracing_data(
         self, tracing_data: List[_observability.TracingData]
     ) -> None:
+        import sys; sys.stderr.write(f">>> Exporting tracing data to OC\n"); sys.stderr.flush()
         for span_data in tracing_data:
             # Only traced data will be exported, thus TraceOptions=1.
             span_context = span_context_module.SpanContext(
