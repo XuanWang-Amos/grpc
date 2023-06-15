@@ -18,6 +18,7 @@ from dataclasses import field
 import logging
 import threading
 import time
+from datetime import datetime
 from typing import Any, Mapping, Optional
 
 import grpc
@@ -149,6 +150,8 @@ class GCPOpenCensusObservability(grpc._observability.ObservabilityPlugin):
         # TODO(xuanwn): explicit synchronization
         # https://github.com/grpc/grpc/issues/33262
         time.sleep(_cyobservability.CENSUS_EXPORT_BATCH_INTERVAL_SECS)
+        import sys; sys.stderr.write(f"Sleeping 30s before exiting Python.O11Y at {datetime.utcnow()}\n"); sys.stderr.flush()
+        time.sleep(20)
         self.set_tracing(False)
         self.set_stats(False)
         _cyobservability.observability_deinit()

@@ -21,6 +21,7 @@ import logging
 import os
 from threading import Thread
 from typing import List, Mapping, Tuple, Union
+import sys
 
 import _observability
 
@@ -35,6 +36,8 @@ cdef object GLOBAL_EXPORT_THREAD
 
 _LOGGER = logging.getLogger(__name__)
 
+current_total = 0
+
 class _CyMetricsName:
   CY_CLIENT_API_LATENCY = kRpcClientApiLatencyMeasureName
   CY_CLIENT_SNET_MESSSAGES_PER_RPC = kRpcClientSentMessagesPerRpcMeasureName
@@ -42,6 +45,7 @@ class _CyMetricsName:
   CY_CLIENT_RECEIVED_MESSAGES_PER_RPC = kRpcClientReceivedMessagesPerRpcMeasureName
   CY_CLIENT_RECEIVED_BYTES_PER_RPC = kRpcClientReceivedBytesPerRpcMeasureName
   CY_CLIENT_ROUNDTRIP_LATENCY = kRpcClientRoundtripLatencyMeasureName
+  CY_CLIENT_COMPLETED_RPC = kRpcClientCompletedRpcMeasureName
   CY_CLIENT_SERVER_LATENCY = kRpcClientServerLatencyMeasureName
   CY_CLIENT_STARTED_RPCS = kRpcClientStartedRpcsMeasureName
   CY_CLIENT_RETRIES_PER_CALL = kRpcClientRetriesPerCallMeasureName
@@ -53,6 +57,7 @@ class _CyMetricsName:
   CY_SERVER_RECEIVED_MESSAGES_PER_RPC = kRpcServerReceivedMessagesPerRpcMeasureName
   CY_SERVER_RECEIVED_BYTES_PER_RPC = kRpcServerReceivedBytesPerRpcMeasureName
   CY_SERVER_SERVER_LATENCY = kRpcServerServerLatencyMeasureName
+  CY_SERVER_COMPLETED_RPC = kRpcServerCompletedRpcMeasureName
   CY_SERVER_STARTED_RPCS = kRpcServerStartedRpcsMeasureName
 
 @enum.unique
@@ -64,6 +69,7 @@ class MetricsName(enum.Enum):
   CLIENT_RECEIVED_MESSAGES_PER_RPC = _CyMetricsName.CY_CLIENT_RECEIVED_MESSAGES_PER_RPC
   CLIENT_RECEIVED_BYTES_PER_RPC = _CyMetricsName.CY_CLIENT_RECEIVED_BYTES_PER_RPC
   CLIENT_ROUNDTRIP_LATENCY = _CyMetricsName.CY_CLIENT_ROUNDTRIP_LATENCY
+  CLIENT_COMPLETED_RPC = _CyMetricsName.CY_CLIENT_COMPLETED_RPC
   CLIENT_SERVER_LATENCY = _CyMetricsName.CY_CLIENT_SERVER_LATENCY
   CLIENT_RETRIES_PER_CALL = _CyMetricsName.CY_CLIENT_RETRIES_PER_CALL
   CLIENT_TRANSPARENT_RETRIES_PER_CALL = _CyMetricsName.CY_CLIENT_TRANSPARENT_RETRIES_PER_CALL
@@ -74,6 +80,7 @@ class MetricsName(enum.Enum):
   SERVER_RECEIVED_MESSAGES_PER_RPC = _CyMetricsName.CY_SERVER_RECEIVED_MESSAGES_PER_RPC
   SERVER_RECEIVED_BYTES_PER_RPC = _CyMetricsName.CY_SERVER_RECEIVED_BYTES_PER_RPC
   SERVER_SERVER_LATENCY = _CyMetricsName.CY_SERVER_SERVER_LATENCY
+  SERVER_COMPLETED_RPC = _CyMetricsName.CY_SERVER_COMPLETED_RPC
   SERVER_STARTED_RPCS = _CyMetricsName.CY_SERVER_STARTED_RPCS
 
 # Delay map creation due to circular dependencies
@@ -297,6 +304,7 @@ cdef void _export_census_data(object exporter):
 
 
 cdef void _flush_census_data(object exporter):
+  global current_total
   exporter: _observability.Exporter
 
   lk = new unique_lock[mutex](g_census_data_buffer_mutex)
@@ -305,12 +313,18 @@ cdef void _flush_census_data(object exporter):
     return
   py_metrics_batch = []
   py_spans_batch = []
+  client_started_rpcs = 0
+  completed_rpcs = 0
   while not g_census_data_buffer.empty():
     c_census_data = g_census_data_buffer.front()
     if c_census_data.type == kMetricData:
       py_labels = _c_label_to_labels(c_census_data.labels)
       py_measurement = _c_measurement_to_measurement(c_census_data.measurement_data)
       py_metric = _get_stats_data(py_measurement, py_labels)
+      if MetricsName.CLIENT_STARTED_RPCS == py_metric.name:
+        client_started_rpcs += 1
+      if MetricsName.CLIENT_STARTED_RPCS == py_metric.name:
+        client_started_rpcs += 1
       py_metrics_batch.append(py_metric)
     else:
       py_span = _get_tracing_data(c_census_data.span_data, c_census_data.span_data.span_labels,
@@ -319,6 +333,8 @@ cdef void _flush_census_data(object exporter):
     g_census_data_buffer.pop()
 
   del lk
+  current_total += client_started_rpcs
+  sys.stderr.write(f">>> exporter.export_stats_data with {client_started_rpcs} CLIENT_STARTED_RPCS, current_total: {current_total}\n"); sys.stderr.flush()
   exporter.export_stats_data(py_metrics_batch)
   exporter.export_tracing_data(py_spans_batch)
 
