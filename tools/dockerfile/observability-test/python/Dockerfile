@@ -20,7 +20,7 @@
 FROM debian:11 as build
 
 RUN apt-get update && apt-get install -y python3 python3-dev python3-pip clang curl git
-# RUN ln -s $(which python3) /usr/bin/python
+RUN ln -s $(which python3) /usr/bin/python
 # RUN python3 -m pip install --upgrade opencensus==0.10.0 opencensus-ext-stackdriver==0.8.0
 
 WORKDIR /grpc
@@ -44,6 +44,8 @@ FROM debian:11
 # ENV GRPC_TRACE environment_autodetect
 ENV GRPC_VERBOSITY debug
 
+RUN apt-get update -y && apt-get install -y python3
+RUN ln -s /usr/bin/python3 /usr/bin/python
 
 WORKDIR /usr/share/grpc
 COPY --from=build /grpc/etc/roots.pem .
