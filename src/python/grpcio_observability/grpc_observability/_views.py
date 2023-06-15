@@ -23,6 +23,7 @@ from opencensus.tags.tag_key import TagKey
 METRICS_NAME_TO_MEASURE = {
     MetricsName.CLIENT_STARTED_RPCS: _measures.CLIENT_STARTED_RPCS_MEASURE,
     MetricsName.CLIENT_ROUNDTRIP_LATENCY: _measures.CLIENT_ROUNDTRIP_LATENCY_MEASURE,
+    MetricsName.CLIENT_COMPLETED_RPC: _measures.CLIENT_COMPLETED_RPCS_MEASURE,
     MetricsName.CLIENT_API_LATENCY: _measures.CLIENT_API_LATENCY_MEASURE,
     MetricsName.CLIENT_SEND_BYTES_PER_RPC: _measures.CLIENT_SEND_BYTES_PER_RPC_MEASURE,
     MetricsName.CLIENT_RECEIVED_BYTES_PER_RPC: _measures.CLIENT_RECEIVED_BYTES_PER_RPC_MEASURE,
@@ -30,6 +31,7 @@ METRICS_NAME_TO_MEASURE = {
     MetricsName.SERVER_SENT_BYTES_PER_RPC: _measures.SERVER_SENT_BYTES_PER_RPC_MEASURE,
     MetricsName.SERVER_RECEIVED_BYTES_PER_RPC: _measures.SERVER_RECEIVED_BYTES_PER_RPC_MEASURE,
     MetricsName.SERVER_SERVER_LATENCY: _measures.SERVER_SERVER_LATENCY_MEASURE,
+    MetricsName.SERVER_COMPLETED_RPC: _measures.SERVER_COMPLETED_RPCS_MEASURE,
 }
 
 
@@ -231,7 +233,7 @@ def server_completed_rpcs(labels: Mapping[str, str]) -> view_module.View:
         + " is sent by the server.",
         [TagKey(key) for key in labels.keys()]
         + [server_method_tag_key(), server_status_tag_key()],
-        _measures.SERVER_SERVER_LATENCY_MEASURE,
+        _measures.SERVER_COMPLETED_RPCS_MEASURE,
         aggregation_module.CountAggregation(),
     )
     return view
