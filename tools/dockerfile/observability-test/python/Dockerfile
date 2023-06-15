@@ -52,7 +52,9 @@ RUN cp -rL /grpc/bazel-bin/src/python/grpcio_tests/tests/interop/observability_*
 
 FROM debian:bullseye
 
-COPY --from=build /artifacts ./
+COPY --from=build /artifacts .
+COPY --from=build /artifacts /grpc/bazel-bin/src/python/grpcio_tests/tests/interop/
+RUN ls /grpc/bazel-bin/src/python/grpcio_tests/tests/interop/
 
 WORKDIR /usr/share/grpc
 COPY --from=build /grpc/etc/roots.pem .
