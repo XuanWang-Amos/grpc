@@ -1717,12 +1717,12 @@ def _channel_managed_call_management(state: _ChannelCallState):
                 operations_and_tags,
                 context,
             )
+            state.rpc_start_time = datetime.utcnow()
             if state.managed_calls == 0:
                 state.managed_calls = 1
                 _run_channel_spin_thread(state)
             else:
                 state.managed_calls += 1
-            state.rpc_start_time = datetime.utcnow()
             import sys; sys.stderr.write(f">>> Return call in _channel_managed_call_management\n"); sys.stderr.flush()
             return call
 
