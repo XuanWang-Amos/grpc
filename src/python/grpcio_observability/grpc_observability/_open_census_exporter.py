@@ -22,7 +22,7 @@ from grpc_observability import _views
 from opencensus.ext.stackdriver import stats_exporter
 from opencensus.ext.stackdriver import trace_exporter
 from opencensus.stats import stats as stats_module
-from opencensus.stats.measurement_map import MeasurementMap
+from opencensus.stats.stats_recorder import StatsRecorder
 from opencensus.tags.tag_key import TagKey
 from opencensus.tags.tag_map import TagMap
 from opencensus.tags.tag_value import TagValue
@@ -49,8 +49,8 @@ class OpenCensusExporter(_observability.Exporter):
     default_labels: Optional[Mapping[str, str]]
     project_id: str
     tracer: tracer.Tracer
+    stats_recorder: Optional[StatsRecorder]
     view_manager: stats_module.stats.view_manager
-    measurement_map: MeasurementMap
 
     def __init__(
         self, config: "_gcp_observability.GcpObservabilityPythonConfig"
@@ -59,14 +59,14 @@ class OpenCensusExporter(_observability.Exporter):
         self.default_labels = self.config.labels
         self.project_id = self.config.project_id
         self.tracer = None
+        self.stats_recorder = None
         self.view_manager = None
-        self.measurement_map = None
         self._setup_open_census_stackdriver_exporter()
 
     def _setup_open_census_stackdriver_exporter(self) -> None:
         if self.config.stats_enabled:
             stats = stats_module.stats
-            stats_recorder = stats.stats_recorder
+            self.stats_recorder = stats.stats_recorder
             self.view_manager = stats.view_manager
             # If testing locally please add resource="global" to Options, otherwise
             # StackDriver might override project_id based on detected resource.
@@ -77,7 +77,6 @@ class OpenCensusExporter(_observability.Exporter):
                 options, interval=CENSUS_UPLOAD_INTERVAL_SECS
             )
             self.view_manager.register_exporter(metrics_exporter)
-            self.measurement_map = stats_recorder.new_measurement_map()
             self._register_open_census_views()
 
         if self.config.tracing_enabled:
@@ -105,7 +104,7 @@ class OpenCensusExporter(_observability.Exporter):
     def export_stats_data(
         self, stats_data: List[_observability.StatsData]
     ) -> None:
-        import sys; sys.stderr.write(f">>> Exporting stats data to OC\n"); sys.stderr.flush()
+        measurement_map = self.stats_recorder.new_measurement_map()
         for data in stats_data:
             measure = _views.METRICS_NAME_TO_MEASURE.get(data.name, None)
             if not measure:
@@ -119,17 +118,16 @@ class OpenCensusExporter(_observability.Exporter):
                 tag_map.insert(TagKey(key), TagValue(value))
 
             if data.measure_double:
-                self.measurement_map.measure_float_put(
+                measurement_map.measure_float_put(
                     measure, data.value_float
                 )
             else:
-                self.measurement_map.measure_int_put(measure, data.value_int)
-            self.measurement_map.record(tag_map)
+                measurement_map.measure_int_put(measure, data.value_int)
+            measurement_map.record(tag_map)
 
     def export_tracing_data(
         self, tracing_data: List[_observability.TracingData]
     ) -> None:
-        import sys; sys.stderr.write(f">>> Exporting tracing data to OC\n"); sys.stderr.flush()
         for span_data in tracing_data:
             # Only traced data will be exported, thus TraceOptions=1.
             span_context = span_context_module.SpanContext(
