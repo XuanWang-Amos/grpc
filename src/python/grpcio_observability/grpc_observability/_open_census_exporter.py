@@ -120,9 +120,7 @@ class OpenCensusExporter(_observability.Exporter):
                 tag_map.insert(TagKey(key), TagValue(value))
 
             if data.measure_double:
-                measurement_map.measure_float_put(
-                    measure, data.value_float
-                )
+                measurement_map.measure_float_put(measure, data.value_float)
             else:
                 measurement_map.measure_int_put(measure, data.value_int)
             measurement_map.record(tag_map)
