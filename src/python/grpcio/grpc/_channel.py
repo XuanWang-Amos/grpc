@@ -1204,7 +1204,7 @@ class _UnaryUnaryMultiCallable(grpc.UnaryUnaryMultiCallable):
                 event_handler,
                 self._context,
             )
-            state.rpc_start_time = datetime.utcnow()
+            import sys; sys.stderr.write(f">>> Called self._managed_call in _UnaryUnaryMultiCallable\n"); sys.stderr.flush()
             state.method = _common.decode(self._method)
             return _MultiThreadedRendezvous(
                 state, call, self._response_deserializer, deadline
@@ -1722,6 +1722,8 @@ def _channel_managed_call_management(state: _ChannelCallState):
                 _run_channel_spin_thread(state)
             else:
                 state.managed_calls += 1
+            state.rpc_start_time = datetime.utcnow()
+            import sys; sys.stderr.write(f">>> Return call in _channel_managed_call_management\n"); sys.stderr.flush()
             return call
 
     return create
