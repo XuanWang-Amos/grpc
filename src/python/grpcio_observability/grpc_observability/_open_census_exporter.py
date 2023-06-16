@@ -70,9 +70,7 @@ class OpenCensusExporter(_observability.Exporter):
             self.view_manager = stats.view_manager
             # If testing locally please add resource="global" to Options, otherwise
             # StackDriver might override project_id based on detected resource.
-            options = stats_exporter.Options(
-                project_id=self.project_id, resource="global"
-            )
+            options = stats_exporter.Options(project_id=self.project_id)
             metrics_exporter = stats_exporter.new_stats_exporter(
                 options, interval=CENSUS_UPLOAD_INTERVAL_SECS
             )
@@ -107,9 +105,7 @@ class OpenCensusExporter(_observability.Exporter):
         if not self.config.stats_enabled:
             return
         measurement_map = self.stats_recorder.new_measurement_map()
-        import sys; sys.stderr.write(f">>> Exporting stats: \n"); sys.stderr.flush()
         for data in stats_data:
-            import sys; sys.stderr.write(f">>> {data}\n"); sys.stderr.flush()
             measure = _views.METRICS_NAME_TO_MEASURE.get(data.name, None)
             if not measure:
                 continue

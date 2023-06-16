@@ -222,28 +222,13 @@ def _test_case_from_arg(test_case_arg):
         raise ValueError('No test case "%s"!' % test_case_arg)
 
 
-class TestExporter(_observability.Exporter):
-    def __init__(self, metrics, spans):
-        self.span_collecter = spans
-        self.metric_collecter = metrics
-        self._server = None
-
-    def export_stats_data(self, stats_data) -> None:
-        self.metric_collecter.extend(stats_data)
-
-    def export_tracing_data(self, tracing_data) -> None:
-        self.span_collecter.extend(tracing_data)
-
 def test_interoperability():
     args = parse_interop_client_args()
-    # all_metric = []
-    # all_span = []
-    # test_exporter = TestExporter(all_metric, all_span)
     with grpc_observability.GCPOpenCensusObservability():
         channel = _create_channel(args)
         stub = create_stub(channel, args)
         test_case = _test_case_from_arg(args.test_case)
-        for _ in range(args.num_times):
+        for _ in range(max(args.num_times, 10)):
             test_case.test_interoperability(stub, args)
 
 
