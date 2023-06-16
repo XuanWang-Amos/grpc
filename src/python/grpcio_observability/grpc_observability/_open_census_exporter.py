@@ -107,7 +107,9 @@ class OpenCensusExporter(_observability.Exporter):
         if not self.config.stats_enabled:
             return
         measurement_map = self.stats_recorder.new_measurement_map()
+        import sys; sys.stderr.write(f">>> Exporting stats: \n"); sys.stderr.flush()
         for data in stats_data:
+            import sys; sys.stderr.write(f">>> {data}\n"); sys.stderr.flush()
             measure = _views.METRICS_NAME_TO_MEASURE.get(data.name, None)
             if not measure:
                 continue
