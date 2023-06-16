@@ -102,7 +102,6 @@ class OpenCensusExporter(_observability.Exporter):
     def export_stats_data(
         self, stats_data: List[_observability.StatsData]
     ) -> None:
-        import sys; sys.stderr.write(f">>> Calling export_stats_data with {len(stats_data)} data \n"); sys.stderr.flush()
         if not self.config.stats_enabled:
             return
         measurement_map = self.stats_recorder.new_measurement_map()

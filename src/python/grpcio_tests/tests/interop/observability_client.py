@@ -228,8 +228,7 @@ def test_interoperability():
         channel = _create_channel(args)
         stub = create_stub(channel, args)
         test_case = _test_case_from_arg(args.test_case)
-        for i in range(max(args.num_times, 3)):
-            import sys; sys.stderr.write(f">>> Running {i} time \n"); sys.stderr.flush()
+        for i in range(args.num_times):
             test_case.test_interoperability(stub, args)
 
 
