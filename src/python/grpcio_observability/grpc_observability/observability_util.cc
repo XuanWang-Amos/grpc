@@ -67,6 +67,12 @@ int GetMaxExportBufferSize() {
 
 void RecordIntMetric(MetricsName name, int64_t value,
                      const std::vector<Label>& labels) {
+  if (name == kRpcClientStartedRpcsMeasureName) {
+    std::cout << "RecordIntMetric(kRpcClientStartedRpcsMeasureName) with labels:" << std::endl;
+    for (const auto& label : labels) {
+      std::cout << "Key: " << label.key  << " Value: " << label.value << std::endl;
+    }
+  }
   Measurement measurement_data;
   measurement_data.type = kMeasurementInt;
   measurement_data.name = name;
