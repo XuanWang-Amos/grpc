@@ -128,7 +128,7 @@ class OpenCensusExporter(_observability.Exporter):
             else:
                 measurement_map.measure_int_put(measure, data.value_int)
             measurement_map.record(tag_map)
-        import sys; sys.stderr.write(f">>> Recorded {client_started_rpcs} CLIENT_STARTED_RPCS\n"); sys.stderr.flush()
+        # import sys; sys.stderr.write(f">>> Recorded {client_started_rpcs} CLIENT_STARTED_RPCS\n"); sys.stderr.flush()
 
     def export_tracing_data(
         self, tracing_data: List[_observability.TracingData]

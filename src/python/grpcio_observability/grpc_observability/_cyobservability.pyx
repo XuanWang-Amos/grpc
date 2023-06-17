@@ -21,6 +21,7 @@ import logging
 import os
 from threading import Thread
 from typing import List, Mapping, Tuple, Union
+import sys
 
 import _observability
 
@@ -34,6 +35,8 @@ cdef bint GLOBAL_SHUTDOWN_EXPORT_THREAD = False
 cdef object GLOBAL_EXPORT_THREAD
 
 _LOGGER = logging.getLogger(__name__)
+
+current_total = 0
 
 class _CyMetricsName:
   CY_CLIENT_API_LATENCY = kRpcClientApiLatencyMeasureName
@@ -323,7 +326,8 @@ cdef void _flush_census_data(object exporter):
     g_census_data_buffer.pop()
 
   del lk
-  import sys; sys.stderr.write(f">>> exporter.export_stats_data with {client_started_rpcs} CLIENT_STARTED_RPCS\n"); sys.stderr.flush()
+  current_total += client_started_rpcs
+  sys.stderr.write(f">>> exporter.export_stats_data with {client_started_rpcs} CLIENT_STARTED_RPCS, current_total: {current_total}\n"); sys.stderr.flush()
   exporter.export_stats_data(py_metrics_batch)
   exporter.export_tracing_data(py_spans_batch)
 
