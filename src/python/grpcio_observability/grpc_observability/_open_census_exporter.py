@@ -102,10 +102,13 @@ class OpenCensusExporter(_observability.Exporter):
     def export_stats_data(
         self, stats_data: List[_observability.StatsData]
     ) -> None:
+        from grpc_observability._cyobservability import MetricsName
         if not self.config.stats_enabled:
             return
         measurement_map = self.stats_recorder.new_measurement_map()
         for data in stats_data:
+            if MetricsName.CLIENT_STARTED_RPCS == data.name:
+                import sys; sys.stderr.write(f">>> Exporting CLIENT_STARTED_RPCS: {data} \n"); sys.stderr.flush()
             measure = _views.METRICS_NAME_TO_MEASURE.get(data.name, None)
             if not measure:
                 continue
