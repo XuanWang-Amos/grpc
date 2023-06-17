@@ -105,6 +105,7 @@ PythonOpenCensusCallTracer::StartNewAttempt(bool is_transparent_retry) {
     ++num_active_rpcs_;
   }
   context_.IncreaseChildSpanCount();
+  std::cout << "attempt_num: " << attempt_num << std::endl;
   return new PythonOpenCensusCallAttemptTracer(this, attempt_num,
                                                is_transparent_retry);
 }

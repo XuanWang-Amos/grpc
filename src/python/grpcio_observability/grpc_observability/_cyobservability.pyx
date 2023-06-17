@@ -314,6 +314,7 @@ cdef void _flush_census_data(object exporter):
       py_metric = _get_stats_data(py_measurement, py_labels)
       if MetricsName.CLIENT_STARTED_RPCS == py_metric.name:
         client_started_rpcs += 1
+        sys.stderr.write(f">>> labels: {py_labels}\n"); sys.stderr.flush()
       py_metrics_batch.append(py_metric)
     else:
       py_span = _get_tracing_data(c_census_data.span_data, c_census_data.span_data.span_labels,
