@@ -305,12 +305,15 @@ cdef void _flush_census_data(object exporter):
     return
   py_metrics_batch = []
   py_spans_batch = []
+  client_started_rpcs = 0
   while not g_census_data_buffer.empty():
     c_census_data = g_census_data_buffer.front()
     if c_census_data.type == kMetricData:
       py_labels = _c_label_to_labels(c_census_data.labels)
       py_measurement = _c_measurement_to_measurement(c_census_data.measurement_data)
       py_metric = _get_stats_data(py_measurement, py_labels)
+      if MetricsName.CLIENT_STARTED_RPCS == py_metric.name:
+        client_started_rpcs += 1
       py_metrics_batch.append(py_metric)
     else:
       py_span = _get_tracing_data(c_census_data.span_data, c_census_data.span_data.span_labels,
@@ -319,6 +322,7 @@ cdef void _flush_census_data(object exporter):
     g_census_data_buffer.pop()
 
   del lk
+  import sys; sys.stderr.write(f">>> exporter.export_stats_data with {client_started_rpcs} CLIENT_STARTED_RPCS\n"); sys.stderr.flush()
   exporter.export_stats_data(py_metrics_batch)
   exporter.export_tracing_data(py_spans_batch)
 
