@@ -103,6 +103,7 @@ class OpenCensusExporter(_observability.Exporter):
         self, stats_data: List[_observability.StatsData]
     ) -> None:
         from grpc_observability._cyobservability import MetricsName
+
         if not self.config.stats_enabled:
             return
         measurement_map = self.stats_recorder.new_measurement_map()
@@ -122,9 +123,7 @@ class OpenCensusExporter(_observability.Exporter):
                 tag_map.insert(TagKey(key), TagValue(value))
 
             if data.measure_double:
-                measurement_map.measure_float_put(
-                    measure, data.value_float
-                )
+                measurement_map.measure_float_put(measure, data.value_float)
             else:
                 measurement_map.measure_int_put(measure, data.value_int)
             measurement_map.record(tag_map)
