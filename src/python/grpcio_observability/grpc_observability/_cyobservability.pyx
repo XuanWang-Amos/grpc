@@ -300,6 +300,7 @@ cdef void _export_census_data(object exporter):
 
 
 cdef void _flush_census_data(object exporter):
+  global current_total
   exporter: _observability.Exporter
 
   lk = new unique_lock[mutex](g_census_data_buffer_mutex)
