@@ -40,7 +40,7 @@ _gcp_observability = Any  # grpc_observability.py imports this module.
 
 # 60s is the default time for open census to call export.
 CENSUS_UPLOAD_INTERVAL_SECS = int(
-    os.environ.get("GRPC_PYTHON_CENSUS_EXPORT_UPLOAD_INTERVAL_SECS", 5)
+    os.environ.get("GRPC_PYTHON_CENSUS_EXPORT_UPLOAD_INTERVAL_SECS", 30)
 )
 
 
@@ -106,11 +106,9 @@ class OpenCensusExporter(_observability.Exporter):
         if not self.config.stats_enabled:
             return
         measurement_map = self.stats_recorder.new_measurement_map()
-        client_started_rpcs = 0
         for data in stats_data:
-            import sys; sys.stderr.write(f">>> Recording {data.name}\n"); sys.stderr.flush()
             if MetricsName.CLIENT_STARTED_RPCS == data.name:
-                client_started_rpcs += 1
+                import sys; sys.stderr.write(f">>> Recording {data.name} with value_int: {data.value_int}\n"); sys.stderr.flush()
             measure = _views.METRICS_NAME_TO_MEASURE.get(data.name, None)
             if not measure:
                 continue
