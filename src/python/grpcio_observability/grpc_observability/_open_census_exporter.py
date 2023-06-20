@@ -40,7 +40,7 @@ _gcp_observability = Any  # grpc_observability.py imports this module.
 
 # 60s is the default time for open census to call export.
 CENSUS_UPLOAD_INTERVAL_SECS = int(
-    os.environ.get("GRPC_PYTHON_CENSUS_EXPORT_UPLOAD_INTERVAL_SECS", 30)
+    os.environ.get("GRPC_PYTHON_CENSUS_EXPORT_UPLOAD_INTERVAL_SECS", 20)
 )
 
 
