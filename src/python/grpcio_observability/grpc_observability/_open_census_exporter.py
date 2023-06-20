@@ -103,12 +103,16 @@ class OpenCensusExporter(_observability.Exporter):
         self, stats_data: List[_observability.StatsData]
     ) -> None:
         from grpc_observability._cyobservability import MetricsName
+
         if not self.config.stats_enabled:
             return
         measurement_map = self.stats_recorder.new_measurement_map()
         client_started_rpcs = 0
         for data in stats_data:
-            import sys; sys.stderr.write(f">>> Recording {data.name}\n"); sys.stderr.flush()
+            import sys
+
+            sys.stderr.write(f">>> Recording {data.name}\n")
+            sys.stderr.flush()
             if MetricsName.CLIENT_STARTED_RPCS == data.name:
                 client_started_rpcs += 1
             measure = _views.METRICS_NAME_TO_MEASURE.get(data.name, None)
@@ -123,9 +127,7 @@ class OpenCensusExporter(_observability.Exporter):
                 tag_map.insert(TagKey(key), TagValue(value))
 
             if data.measure_double:
-                measurement_map.measure_float_put(
-                    measure, data.value_float
-                )
+                measurement_map.measure_float_put(measure, data.value_float)
             else:
                 measurement_map.measure_int_put(measure, data.value_int)
             measurement_map.record(tag_map)
