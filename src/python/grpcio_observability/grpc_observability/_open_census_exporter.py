@@ -108,6 +108,7 @@ class OpenCensusExporter(_observability.Exporter):
         measurement_map = self.stats_recorder.new_measurement_map()
         client_started_rpcs = 0
         for data in stats_data:
+            import sys; sys.stderr.write(f">>> Recording {data.name}\n"); sys.stderr.flush()
             if MetricsName.CLIENT_STARTED_RPCS == data.name:
                 client_started_rpcs += 1
             measure = _views.METRICS_NAME_TO_MEASURE.get(data.name, None)
@@ -128,7 +129,6 @@ class OpenCensusExporter(_observability.Exporter):
             else:
                 measurement_map.measure_int_put(measure, data.value_int)
             measurement_map.record(tag_map)
-        # import sys; sys.stderr.write(f">>> Recorded {client_started_rpcs} CLIENT_STARTED_RPCS\n"); sys.stderr.flush()
 
     def export_tracing_data(
         self, tracing_data: List[_observability.TracingData]
