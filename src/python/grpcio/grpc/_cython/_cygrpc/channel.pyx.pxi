@@ -81,6 +81,10 @@ cdef class _CallState:
     with _observability.get_plugin() as plugin:
       if not (plugin and plugin.observability_enabled):
         return
+      for exclude_prefix in _observability._SERVICES_TO_EXCLUDE:
+        if exclude_prefix in method_name:
+          import sys; sys.stderr.write(f">>> Skipping set client call tracer for: {method_name}\n"); sys.stderr.flush()
+          return
       capsule = plugin.create_client_call_tracer(method_name)
       capsule_ptr = cpython.PyCapsule_GetPointer(capsule, CLIENT_CALL_TRACER)
       _set_call_tracer(self.c_call, capsule_ptr)
