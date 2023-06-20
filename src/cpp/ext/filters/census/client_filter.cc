@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <functional>
 #include <initializer_list>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
@@ -133,7 +134,8 @@ OpenCensusCallTracer::OpenCensusCallAttemptTracer::OpenCensusCallAttemptTracer(
     std::vector<std::pair<opencensus::tags::TagKey, std::string>> tags =
         context_.tags().tags();
     tags.emplace_back(ClientMethodTagKey(), std::string(parent_->method_));
-    std::cout << "OpenCensusCallAttemptTracer called with method:" << parent_->method_ << std::endl;
+    std::cout << "OpenCensusCallAttemptTracer called with method:"
+              << parent_->method_ << std::endl;
     ::opencensus::stats::Record({{RpcClientStartedRpcs(), 1}}, tags);
   }
 }
