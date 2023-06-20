@@ -20,6 +20,8 @@
 #include <unordered_map>
 
 #include "absl/flags/flag.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 
 #include <grpc/grpc.h>
 #include <grpc/support/alloc.h>
@@ -343,6 +345,7 @@ int main(int argc, char** argv) {
   } else if (actions.find(absl::GetFlag(FLAGS_test_case)) != actions.end()) {
     for (int i = 0; i < absl::GetFlag(FLAGS_num_times); i++) {
       actions.find(absl::GetFlag(FLAGS_test_case))->second();
+      absl::SleepFor(absl::Seconds(2));
     }
   } else {
     std::string test_cases;
