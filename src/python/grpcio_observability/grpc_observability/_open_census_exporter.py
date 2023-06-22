@@ -55,6 +55,7 @@ class StackDriverAsyncTransport(async_.AsyncTransport):
     Args:
       exporter: An opencensus.trace.base_exporter.Exporter object.
     """
+
     def __init__(self, exporter):
         super().__init__(exporter, wait_period=CENSUS_UPLOAD_INTERVAL_SECS)
 
@@ -77,7 +78,7 @@ class OpenCensusExporter(_observability.Exporter):
         self.stats_recorder = None
         self.view_manager = None
         self._setup_open_census_stackdriver_exporter()
- 
+
     def _setup_open_census_stackdriver_exporter(self) -> None:
         if self.config.stats_enabled:
             stats = stats_module.stats
