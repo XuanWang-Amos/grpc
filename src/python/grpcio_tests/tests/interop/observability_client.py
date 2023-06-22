@@ -15,6 +15,7 @@
 
 import argparse
 import os
+import time
 
 from google import auth as google_auth
 from google.auth import jwt as google_auth_jwt
@@ -228,12 +229,10 @@ def test_interoperability():
         channel = _create_channel(args)
         stub = create_stub(channel, args)
         test_case = _test_case_from_arg(args.test_case)
-        import time
-
         for _ in range(args.num_times):
-            time.sleep(0.5)
             test_case.test_interoperability(stub, args)
-
 
 if __name__ == "__main__":
     test_interoperability()
+    from datetime import datetime
+    import sys; sys.stderr.write(f">>> ending client in test_interoperability at {datetime.utcnow()}\n"); sys.stderr.flush()

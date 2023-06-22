@@ -65,6 +65,7 @@ py_library(
         "_observability.py",
         "_open_census_exporter.py",
         "_views.py",
+        "_stack_driver_exporter.py",
     ],
     imports = [
         ".",

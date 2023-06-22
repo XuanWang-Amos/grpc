@@ -20,7 +20,8 @@ from google.rpc import code_pb2
 from grpc_observability import _observability  # pytype: disable=pyi-error
 from grpc_observability import _views
 from opencensus.common.transports import async_
-from opencensus.ext.stackdriver import stats_exporter
+# from opencensus.ext.stackdriver import stats_exporter
+import _stack_driver_exporter
 from opencensus.ext.stackdriver import trace_exporter
 from opencensus.stats import stats as stats_module
 from opencensus.stats.measurement_map import MeasurementMap
@@ -58,7 +59,6 @@ class StackDriverAsyncTransport(async_.AsyncTransport):
     def __init__(self, exporter):
         super().__init__(exporter, wait_period=CENSUS_UPLOAD_INTERVAL_SECS)
 
-
 class OpenCensusExporter(_observability.Exporter):
     config: "_gcp_observability.GcpObservabilityPythonConfig"
     default_labels: Optional[Mapping[str, str]]
@@ -85,8 +85,8 @@ class OpenCensusExporter(_observability.Exporter):
             self.view_manager = stats.view_manager
             # If testing locally please add resource="global" to Options, otherwise
             # StackDriver might override project_id based on detected resource.
-            options = stats_exporter.Options(project_id=self.project_id)
-            metrics_exporter = stats_exporter.new_stats_exporter(
+            options = _stack_driver_exporter.Options(project_id=self.project_id)
+            metrics_exporter = _stack_driver_exporter.new_stats_exporter(
                 options, interval=CENSUS_UPLOAD_INTERVAL_SECS
             )
             self.view_manager.register_exporter(metrics_exporter)
@@ -136,8 +136,14 @@ class OpenCensusExporter(_observability.Exporter):
             if data.measure_double:
                 measurement_map.measure_float_put(measure, data.value_float)
             else:
+                import sys; sys.stderr.write(f">>> calling measure_int_put for {measure.name}\n"); sys.stderr.flush()
                 measurement_map.measure_int_put(measure, data.value_int)
+        import sys; sys.stderr.write(f">>> calling smeasurement_map.record {datetime.utcnow()}\n"); sys.stderr.flush()
         measurement_map.record(tag_map)
+        # import sys; sys.stderr.write(f">>> checking self.view_manager\n"); sys.stderr.flush()
+        # for metric in self.view_manager.measure_to_view_map.get_metrics(datetime.utcnow()):
+        #     import sys; sys.stderr.write(f"  >>> metric in view_manager: {metric}\n"); sys.stderr.flush()
+
 
     def export_tracing_data(
         self, tracing_data: List[_observability.TracingData]
