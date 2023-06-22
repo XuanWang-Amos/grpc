@@ -139,8 +139,8 @@ py_library(
         ":service",
         "//src/proto/grpc/testing:py_test_proto",
         "//src/python/grpcio/grpc:grpcio",
-        "//src/python/grpcio_tests/tests/unit:test_common",
         "//src/python/grpcio_observability/grpc_observability:pyobservability",
+        "//src/python/grpcio_tests/tests/unit:test_common",
     ],
 )
 

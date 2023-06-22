@@ -22,8 +22,8 @@ from grpc_observability import _views
 from opencensus.ext.stackdriver import stats_exporter
 from opencensus.ext.stackdriver import trace_exporter
 from opencensus.stats import stats as stats_module
-from opencensus.stats.stats_recorder import StatsRecorder
 from opencensus.stats.measurement_map import MeasurementMap
+from opencensus.stats.stats_recorder import StatsRecorder
 from opencensus.tags.tag_key import TagKey
 from opencensus.tags.tag_map import TagMap
 from opencensus.tags.tag_value import TagValue
@@ -107,6 +107,7 @@ class OpenCensusExporter(_observability.Exporter):
         self, stats_data: List[_observability.StatsData]
     ) -> None:
         from grpc_observability._cyobservability import MetricsName
+
         if not self.config.stats_enabled:
             return
         measurement_map = self.stats_recorder.new_measurement_map()
@@ -123,12 +124,15 @@ class OpenCensusExporter(_observability.Exporter):
                 tag_map.insert(TagKey(key), TagValue(value))
 
             if data.measure_double:
-                measurement_map.measure_float_put(
-                    measure, data.value_float
-                )
+                measurement_map.measure_float_put(measure, data.value_float)
             else:
                 measurement_map.measure_int_put(measure, data.value_int)
-        import sys; sys.stderr.write(f"calling measurement_map.record at {datetime.utcnow()}\n"); sys.stderr.flush()
+        import sys
+
+        sys.stderr.write(
+            f"calling measurement_map.record at {datetime.utcnow()}\n"
+        )
+        sys.stderr.flush()
         measurement_map.record(tag_map)
 
     def export_tracing_data(

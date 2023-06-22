@@ -229,6 +229,7 @@ def test_interoperability():
         stub = create_stub(channel, args)
         test_case = _test_case_from_arg(args.test_case)
         import time
+
         for i in range(args.num_times):
             time.sleep(0.5)
             test_case.test_interoperability(stub, args)
