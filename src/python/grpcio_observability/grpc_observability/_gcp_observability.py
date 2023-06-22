@@ -22,8 +22,8 @@ from typing import Any, Mapping, Optional
 
 import grpc
 from grpc_observability import _cyobservability  # pytype: disable=pyi-error
-from grpc_observability._open_census_exporter import OpenCensusExporter
 from grpc_observability._open_census_exporter import CENSUS_UPLOAD_INTERVAL_SECS
+from grpc_observability._open_census_exporter import OpenCensusExporter
 from opencensus.trace import execution_context
 from opencensus.trace import span_context as span_context_module
 from opencensus.trace import trace_options as trace_options_module

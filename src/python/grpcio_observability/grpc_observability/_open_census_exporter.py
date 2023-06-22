@@ -48,13 +48,14 @@ CENSUS_UPLOAD_INTERVAL_SECS = int(
 
 class StackDriverAsyncTransport(async_.AsyncTransport):
     """Wrapper class used to pass wait_period.
-    
+
     This is required because current StackDriver Tracing Exporter doesn't allow
     us pass wait_period to AsyncTransport directly.
 
     Args:
       exporter: An opencensus.trace.base_exporter.Exporter object.
     """
+
     def __init__(self, exporter):
         super().__init__(exporter, wait_period=CENSUS_UPLOAD_INTERVAL_SECS)
 
