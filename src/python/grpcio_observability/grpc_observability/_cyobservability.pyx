@@ -19,9 +19,9 @@ import enum
 import functools
 import logging
 import os
+import sys
 from threading import Thread
 from typing import List, Mapping, Tuple, Union
-import sys
 
 import _observability
 
