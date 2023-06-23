@@ -233,6 +233,7 @@ class StackdriverStatsExporter(object):
 
         elif (metric.descriptor.type ==
               metric_descriptor.MetricDescriptorType.CUMULATIVE_INT64):
+            import sys; sys.stderr.write(f"       CUMULATIVE Value for {metric.descriptor.name}: {int(point.value.value)}\n"); sys.stderr.flush()
             sd_point.value.int64_value = int(point.value.value)
 
         elif (metric.descriptor.type ==

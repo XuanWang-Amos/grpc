@@ -118,7 +118,7 @@ class OpenCensusExporter(_observability.Exporter):
     def export_stats_data(
         self, stats_data: List[_observability.StatsData]
     ) -> None:
-        if not self.config.stats_enabled:
+        if not self.config.stats_enabled or not stats_data:
             return
         measurement_map = self.stats_recorder.new_measurement_map()
         for data in stats_data:
@@ -136,7 +136,7 @@ class OpenCensusExporter(_observability.Exporter):
             if data.measure_double:
                 measurement_map.measure_float_put(measure, data.value_float)
             else:
-                import sys; sys.stderr.write(f">>> calling measure_int_put for {measure.name}\n"); sys.stderr.flush()
+                import sys; sys.stderr.write(f">>> calling measure_int_put for {measure.name}, value: {data.value_int}\n"); sys.stderr.flush()
                 measurement_map.measure_int_put(measure, data.value_int)
         import sys; sys.stderr.write(f">>> calling smeasurement_map.record {datetime.utcnow()}\n"); sys.stderr.flush()
         measurement_map.record(tag_map)
@@ -148,7 +148,7 @@ class OpenCensusExporter(_observability.Exporter):
     def export_tracing_data(
         self, tracing_data: List[_observability.TracingData]
     ) -> None:
-        if not self.config.tracing_enabled:
+        if not self.config.tracing_enabled or not tracing_data:
             return
         for span_data in tracing_data:
             # Only traced data will be exported, thus TraceOptions=1.
