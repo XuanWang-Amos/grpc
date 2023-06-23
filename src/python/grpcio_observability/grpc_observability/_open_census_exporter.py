@@ -25,6 +25,7 @@ from opencensus.ext.stackdriver import trace_exporter
 from opencensus.stats import stats as stats_module
 from opencensus.stats.measurement_map import MeasurementMap
 from opencensus.stats.stats_recorder import StatsRecorder
+from opencensus.stats.view_manager import ViewManager
 from opencensus.tags.tag_key import TagKey
 from opencensus.tags.tag_map import TagMap
 from opencensus.tags.tag_value import TagValue
@@ -55,6 +56,7 @@ class StackDriverAsyncTransport(async_.AsyncTransport):
     Args:
       exporter: An opencensus.trace.base_exporter.Exporter object.
     """
+
     def __init__(self, exporter):
         super().__init__(exporter, wait_period=CENSUS_UPLOAD_INTERVAL_SECS)
 
@@ -65,7 +67,7 @@ class OpenCensusExporter(_observability.Exporter):
     project_id: str
     tracer: Optional[tracer.Tracer]
     stats_recorder: Optional[StatsRecorder]
-    view_manager: Optional[stats_module.stats.view_manager]
+    view_manager: Optional[ViewManager]
 
     def __init__(
         self, config: "_gcp_observability.GcpObservabilityPythonConfig"
@@ -77,7 +79,7 @@ class OpenCensusExporter(_observability.Exporter):
         self.stats_recorder = None
         self.view_manager = None
         self._setup_open_census_stackdriver_exporter()
- 
+
     def _setup_open_census_stackdriver_exporter(self) -> None:
         if self.config.stats_enabled:
             stats = stats_module.stats
@@ -120,12 +122,13 @@ class OpenCensusExporter(_observability.Exporter):
     ) -> None:
         if not self.config.stats_enabled:
             return
-        measurement_map = self.stats_recorder.new_measurement_map()
         for data in stats_data:
             measure = _views.METRICS_NAME_TO_MEASURE.get(data.name, None)
             if not measure:
                 continue
-
+            # Create a measurement map for each metric, otherwise metrics will
+            # be override instead of accumulate.
+            measurement_map = self.stats_recorder.new_measurement_map()
             # Add data label to default labels.
             labels = data.labels
             labels.update(self.default_labels)
@@ -137,7 +140,7 @@ class OpenCensusExporter(_observability.Exporter):
                 measurement_map.measure_float_put(measure, data.value_float)
             else:
                 measurement_map.measure_int_put(measure, data.value_int)
-        measurement_map.record(tag_map)
+            measurement_map.record(tag_map)
 
     def export_tracing_data(
         self, tracing_data: List[_observability.TracingData]
