@@ -120,12 +120,11 @@ class OpenCensusExporter(_observability.Exporter):
     ) -> None:
         if not self.config.stats_enabled or not stats_data:
             return
-        measurement_map = self.stats_recorder.new_measurement_map()
         for data in stats_data:
             measure = _views.METRICS_NAME_TO_MEASURE.get(data.name, None)
             if not measure:
                 continue
-
+            measurement_map = self.stats_recorder.new_measurement_map()
             # Add data label to default labels.
             labels = data.labels
             labels.update(self.default_labels)
@@ -138,8 +137,8 @@ class OpenCensusExporter(_observability.Exporter):
             else:
                 import sys; sys.stderr.write(f">>> calling measure_int_put for {measure.name}, value: {data.value_int}\n"); sys.stderr.flush()
                 measurement_map.measure_int_put(measure, data.value_int)
-        import sys; sys.stderr.write(f">>> calling smeasurement_map.record {datetime.utcnow()}\n"); sys.stderr.flush()
-        measurement_map.record(tag_map)
+            import sys; sys.stderr.write(f">>> calling smeasurement_map.record {datetime.utcnow()}\n"); sys.stderr.flush()
+            measurement_map.record(tag_map)
         # import sys; sys.stderr.write(f">>> checking self.view_manager\n"); sys.stderr.flush()
         # for metric in self.view_manager.measure_to_view_map.get_metrics(datetime.utcnow()):
         #     import sys; sys.stderr.write(f"  >>> metric in view_manager: {metric}\n"); sys.stderr.flush()

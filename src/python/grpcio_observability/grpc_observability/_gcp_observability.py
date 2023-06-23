@@ -157,8 +157,8 @@ class GCPOpenCensusObservability(grpc._observability.ObservabilityPlugin):
         if self.use_open_census_exporter:
             # Sleep so StackDriver can upload data to GCP.
             from datetime import datetime
-            import sys; sys.stderr.write(f"Sleeping {CENSUS_UPLOAD_INTERVAL_SECS + 20}s before exiting Python.O11Y at {datetime.utcnow()}\n"); sys.stderr.flush()
-            time.sleep(CENSUS_UPLOAD_INTERVAL_SECS + 20)
+            import sys; sys.stderr.write(f"Sleeping {CENSUS_UPLOAD_INTERVAL_SECS + 10}s before exiting Python.O11Y at {datetime.utcnow()}\n"); sys.stderr.flush()
+            time.sleep(CENSUS_UPLOAD_INTERVAL_SECS + 10)
         self.set_tracing(False)
         self.set_stats(False)
         _cyobservability.observability_deinit()
