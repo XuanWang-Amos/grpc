@@ -22,8 +22,8 @@ from typing import Any, Mapping, Optional
 
 import grpc
 from grpc_observability import _cyobservability  # pytype: disable=pyi-error
-from grpc_observability._open_census_exporter import OpenCensusExporter
 from grpc_observability._open_census_exporter import CENSUS_UPLOAD_INTERVAL_SECS
+from grpc_observability._open_census_exporter import OpenCensusExporter
 from opencensus.trace import execution_context
 from opencensus.trace import span_context as span_context_module
 from opencensus.trace import trace_options as trace_options_module
@@ -156,9 +156,7 @@ class GCPOpenCensusObservability(grpc._observability.ObservabilityPlugin):
         time.sleep(_cyobservability.CENSUS_EXPORT_BATCH_INTERVAL_SECS)
         if self.use_open_census_exporter:
             # Sleep so StackDriver can upload data to GCP.
-            from datetime import datetime
-            import sys; sys.stderr.write(f"Sleeping {CENSUS_UPLOAD_INTERVAL_SECS + 10}s before exiting Python.O11Y at {datetime.utcnow()}\n"); sys.stderr.flush()
-            time.sleep(CENSUS_UPLOAD_INTERVAL_SECS + 10)
+            time.sleep(CENSUS_UPLOAD_INTERVAL_SECS+10)
         self.set_tracing(False)
         self.set_stats(False)
         _cyobservability.observability_deinit()
