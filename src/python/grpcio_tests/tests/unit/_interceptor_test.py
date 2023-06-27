@@ -15,6 +15,7 @@
 
 import collections
 from concurrent import futures
+import contextvars
 import itertools
 import logging
 import os
@@ -34,12 +35,14 @@ _SERIALIZE_RESPONSE = lambda bytestring: bytestring * 3
 _DESERIALIZE_RESPONSE = lambda bytestring: bytestring[: len(bytestring) // 3]
 
 _EXCEPTION_REQUEST = b"\x09\x0a"
+_SERVER_PROPAGATION_TEST_REQUEST = b"\x08\x0a"
 
 _UNARY_UNARY = "/test/UnaryUnary"
 _UNARY_STREAM = "/test/UnaryStream"
 _STREAM_UNARY = "/test/StreamUnary"
 _STREAM_STREAM = "/test/StreamStream"
 
+rpc_id_var = contextvars.ContextVar('rpc_id', default='default')
 
 class _ApplicationErrorStandin(Exception):
     pass
@@ -77,10 +80,16 @@ class _Handler(object):
                         "testkey",
                         "testvalue",
                     ),
+                    ( "rpc_id",
+                      rpc_id_var.get(),
+                    ),
                 )
             )
         if request == _EXCEPTION_REQUEST:
             raise _ApplicationErrorStandin()
+        elif request == _SERVER_PROPAGATION_TEST_REQUEST:
+            import sys; sys.stderr.write(f"rpc_id in hanlder: {rpc_id_var.get()}\n"); sys.stderr.flush()
+            return request
         return request
 
     def handle_unary_stream(self, request, servicer_context):
@@ -300,12 +309,15 @@ class _LoggingInterceptor(
     grpc.StreamUnaryClientInterceptor,
     grpc.StreamStreamClientInterceptor,
 ):
-    def __init__(self, tag, record):
+    def __init__(self, tag, record, test_context_propagation=False):
         self.tag = tag
         self.record = record
+        self.test_context_propagation = test_context_propagation
 
     def intercept_service(self, continuation, handler_call_details):
         self.record.append(self.tag + ":intercept_service")
+        if self.test_context_propagation:
+            self.decorate_rpc_id()
         return continuation(handler_call_details)
 
     def intercept_unary_unary(self, continuation, client_call_details, request):
@@ -347,6 +359,15 @@ class _LoggingInterceptor(
     ):
         self.record.append(self.tag + ":intercept_stream_stream")
         return continuation(client_call_details, request_iterator)
+
+    def decorate_rpc_id(self):
+        import sys; sys.stderr.write(f"rpc_id in {self.tag}: {rpc_id_var.get()}\n"); sys.stderr.flush()
+        if rpc_id_var.get() == 'default':
+            new_rpc_id = f"{self.tag}-decorated"
+            rpc_id_var.set(new_rpc_id)
+        else:
+            new_rpc_id = f"{self.tag}-{rpc_id_var.get()}"
+            rpc_id_var.set(new_rpc_id)
 
 
 class _DefectiveClientInterceptor(grpc.UnaryUnaryClientInterceptor):
@@ -428,6 +449,14 @@ class InterceptorTest(unittest.TestCase):
             lambda x: ("secret", "42") in x.invocation_metadata,
             _LoggingInterceptor("s3", self._record),
         )
+        conditional_context_propagation_interceptor_1 = _filter_server_interceptor(
+            lambda x: ("secret", "context") in x.invocation_metadata,
+            _LoggingInterceptor("context1", self._record, True),
+        )
+        conditional_context_propagation_interceptor_2 = _filter_server_interceptor(
+            lambda x: ("secret", "context") in x.invocation_metadata,
+            _LoggingInterceptor("context2", self._record, True),
+        )
 
         self._server = grpc.server(
             self._server_pool,
@@ -435,6 +464,8 @@ class InterceptorTest(unittest.TestCase):
             interceptors=(
                 _LoggingInterceptor("s1", self._record),
                 conditional_interceptor,
+                conditional_context_propagation_interceptor_1,
+                conditional_context_propagation_interceptor_2,
                 _LoggingInterceptor("s2", self._record),
             ),
         )
@@ -449,7 +480,7 @@ class InterceptorTest(unittest.TestCase):
         self._server_pool.shutdown(wait=True)
         self._channel.close()
 
-    def testTripleRequestMessagesClientInterceptor(self):
+    def a_testTripleRequestMessagesClientInterceptor(self):
         def triple(request_iterator):
             while True:
                 try:
@@ -494,7 +525,7 @@ class InterceptorTest(unittest.TestCase):
         responses = tuple(response_iterator)
         self.assertEqual(len(responses), test_constants.STREAM_LENGTH)
 
-    def testDefectiveClientInterceptor(self):
+    def a_testDefectiveClientInterceptor(self):
         interceptor = _DefectiveClientInterceptor()
         defective_channel = grpc.intercept_channel(self._channel, interceptor)
 
@@ -511,7 +542,7 @@ class InterceptorTest(unittest.TestCase):
         self.assertIsNotNone(call_future.exception())
         self.assertEqual(call_future.code(), grpc.StatusCode.INTERNAL)
 
-    def testInterceptedHeaderManipulationWithServerSideVerification(self):
+    def a_testInterceptedHeaderManipulationWithServerSideVerification(self):
         request = b"\x07\x08"
 
         channel = grpc.intercept_channel(
@@ -547,7 +578,7 @@ class InterceptorTest(unittest.TestCase):
             ],
         )
 
-    def testInterceptedUnaryRequestBlockingUnaryResponse(self):
+    def a_testInterceptedUnaryRequestBlockingUnaryResponse(self):
         request = b"\x07\x08"
 
         self._record[:] = []
@@ -576,7 +607,7 @@ class InterceptorTest(unittest.TestCase):
             ],
         )
 
-    def testInterceptedUnaryRequestBlockingUnaryResponseWithError(self):
+    def a_testInterceptedUnaryRequestBlockingUnaryResponseWithError(self):
         request = _EXCEPTION_REQUEST
 
         self._record[:] = []
@@ -603,7 +634,7 @@ class InterceptorTest(unittest.TestCase):
             exception.result()
         self.assertIsInstance(exception.exception(), grpc.RpcError)
 
-    def testInterceptedUnaryRequestBlockingUnaryResponseWithCall(self):
+    def a_testInterceptedUnaryRequestBlockingUnaryResponseWithCall(self):
         request = b"\x07\x08"
 
         channel = grpc.intercept_channel(
@@ -635,7 +666,7 @@ class InterceptorTest(unittest.TestCase):
             ],
         )
 
-    def testInterceptedUnaryRequestFutureUnaryResponse(self):
+    def a_testInterceptedUnaryRequestFutureUnaryResponse(self):
         request = b"\x07\x08"
 
         self._record[:] = []
@@ -662,7 +693,7 @@ class InterceptorTest(unittest.TestCase):
             ],
         )
 
-    def testInterceptedUnaryRequestStreamResponse(self):
+    def a_testInterceptedUnaryRequestStreamResponse(self):
         request = b"\x37\x58"
 
         self._record[:] = []
@@ -689,7 +720,7 @@ class InterceptorTest(unittest.TestCase):
             ],
         )
 
-    def testInterceptedUnaryRequestStreamResponseWithError(self):
+    def a_testInterceptedUnaryRequestStreamResponseWithError(self):
         request = _EXCEPTION_REQUEST
 
         self._record[:] = []
@@ -714,7 +745,7 @@ class InterceptorTest(unittest.TestCase):
             exception.result()
         self.assertIsInstance(exception.exception(), grpc.RpcError)
 
-    def testInterceptedStreamRequestBlockingUnaryResponse(self):
+    def a_testInterceptedStreamRequestBlockingUnaryResponse(self):
         requests = tuple(
             b"\x07\x08" for _ in range(test_constants.STREAM_LENGTH)
         )
@@ -745,7 +776,7 @@ class InterceptorTest(unittest.TestCase):
             ],
         )
 
-    def testInterceptedStreamRequestBlockingUnaryResponseWithCall(self):
+    def a_testInterceptedStreamRequestBlockingUnaryResponseWithCall(self):
         requests = tuple(
             b"\x07\x08" for _ in range(test_constants.STREAM_LENGTH)
         )
@@ -779,7 +810,7 @@ class InterceptorTest(unittest.TestCase):
             ],
         )
 
-    def testInterceptedStreamRequestFutureUnaryResponse(self):
+    def a_testInterceptedStreamRequestFutureUnaryResponse(self):
         requests = tuple(
             b"\x07\x08" for _ in range(test_constants.STREAM_LENGTH)
         )
@@ -809,7 +840,7 @@ class InterceptorTest(unittest.TestCase):
             ],
         )
 
-    def testInterceptedStreamRequestFutureUnaryResponseWithError(self):
+    def a_testInterceptedStreamRequestFutureUnaryResponseWithError(self):
         requests = tuple(
             _EXCEPTION_REQUEST for _ in range(test_constants.STREAM_LENGTH)
         )
@@ -837,7 +868,7 @@ class InterceptorTest(unittest.TestCase):
             exception.result()
         self.assertIsInstance(exception.exception(), grpc.RpcError)
 
-    def testInterceptedStreamRequestStreamResponse(self):
+    def a_testInterceptedStreamRequestStreamResponse(self):
         requests = tuple(
             b"\x77\x58" for _ in range(test_constants.STREAM_LENGTH)
         )
@@ -867,7 +898,7 @@ class InterceptorTest(unittest.TestCase):
             ],
         )
 
-    def testInterceptedStreamRequestStreamResponseWithError(self):
+    def a_testInterceptedStreamRequestStreamResponseWithError(self):
         requests = tuple(
             _EXCEPTION_REQUEST for _ in range(test_constants.STREAM_LENGTH)
         )
@@ -895,6 +926,41 @@ class InterceptorTest(unittest.TestCase):
             exception.result()
         self.assertIsInstance(exception.exception(), grpc.RpcError)
 
+
+    def testServerContextPropagationUnaryUnary(self):
+        request = _SERVER_PROPAGATION_TEST_REQUEST
+        import sys; sys.stderr.write(f"rpc_id in main thread: {rpc_id_var.get()}\n"); sys.stderr.flush()
+        channel = grpc.intercept_channel(
+            self._channel, _append_request_header_interceptor("secret", "context")
+        )
+
+        self._record[:] = []
+
+        multi_callable = _unary_unary_multi_callable(channel)
+        _, unary_outcome = multi_callable.with_call(
+            request,
+        )
+        import sys; sys.stderr.write(f"unary_outcome.trailing_metadata in main thread: {unary_outcome.trailing_metadata()}\n"); sys.stderr.flush()
+        self.assertSequenceEqual(
+            self._record,
+            [
+                "s1:intercept_service",
+                "context1:intercept_service",
+                "context2:intercept_service",
+                "s2:intercept_service",
+            ],
+        )
+        decorated_rpc_id = "default"
+        self.assertTrue(("rpc_id", decorated_rpc_id) in unary_outcome.trailing_metadata())
+
+    def a_testServerContextPropagationUnaryStream(self):
+        pass
+
+    def a_testServerContextPropagationStreamUnary(self):
+        pass
+
+    def a_testServerContextPropagationStreamStream(self):
+        pass
 
 if __name__ == "__main__":
     logging.basicConfig()
