@@ -45,6 +45,27 @@ py_binary(
 )
 
 py_library(
+    name = "observability_client_lib",
+    srcs = ["observability_client.py"],
+    imports = ["../../"],
+    deps = [
+        ":methods",
+        ":resources",
+        "//src/proto/grpc/testing:py_test_proto",
+        "//src/python/grpcio/grpc:grpcio",
+        "//src/python/grpcio_observability/grpc_observability:pyobservability",
+        requirement("google-auth"),
+    ],
+)
+
+py_binary(
+    name = "observability_client",
+    srcs = ["observability_client.py"],
+    python_version = "PY3",
+    deps = [":observability_client_lib"],
+)
+
+py_library(
     name = "methods",
     srcs = ["methods.py"],
     imports = ["../../"],
@@ -104,6 +125,32 @@ py_binary(
     python_version = "PY3",
     deps = [
         ":server",
+        ":service",
+        "//src/proto/grpc/testing:test_py_pb2_grpc",
+    ],
+)
+
+py_library(
+    name = "observability_server_lib",
+    srcs = ["observability_server.py"],
+    imports = ["../../"],
+    deps = [
+        ":resources",
+        ":service",
+        "//src/proto/grpc/testing:py_test_proto",
+        "//src/python/grpcio/grpc:grpcio",
+        "//src/python/grpcio_tests/tests/unit:test_common",
+        "//src/python/grpcio_observability/grpc_observability:pyobservability",
+    ],
+)
+
+py_binary(
+    name = "observability_server",
+    srcs = ["observability_server.py"],
+    main = "observability_server.py",
+    python_version = "PY3",
+    deps = [
+        ":observability_server_lib",
         ":service",
         "//src/proto/grpc/testing:test_py_pb2_grpc",
     ],
