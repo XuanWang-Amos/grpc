@@ -42,7 +42,8 @@ _UNARY_STREAM = "/test/UnaryStream"
 _STREAM_UNARY = "/test/StreamUnary"
 _STREAM_STREAM = "/test/StreamStream"
 
-rpc_id_var = contextvars.ContextVar('rpc_id', default='default')
+rpc_id_var = contextvars.ContextVar("rpc_id", default="default")
+
 
 class _ApplicationErrorStandin(Exception):
     pass
@@ -80,15 +81,19 @@ class _Handler(object):
                         "testkey",
                         "testvalue",
                     ),
-                    ( "rpc_id",
-                      rpc_id_var.get(),
+                    (
+                        "rpc_id",
+                        rpc_id_var.get(),
                     ),
                 )
             )
         if request == _EXCEPTION_REQUEST:
             raise _ApplicationErrorStandin()
         elif request == _SERVER_PROPAGATION_TEST_REQUEST:
-            import sys; sys.stderr.write(f"rpc_id in hanlder: {rpc_id_var.get()}\n"); sys.stderr.flush()
+            import sys
+
+            sys.stderr.write(f"rpc_id in hanlder: {rpc_id_var.get()}\n")
+            sys.stderr.flush()
             return request
         return request
 
@@ -361,8 +366,11 @@ class _LoggingInterceptor(
         return continuation(client_call_details, request_iterator)
 
     def decorate_rpc_id(self):
-        import sys; sys.stderr.write(f"rpc_id in {self.tag}: {rpc_id_var.get()}\n"); sys.stderr.flush()
-        if rpc_id_var.get() == 'default':
+        import sys
+
+        sys.stderr.write(f"rpc_id in {self.tag}: {rpc_id_var.get()}\n")
+        sys.stderr.flush()
+        if rpc_id_var.get() == "default":
             new_rpc_id = f"{self.tag}-decorated"
             rpc_id_var.set(new_rpc_id)
         else:
@@ -449,13 +457,17 @@ class InterceptorTest(unittest.TestCase):
             lambda x: ("secret", "42") in x.invocation_metadata,
             _LoggingInterceptor("s3", self._record),
         )
-        conditional_context_propagation_interceptor_1 = _filter_server_interceptor(
-            lambda x: ("secret", "context") in x.invocation_metadata,
-            _LoggingInterceptor("context1", self._record, True),
+        conditional_context_propagation_interceptor_1 = (
+            _filter_server_interceptor(
+                lambda x: ("secret", "context") in x.invocation_metadata,
+                _LoggingInterceptor("context1", self._record, True),
+            )
         )
-        conditional_context_propagation_interceptor_2 = _filter_server_interceptor(
-            lambda x: ("secret", "context") in x.invocation_metadata,
-            _LoggingInterceptor("context2", self._record, True),
+        conditional_context_propagation_interceptor_2 = (
+            _filter_server_interceptor(
+                lambda x: ("secret", "context") in x.invocation_metadata,
+                _LoggingInterceptor("context2", self._record, True),
+            )
         )
 
         self._server = grpc.server(
@@ -926,12 +938,15 @@ class InterceptorTest(unittest.TestCase):
             exception.result()
         self.assertIsInstance(exception.exception(), grpc.RpcError)
 
-
     def testServerContextPropagationUnaryUnary(self):
         request = _SERVER_PROPAGATION_TEST_REQUEST
-        import sys; sys.stderr.write(f"rpc_id in main thread: {rpc_id_var.get()}\n"); sys.stderr.flush()
+        import sys
+
+        sys.stderr.write(f"rpc_id in main thread: {rpc_id_var.get()}\n")
+        sys.stderr.flush()
         channel = grpc.intercept_channel(
-            self._channel, _append_request_header_interceptor("secret", "context")
+            self._channel,
+            _append_request_header_interceptor("secret", "context"),
         )
 
         self._record[:] = []
@@ -940,7 +955,12 @@ class InterceptorTest(unittest.TestCase):
         _, unary_outcome = multi_callable.with_call(
             request,
         )
-        import sys; sys.stderr.write(f"unary_outcome.trailing_metadata in main thread: {unary_outcome.trailing_metadata()}\n"); sys.stderr.flush()
+        import sys
+
+        sys.stderr.write(
+            f"unary_outcome.trailing_metadata in main thread: {unary_outcome.trailing_metadata()}\n"
+        )
+        sys.stderr.flush()
         self.assertSequenceEqual(
             self._record,
             [
@@ -951,7 +971,9 @@ class InterceptorTest(unittest.TestCase):
             ],
         )
         decorated_rpc_id = "default"
-        self.assertTrue(("rpc_id", decorated_rpc_id) in unary_outcome.trailing_metadata())
+        self.assertTrue(
+            ("rpc_id", decorated_rpc_id) in unary_outcome.trailing_metadata()
+        )
 
     def a_testServerContextPropagationUnaryStream(self):
         pass
@@ -961,6 +983,7 @@ class InterceptorTest(unittest.TestCase):
 
     def a_testServerContextPropagationStreamStream(self):
         pass
+
 
 if __name__ == "__main__":
     logging.basicConfig()
