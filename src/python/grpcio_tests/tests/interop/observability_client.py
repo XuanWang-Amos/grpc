@@ -232,7 +232,13 @@ def test_interoperability():
         for _ in range(args.num_times):
             test_case.test_interoperability(stub, args)
 
+
 if __name__ == "__main__":
     test_interoperability()
     from datetime import datetime
-    import sys; sys.stderr.write(f">>> ending client in test_interoperability at {datetime.utcnow()}\n"); sys.stderr.flush()
+    import sys
+
+    sys.stderr.write(
+        f">>> ending client in test_interoperability at {datetime.utcnow()}\n"
+    )
+    sys.stderr.flush()
