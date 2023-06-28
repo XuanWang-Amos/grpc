@@ -67,6 +67,6 @@ ENV GRPC_VERBOSITY debug
 RUN apt-get update -y && apt-get install -y python3 python3-pip
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
-RUN python3 -m pip install --upgrade opencensus==0.10.0 opencensus-ext-stackdriver==0.8.0
+RUN python3 -m pip install --upgrade opencensus opencensus-ext-stackdriver
 
 ENTRYPOINT ["/grpc/tools/dockerfile/observability-test/python/run.sh"]
