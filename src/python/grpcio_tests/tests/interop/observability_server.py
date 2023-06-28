@@ -80,4 +80,9 @@ def serve():
 if __name__ == "__main__":
     serve()
     from datetime import datetime
-    import sys; sys.stderr.write(f">>> ending server in test_interoperability at {datetime.utcnow()}\n"); sys.stderr.flush()
+    import sys
+
+    sys.stderr.write(
+        f">>> ending server in test_interoperability at {datetime.utcnow()}\n"
+    )
+    sys.stderr.flush()
