@@ -23,6 +23,7 @@ import sys
 import time
 from typing import Any, Iterable, Mapping, Optional, Tuple
 import unittest
+import io
 
 from absl import flags
 from absl import logging
@@ -67,6 +68,8 @@ _timedelta = datetime.timedelta
 RpcTypeUnaryCall = "UNARY_CALL"
 RpcTypeEmptyCall = "EMPTY_CALL"
 
+STDOUT_LINE = '\nStdout:\n%s'
+STDERR_LINE = '\nStderr:\n%s'
 
 def _split_camel(s: str, delimiter: str = "-") -> str:
     """Turn camel case name to snake-case-like name."""
@@ -279,6 +282,9 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
     """
 
     test_client_runner: Optional[_KubernetesClientRunner] = None
+    _stdout_buffer: Optional[io.StringIO] = None
+    _stderr_buffer: Optional[io.StringIO] = None
+    _should_print: bool = False
 
     @staticmethod
     def is_supported(config: skips.TestConfig) -> bool:
@@ -367,6 +373,7 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls._setupStdout()
         logging.info("----- Testing %s -----", cls.__name__)
         logging.info("Logs timezone: %s", time.localtime().tm_zone)
 
@@ -399,6 +406,37 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
             qps=QPS.value,
             print_response=True,
         )
+
+    def _setupStdout(self):
+        sys.stderr.write(f"Calling _setupStdout...\n"); sys.stderr.flush()
+        self._original_stdout = sys.stdout
+        self._original_stderr = sys.stderr
+        self._stderr_buffer = io.StringIO()
+        self._stdout_buffer = io.StringIO()
+        self._should_print = False
+        sys.stdout = self._stdout_buffer
+        sys.stderr = self._stderr_buffer
+
+    def _restoreStdout(self):
+        sys.stderr.write(f"Checking _should_print...\n"); sys.stderr.flush()
+        if self._should_print:
+            output = sys.stdout.getvalue()
+            error = sys.stderr.getvalue()
+            if output:
+                if not output.endswith('\n'):
+                    output += ' This_is_added_output\n'
+                self._original_stdout.write(STDOUT_LINE % output)
+            if error:
+                if not error.endswith('\n'):
+                    error += ' This_is_added_output\n'
+                self._original_stderr.write(STDERR_LINE % error)
+
+            sys.stdout = self._original_stdout
+            sys.stderr = self._original_stderr
+            self._stdout_buffer.seek(0)
+            self._stdout_buffer.truncate()
+            self._stderr_buffer.seek(0)
+            self._stderr_buffer.truncate()
 
     @classmethod
     def cleanupAfterTests(cls):
@@ -473,10 +511,9 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         """
         import sys
         sys.stderr.write(f"Calling run....\n"); sys.stderr.flush()
-        sys.stderr.write(f"Setting buffer to true run....\n"); sys.stderr.flush()
-        result.buffer = True
         if result.testsRun >= 2:
-            raise Exception("testing_exp...")
+            self.should_print=True
+            # raise Exception("testing_exp...")
         if result.failures or result.errors:
             logging.info("Aborting %s", self.__class__.__name__)
         else:
