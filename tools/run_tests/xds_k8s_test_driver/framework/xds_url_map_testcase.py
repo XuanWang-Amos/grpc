@@ -373,7 +373,15 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls._setupStdout()
+        sys.stderr.write(f"Calling _setupStdout...\n"); sys.stderr.flush()
+        cls._original_stdout = sys.stdout
+        cls._original_stderr = sys.stderr
+        cls._stderr_buffer = io.StringIO()
+        cls._stdout_buffer = io.StringIO()
+        cls._should_print = False
+        sys.stdout = cls._stdout_buffer
+        sys.stderr = cls._stderr_buffer
+
         logging.info("----- Testing %s -----", cls.__name__)
         logging.info("Logs timezone: %s", time.localtime().tm_zone)
 
@@ -407,15 +415,8 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
             print_response=True,
         )
 
-    def _setupStdout(self):
-        sys.stderr.write(f"Calling _setupStdout...\n"); sys.stderr.flush()
-        self._original_stdout = sys.stdout
-        self._original_stderr = sys.stderr
-        self._stderr_buffer = io.StringIO()
-        self._stdout_buffer = io.StringIO()
-        self._should_print = False
-        sys.stdout = self._stdout_buffer
-        sys.stderr = self._stderr_buffer
+    # def _setupStdout(self):
+
 
     def _restoreStdout(self):
         sys.stderr.write(f"Checking _should_print...\n"); sys.stderr.flush()
