@@ -471,6 +471,10 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         This prevents the test runner to waste time on RPC distribution test,
         and yields clearer signal.
         """
+        import sys
+        sys.stderr.write(f"Calling run....\n"); sys.stderr.flush()
+        if result.testsRun >= 2:
+                raise Exception("testing_exp...")
         if result.failures or result.errors:
             logging.info("Aborting %s", self.__class__.__name__)
         else:
