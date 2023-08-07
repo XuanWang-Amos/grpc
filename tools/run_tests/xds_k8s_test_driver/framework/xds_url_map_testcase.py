@@ -473,8 +473,10 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         """
         import sys
         sys.stderr.write(f"Calling run....\n"); sys.stderr.flush()
+        sys.stderr.write(f"Setting buffer to true run....\n"); sys.stderr.flush()
+        result.buffer = True
         if result.testsRun >= 2:
-                raise Exception("testing_exp...")
+            raise Exception("testing_exp...")
         if result.failures or result.errors:
             logging.info("Aborting %s", self.__class__.__name__)
         else:
