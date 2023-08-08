@@ -374,6 +374,21 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
 
     @classmethod
     def setUpClass(cls):
+
+        sys.stderr.write(f"Calling _setupStdout...\n"); sys.stderr.flush()
+        # save original io
+        cls._original_stdout = sys.stdout
+        cls._original_stderr = sys.stderr
+
+        # create new io
+        cls._stderr_buffer = io.StringIO()
+        cls._stdout_buffer = io.StringIO()
+
+        # override io with new io
+        sys.stdout = cls._stdout_buffer
+        sys.stderr = cls._stderr_buffer
+        sys.stderr.write(f"Finished calling _setupStdout...\n"); sys.stderr.flush()
+
         logging.info("----- Testing %s -----", cls.__name__)
         logging.info("Logs timezone: %s", time.localtime().tm_zone)
 
@@ -408,7 +423,8 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         )
 
     @classmethod
-    def _restoreStdout(cls):
+    def cleanupAfterTests(cls):
+        sys.stderr.write(f"Calling _restoreStdout...\n"); sys.stderr.flush()
         sys.stderr.write(f"Checking _should_print...\n"); sys.stderr.flush()
         if cls._should_print:
             sys.stderr.write(f"_should_print=True...\n"); sys.stderr.flush()
@@ -430,17 +446,15 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
                 if not error.endswith('\n'):
                     error += ' This_is_added_output\n'
                 cls._original_stderr.write(STDERR_LINE % error)
-
+        sys.stderr.write(f"Finished Checking _restoreStdout...\n"); sys.stderr.flush()
         sys.stdout = cls._original_stdout
         sys.stderr = cls._original_stderr
         cls._stdout_buffer.seek(0)
         cls._stdout_buffer.truncate()
         cls._stderr_buffer.seek(0)
         cls._stderr_buffer.truncate()
+        sys.stderr.write(f"Finished Calling _restoreStdout...\n"); sys.stderr.flush()
 
-    @classmethod
-    def cleanupAfterTests(cls):
-        cls._restoreStdout()
         logging.info("----- TestCase %s teardown -----", cls.__name__)
         client_restarts: int = 0
         if cls.test_client_runner:
@@ -511,19 +525,6 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         and yields clearer signal.
         """
         sys.stderr.write(f"Calling run....\n"); sys.stderr.flush()
-
-        sys.stderr.write(f"Calling _setupStdout...\n"); sys.stderr.flush()
-        # save original io
-        self._original_stdout = sys.stdout
-        self._original_stderr = sys.stderr
-
-        # create new io
-        self._stderr_buffer = io.StringIO()
-        self._stdout_buffer = io.StringIO()
-
-        # override io with new io
-        sys.stdout = self._stdout_buffer
-        sys.stderr = self._stderr_buffer
 
         self._should_print = False
         if result.testsRun >= 2:
