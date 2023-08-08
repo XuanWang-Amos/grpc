@@ -480,49 +480,46 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         """
         sys.stderr.write(f"Calling run....\n"); sys.stderr.flush()
         sys.stderr.write(f"Calling _setupStdout...\n"); sys.stderr.flush()
-        sys.stderr.write(f"result.isinstance(unittest.TextTestResult={result.isinstance(unittest.TextTestResult)}\n"); sys.stderr.flush()
+
         # save original io
-        _original_stdout = sys.stdout
-        _original_stderr = sys.stderr
+        # _original_stdout = sys.stdout
+        # _original_stderr = sys.stderr
 
-        # create new io
-        _stderr_buffer = io.StringIO()
-        _stdout_buffer = io.StringIO()
+        # # create new io
+        # _stderr_buffer = io.StringIO()
+        # _stdout_buffer = io.StringIO()
 
-        # override io with new io
-        sys.stdout = _stdout_buffer
-        sys.stderr = _stderr_buffer
+        # # override io with new io
+        # sys.stdout = _stdout_buffer
+        # sys.stderr = _stderr_buffer
         _original_stdout.write(f"Finished calling _setupStdout...\n"); _original_stdout.flush()
-        sys.stderr.write(f"Calling _setupStdout...\n"); sys.stderr.flush()
-        _should_print = False
-        if result.failures or result.errors:
-            _should_print = True
-            logging.info("Aborting %s", self.__class__.__name__)
-        else:
-            super().run(result)
 
-        _original_stdout.write(f"Checking _should_print...\n"); _original_stdout.flush()
-        if _should_print:
+        if result.failures or result.errors:
             _original_stdout.write(f"_should_print=True...\n"); _original_stdout.flush()
             output = sys.stdout.getvalue()
             error = sys.stderr.getvalue()
 
             if output:
                 if not output.endswith('\n'):
-                    output += ' This_is_added_output\n'
+                    output += '\n'
                 _original_stdout.write(STDOUT_LINE % output)
+                result.addError(self, sys.exc_info())
             if error:
                 if not error.endswith('\n'):
-                    error += ' This_is_added_output\n'
+                    output += '\n'
                 _original_stderr.write(STDERR_LINE % error)
+                result.addError(self, sys.exc_info())
+            logging.info("Aborting %s", self.__class__.__name__)
+        else:
+            super().run(result)
 
         _original_stdout.write(f"Calling _restoreStdout...\n"); _original_stdout.flush()
-        sys.stdout = _original_stdout
-        sys.stderr = _original_stderr
-        _stdout_buffer.seek(0)
-        _stdout_buffer.truncate()
-        _stderr_buffer.seek(0)
-        _stderr_buffer.truncate()
+        # sys.stdout = _original_stdout
+        # sys.stderr = _original_stderr
+        # _stdout_buffer.seek(0)
+        # _stdout_buffer.truncate()
+        # _stderr_buffer.seek(0)
+        # _stderr_buffer.truncate()
         _original_stdout.write(f"Finished Calling _restoreStdout...\n"); _original_stdout.flush()
 
 
