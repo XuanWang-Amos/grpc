@@ -51,7 +51,7 @@ _URL_MAP_PROPAGATE_TIMEOUT_SEC = 600
 # With the per-run IAM change, the first xDS response has a several minutes
 # delay. We want to increase the interval, reduce the log spam.
 _URL_MAP_PROPAGATE_CHECK_INTERVAL_SEC = 15
-URL_MAP_TESTCASE_FILE_SUFFIX = "_test.py"
+URL_MAP_TESTCASE_FILE_SUFFIX = "csds_test.py"
 _CLIENT_CONFIGURE_WAIT_SEC = 2
 
 # Type aliases
