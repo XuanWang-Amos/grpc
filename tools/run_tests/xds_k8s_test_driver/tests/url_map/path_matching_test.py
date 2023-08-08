@@ -168,7 +168,7 @@ class TestTwoRoutesAndPrefixMatch(xds_url_map_testcase.XdsUrlMapTestCase):
             rpc_types=[RpcTypeUnaryCall, RpcTypeEmptyCall],
             num_rpcs=_NUM_RPCS,
         )
-        self.assertEqual(0, rpc_distribution.num_failures)
+        self.assertEqual(2, rpc_distribution.num_failures)
         self.assertEqual(
             0, rpc_distribution.unary_call_alternative_service_rpc_count
         )

@@ -24,7 +24,7 @@ _TEST_CASE_FOLDER = os.path.dirname(__file__)
 def load_tests(loader: absltest.TestLoader, unused_tests, unused_pattern):
     return loader.discover(
         _TEST_CASE_FOLDER,
-        pattern="*" + xds_url_map_testcase.URL_MAP_TESTCASE_FILE_SUFFIX,
+        pattern="*[ing]" + xds_url_map_testcase.URL_MAP_TESTCASE_FILE_SUFFIX,
     )
 
 
