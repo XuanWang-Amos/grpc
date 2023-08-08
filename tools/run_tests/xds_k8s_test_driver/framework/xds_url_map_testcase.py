@@ -51,7 +51,7 @@ _URL_MAP_PROPAGATE_TIMEOUT_SEC = 600
 # With the per-run IAM change, the first xDS response has a several minutes
 # delay. We want to increase the interval, reduce the log spam.
 _URL_MAP_PROPAGATE_CHECK_INTERVAL_SEC = 15
-URL_MAP_TESTCASE_FILE_SUFFIX = "csds_test.py"
+URL_MAP_TESTCASE_FILE_SUFFIX = "_test.py"
 _CLIENT_CONFIGURE_WAIT_SEC = 2
 
 # Type aliases
@@ -465,6 +465,11 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         # Execute the child class provided validation logic
         self.xds_config_validate(DumpedXdsConfig(self._xds_json_config))
 
+    def _print_error_list(self, flavour, errors):
+        for test, err in errors:
+            logging.error("%s: %s" % (flavour, self.__class__.__name__))
+            logging.error("%s" % err)
+
     def run(self, result: unittest.TestResult = None) -> None:
         """Abort this test case if CSDS check is failed.
 
@@ -472,13 +477,8 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         and yields clearer signal.
         """
         if result.failures or result.errors:
-            # logging.error("FAILED TEST: %s\n", self.__class__.__name__)
-            # if result.failures:
-            #     for test, err in result.failures:
-            #         logging.error("Failures:  %s" % err)
-            # if result.errors:
-            #     for test, err in result.errors:
-            #         logging.error("Errors:  %s" % err)
+            self._print_error_list('ERROR', result.errors)
+            self._print_error_list('FAIL', result.failures)
             logging.info("Aborting %s", self.__class__.__name__)
         else:
             super().run(result)
