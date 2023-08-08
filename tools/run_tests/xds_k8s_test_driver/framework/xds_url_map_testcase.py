@@ -493,21 +493,18 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         sys.stderr = _stderr_buffer
         _original_stdout.write(f"Finished calling _setupStdout...\n"); _original_stdout.flush()
 
-        _should_print = True
+        _should_print = False
         if result.failures or result.errors:
+            _should_print = True
             logging.info("Aborting %s", self.__class__.__name__)
         else:
             super().run(result)
 
-        _original_stdout.write(f"Calling _restoreStdout...\n"); _original_stdout.flush()
         _original_stdout.write(f"Checking _should_print...\n"); _original_stdout.flush()
-        if  _should_print:
+        if _should_print:
             _original_stdout.write(f"_should_print=True...\n"); _original_stdout.flush()
             output = sys.stdout.getvalue()
-            _original_stdout.write(f"Flushing_output...\n"); _original_stdout.flush()
-
             error = sys.stderr.getvalue()
-            _original_stdout.write(f"Flushing_error...\n"); _original_stdout.flush()
 
             if output:
                 if not output.endswith('\n'):
@@ -518,7 +515,7 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
                     error += ' This_is_added_output\n'
                 _original_stderr.write(STDERR_LINE % error)
 
-        _original_stdout.write(f"Finished Checking _restoreStdout...\n"); _original_stdout.flush()
+        _original_stdout.write(f"Calling _restoreStdout...\n"); _original_stdout.flush()
         sys.stdout = _original_stdout
         sys.stderr = _original_stderr
         _stdout_buffer.seek(0)
