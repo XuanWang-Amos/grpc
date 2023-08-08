@@ -68,6 +68,8 @@ RpcTypeUnaryCall = "UNARY_CALL"
 RpcTypeEmptyCall = "EMPTY_CALL"
 
 added_error = False
+
+
 def _split_camel(s: str, delimiter: str = "-") -> str:
     """Turn camel case name to snake-case-like name."""
     return "".join(
@@ -473,7 +475,8 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         """
         if result.failures or result.errors:
             if not added_error:
-                sys.stderr.write(f"Adding error.......\n"); sys.stderr.flush()
+                sys.stderr.write(f"Adding error.......\n")
+                sys.stderr.flush()
                 result.addError(self, sys.exc_info())
                 added_error = True
             logging.info("Aborting %s", self.__class__.__name__)
