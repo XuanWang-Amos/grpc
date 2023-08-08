@@ -374,21 +374,6 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
 
     @classmethod
     def setUpClass(cls):
-        sys.stderr.write(f"Calling _setupStdout...\n"); sys.stderr.flush()
-        # save original io
-        cls._original_stdout = sys.stdout
-        cls._original_stderr = sys.stderr
-
-        # create new io
-        cls._stderr_buffer = io.StringIO()
-        cls._stdout_buffer = io.StringIO()
-
-        # override io with new io
-        sys.stdout = cls._stdout_buffer
-        sys.stderr = cls._stderr_buffer
-
-        cls._should_print = False
-
         logging.info("----- Testing %s -----", cls.__name__)
         logging.info("Logs timezone: %s", time.localtime().tm_zone)
 
@@ -429,12 +414,12 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
             sys.stderr.write(f"_should_print=True...\n"); sys.stderr.flush()
             output = sys.stdout.getvalue()
             sys.stderr.write(f"Flushing_output...\n"); sys.stderr.flush()
-            output.writeln(self.separator1)
+            output.writeln(cls.separator1)
             output.flush()
 
             error = sys.stderr.getvalue()
             sys.stderr.write(f"Flushing_error...\n"); sys.stderr.flush()
-            error.writeln(self.separator1)
+            error.writeln(cls.separator1)
             error.flush()
 
             if output:
@@ -526,9 +511,24 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         and yields clearer signal.
         """
         sys.stderr.write(f"Calling run....\n"); sys.stderr.flush()
+
+        sys.stderr.write(f"Calling _setupStdout...\n"); sys.stderr.flush()
+        # save original io
+        self._original_stdout = sys.stdout
+        self._original_stderr = sys.stderr
+
+        # create new io
+        self._stderr_buffer = io.StringIO()
+        self._stdout_buffer = io.StringIO()
+
+        # override io with new io
+        sys.stdout = self._stdout_buffer
+        sys.stderr = self._stderr_buffer
+
+        self._should_print = False
         if result.testsRun >= 2:
             self._should_print=True
-            # raise Exception("testing_exp...")
+            raise Exception("testing_exp...")
         if result.failures or result.errors:
             logging.info("Aborting %s", self.__class__.__name__)
         else:
