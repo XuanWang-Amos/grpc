@@ -258,7 +258,8 @@ class TestHeaderBasedAffinityMultipleHeaders(
             ),
             2,
         )
-        # Any remaining subchannels may be in any state.
+        # Any remaining subchannels may be in any state.\
+        self.assertEqual(2, 1)
 
 
 # TODO: add more test cases

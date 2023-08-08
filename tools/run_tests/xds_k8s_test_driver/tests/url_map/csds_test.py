@@ -73,7 +73,6 @@ class TestBasicCsds(xds_url_map_testcase.XdsUrlMapTestCase):
             num_rpcs=_NUM_RPCS,
         )
         self.assertEqual(_NUM_RPCS, rpc_distribution.num_oks)
-        self.assertEqual(2, 1)
 
 
 if __name__ == "__main__":
