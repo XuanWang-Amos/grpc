@@ -496,19 +496,19 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
 
         if result.failures or result.errors:
             _original_stdout.write(f"_should_print=True...\n"); _original_stdout.flush()
-            output = sys.stdout.getvalue()
-            error = sys.stderr.getvalue()
+            # output = sys.stdout.getvalue()
+            # error = sys.stderr.getvalue()
 
-            if output:
-                if not output.endswith('\n'):
-                    output += '\n'
-                _original_stdout.write(STDOUT_LINE % output)
-                result.addError(self, sys.exc_info())
-            if error:
-                if not error.endswith('\n'):
-                    output += '\n'
-                _original_stderr.write(STDERR_LINE % error)
-                result.addError(self, sys.exc_info())
+            # if output:
+            #     if not output.endswith('\n'):
+            #         output += '\n'
+            #     _original_stdout.write(STDOUT_LINE % output)
+            #     result.addError(self, sys.exc_info())
+            # if error:
+            #     if not error.endswith('\n'):
+            #         output += '\n'
+            #     _original_stderr.write(STDERR_LINE % error)
+            # result.addError(self, sys.exc_info())
             logging.info("Aborting %s", self.__class__.__name__)
         else:
             super().run(result)
