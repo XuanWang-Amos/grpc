@@ -472,14 +472,13 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         and yields clearer signal.
         """
         if result.failures or result.errors:
-            logging.error("FAILED TEST: %s\n", self.__class__.__name__)
-            sys.stderr.write(f"FAILED TEST: {self.__class__.__name__}\n"); sys.stderr.flush()
-            if result.failures:
-                for test, err in result.failures:
-                    logging.error("Failures:  %s" % err)
-            if result.errors:
-                for test, err in result.errors:
-                    logging.error("Errors:  %s" % err)
+            # logging.error("FAILED TEST: %s\n", self.__class__.__name__)
+            # if result.failures:
+            #     for test, err in result.failures:
+            #         logging.error("Failures:  %s" % err)
+            # if result.errors:
+            #     for test, err in result.errors:
+            #         logging.error("Errors:  %s" % err)
             logging.info("Aborting %s", self.__class__.__name__)
         else:
             super().run(result)
