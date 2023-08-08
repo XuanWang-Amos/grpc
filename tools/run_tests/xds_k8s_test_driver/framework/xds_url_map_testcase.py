@@ -16,6 +16,7 @@
 import abc
 from dataclasses import dataclass
 import datetime
+import io
 import json
 import os
 import re
@@ -23,7 +24,6 @@ import sys
 import time
 from typing import Any, Iterable, Mapping, Optional, Tuple
 import unittest
-import io
 
 from absl import flags
 from absl import logging
@@ -68,9 +68,10 @@ _timedelta = datetime.timedelta
 RpcTypeUnaryCall = "UNARY_CALL"
 RpcTypeEmptyCall = "EMPTY_CALL"
 
-STDOUT_LINE = '\nStdout:\n%s'
-STDERR_LINE = '\nStderr:\n%s'
-separator1 = '=' * 70
+STDOUT_LINE = "\nStdout:\n%s"
+STDERR_LINE = "\nStderr:\n%s"
+separator1 = "=" * 70
+
 
 def _split_camel(s: str, delimiter: str = "-") -> str:
     """Turn camel case name to snake-case-like name."""
@@ -478,8 +479,10 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         This prevents the test runner to waste time on RPC distribution test,
         and yields clearer signal.
         """
-        sys.stderr.write(f"Calling run....\n"); sys.stderr.flush()
-        sys.stderr.write(f"Calling _setupStdout...\n"); sys.stderr.flush()
+        sys.stderr.write(f"Calling run....\n")
+        sys.stderr.flush()
+        sys.stderr.write(f"Calling _setupStdout...\n")
+        sys.stderr.flush()
 
         # save original io
         _original_stdout = sys.stdout
@@ -492,10 +495,12 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         # # override io with new io
         # sys.stdout = _stdout_buffer
         # sys.stderr = _stderr_buffer
-        _original_stdout.write(f"Finished calling _setupStdout...\n"); _original_stdout.flush()
+        _original_stdout.write(f"Finished calling _setupStdout...\n")
+        _original_stdout.flush()
 
         if result.failures or result.errors:
-            _original_stdout.write(f"_should_print=True...\n"); _original_stdout.flush()
+            _original_stdout.write(f"_should_print=True...\n")
+            _original_stdout.flush()
             # output = sys.stdout.getvalue()
             # error = sys.stderr.getvalue()
 
@@ -513,15 +518,16 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         else:
             super().run(result)
 
-        _original_stdout.write(f"Calling _restoreStdout...\n"); _original_stdout.flush()
+        _original_stdout.write(f"Calling _restoreStdout...\n")
+        _original_stdout.flush()
         # sys.stdout = _original_stdout
         # sys.stderr = _original_stderr
         # _stdout_buffer.seek(0)
         # _stdout_buffer.truncate()
         # _stderr_buffer.seek(0)
         # _stderr_buffer.truncate()
-        _original_stdout.write(f"Finished Calling _restoreStdout...\n"); _original_stdout.flush()
-
+        _original_stdout.write(f"Finished Calling _restoreStdout...\n")
+        _original_stdout.flush()
 
     def test_client_config(self):
         retryer = retryers.constant_retryer(
