@@ -16,6 +16,7 @@
 import abc
 from dataclasses import dataclass
 import datetime
+import io
 import json
 import os
 import re
@@ -23,7 +24,6 @@ import sys
 import time
 from typing import Any, Iterable, Mapping, Optional, Tuple
 import unittest
-import io
 
 from absl import flags
 from absl import logging
@@ -68,9 +68,10 @@ _timedelta = datetime.timedelta
 RpcTypeUnaryCall = "UNARY_CALL"
 RpcTypeEmptyCall = "EMPTY_CALL"
 
-STDOUT_LINE = '\nStdout:\n%s'
-STDERR_LINE = '\nStderr:\n%s'
-separator1 = '=' * 70
+STDOUT_LINE = "\nStdout:\n%s"
+STDERR_LINE = "\nStderr:\n%s"
+separator1 = "=" * 70
+
 
 def _split_camel(s: str, delimiter: str = "-") -> str:
     """Turn camel case name to snake-case-like name."""
@@ -374,8 +375,8 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
 
     @classmethod
     def setUpClass(cls):
-
-        sys.stderr.write(f"Calling _setupStdout...\n"); sys.stderr.flush()
+        sys.stderr.write(f"Calling _setupStdout...\n")
+        sys.stderr.flush()
         # save original io
         cls._original_stdout = sys.stdout
         cls._original_stderr = sys.stderr
@@ -387,7 +388,8 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         # override io with new io
         sys.stdout = cls._stdout_buffer
         sys.stderr = cls._stderr_buffer
-        sys.stderr.write(f"Finished calling _setupStdout...\n"); sys.stderr.flush()
+        sys.stderr.write(f"Finished calling _setupStdout...\n")
+        sys.stderr.flush()
 
         logging.info("----- Testing %s -----", cls.__name__)
         logging.info("Logs timezone: %s", time.localtime().tm_zone)
@@ -424,36 +426,43 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
 
     @classmethod
     def cleanupAfterTests(cls):
-        sys.stderr.write(f"Calling _restoreStdout...\n"); sys.stderr.flush()
-        sys.stderr.write(f"Checking _should_print...\n"); sys.stderr.flush()
+        sys.stderr.write(f"Calling _restoreStdout...\n")
+        sys.stderr.flush()
+        sys.stderr.write(f"Checking _should_print...\n")
+        sys.stderr.flush()
         if cls._should_print:
-            sys.stderr.write(f"_should_print=True...\n"); sys.stderr.flush()
+            sys.stderr.write(f"_should_print=True...\n")
+            sys.stderr.flush()
             output = sys.stdout.getvalue()
-            sys.stderr.write(f"Flushing_output...\n"); sys.stderr.flush()
+            sys.stderr.write(f"Flushing_output...\n")
+            sys.stderr.flush()
             output.writeln(cls.separator1)
             output.flush()
 
             error = sys.stderr.getvalue()
-            sys.stderr.write(f"Flushing_error...\n"); sys.stderr.flush()
+            sys.stderr.write(f"Flushing_error...\n")
+            sys.stderr.flush()
             error.writeln(cls.separator1)
             error.flush()
 
             if output:
-                if not output.endswith('\n'):
-                    output += ' This_is_added_output\n'
+                if not output.endswith("\n"):
+                    output += " This_is_added_output\n"
                 cls._original_stdout.write(STDOUT_LINE % output)
             if error:
-                if not error.endswith('\n'):
-                    error += ' This_is_added_output\n'
+                if not error.endswith("\n"):
+                    error += " This_is_added_output\n"
                 cls._original_stderr.write(STDERR_LINE % error)
-        sys.stderr.write(f"Finished Checking _restoreStdout...\n"); sys.stderr.flush()
+        sys.stderr.write(f"Finished Checking _restoreStdout...\n")
+        sys.stderr.flush()
         sys.stdout = cls._original_stdout
         sys.stderr = cls._original_stderr
         cls._stdout_buffer.seek(0)
         cls._stdout_buffer.truncate()
         cls._stderr_buffer.seek(0)
         cls._stderr_buffer.truncate()
-        sys.stderr.write(f"Finished Calling _restoreStdout...\n"); sys.stderr.flush()
+        sys.stderr.write(f"Finished Calling _restoreStdout...\n")
+        sys.stderr.flush()
 
         logging.info("----- TestCase %s teardown -----", cls.__name__)
         client_restarts: int = 0
@@ -524,17 +533,17 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         This prevents the test runner to waste time on RPC distribution test,
         and yields clearer signal.
         """
-        sys.stderr.write(f"Calling run....\n"); sys.stderr.flush()
+        sys.stderr.write(f"Calling run....\n")
+        sys.stderr.flush()
 
         self._should_print = False
         if result.testsRun >= 2:
-            self._should_print=True
+            self._should_print = True
             raise Exception("testing_exp...")
         if result.failures or result.errors:
             logging.info("Aborting %s", self.__class__.__name__)
         else:
             super().run(result)
-
 
     def test_client_config(self):
         retryer = retryers.constant_retryer(
