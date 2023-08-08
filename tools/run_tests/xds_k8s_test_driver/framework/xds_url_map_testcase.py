@@ -544,7 +544,6 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
 
     def test_rpc_distribution(self):
         self.rpc_distribution_validate(self.test_client)
-        raise Exception("Rasing testing_exp...")
 
     @classmethod
     def configure_and_send(
