@@ -285,7 +285,7 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
     test_client_runner: Optional[_KubernetesClientRunner] = None
     _stdout_buffer: Optional[io.StringIO] = None
     _stderr_buffer: Optional[io.StringIO] = None
-    _should_print: bool = False
+    _should_print: bool = True
 
     @staticmethod
     def is_supported(config: skips.TestConfig) -> bool:
@@ -374,21 +374,6 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
 
     @classmethod
     def setUpClass(cls):
-
-        sys.stderr.write(f"Calling _setupStdout...\n"); sys.stderr.flush()
-        # save original io
-        cls._original_stdout = sys.stdout
-        cls._original_stderr = sys.stderr
-
-        # create new io
-        cls._stderr_buffer = io.StringIO()
-        cls._stdout_buffer = io.StringIO()
-
-        # override io with new io
-        sys.stdout = cls._stdout_buffer
-        sys.stderr = cls._stderr_buffer
-        sys.stderr.write(f"Finished calling _setupStdout...\n"); sys.stderr.flush()
-
         logging.info("----- Testing %s -----", cls.__name__)
         logging.info("Logs timezone: %s", time.localtime().tm_zone)
 
@@ -424,37 +409,6 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
 
     @classmethod
     def cleanupAfterTests(cls):
-        sys.stderr.write(f"Calling _restoreStdout...\n"); sys.stderr.flush()
-        sys.stderr.write(f"Checking _should_print...\n"); sys.stderr.flush()
-        if cls._should_print:
-            sys.stderr.write(f"_should_print=True...\n"); sys.stderr.flush()
-            output = sys.stdout.getvalue()
-            sys.stderr.write(f"Flushing_output...\n"); sys.stderr.flush()
-            output.writeln(cls.separator1)
-            output.flush()
-
-            error = sys.stderr.getvalue()
-            sys.stderr.write(f"Flushing_error...\n"); sys.stderr.flush()
-            error.writeln(cls.separator1)
-            error.flush()
-
-            if output:
-                if not output.endswith('\n'):
-                    output += ' This_is_added_output\n'
-                cls._original_stdout.write(STDOUT_LINE % output)
-            if error:
-                if not error.endswith('\n'):
-                    error += ' This_is_added_output\n'
-                cls._original_stderr.write(STDERR_LINE % error)
-        sys.stderr.write(f"Finished Checking _restoreStdout...\n"); sys.stderr.flush()
-        sys.stdout = cls._original_stdout
-        sys.stderr = cls._original_stderr
-        cls._stdout_buffer.seek(0)
-        cls._stdout_buffer.truncate()
-        cls._stderr_buffer.seek(0)
-        cls._stderr_buffer.truncate()
-        sys.stderr.write(f"Finished Calling _restoreStdout...\n"); sys.stderr.flush()
-
         logging.info("----- TestCase %s teardown -----", cls.__name__)
         client_restarts: int = 0
         if cls.test_client_runner:
@@ -525,15 +479,57 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         and yields clearer signal.
         """
         sys.stderr.write(f"Calling run....\n"); sys.stderr.flush()
+        sys.stderr.write(f"Calling _setupStdout...\n"); sys.stderr.flush()
+        # save original io
+        _original_stdout = sys.stdout
+        _original_stderr = sys.stderr
 
-        self._should_print = False
-        if result.testsRun >= 2:
-            self._should_print=True
-            raise Exception("testing_exp...")
+        # create new io
+        _stderr_buffer = io.StringIO()
+        _stdout_buffer = io.StringIO()
+
+        # override io with new io
+        sys.stdout = _stdout_buffer
+        sys.stderr = _stderr_buffer
+        sys.stderr.write(f"Finished calling _setupStdout...\n"); sys.stderr.flush()
+
+        _should_print = True
         if result.failures or result.errors:
             logging.info("Aborting %s", self.__class__.__name__)
         else:
             super().run(result)
+
+        sys.stderr.write(f"Calling _restoreStdout...\n"); sys.stderr.flush()
+        sys.stderr.write(f"Checking _should_print...\n"); sys.stderr.flush()
+        if  _should_print:
+            sys.stderr.write(f"_should_print=True...\n"); sys.stderr.flush()
+            output = sys.stdout.getvalue()
+            sys.stderr.write(f"Flushing_output...\n"); sys.stderr.flush()
+            output.writeln(separator1)
+            output.flush()
+
+            error = sys.stderr.getvalue()
+            sys.stderr.write(f"Flushing_error...\n"); sys.stderr.flush()
+            error.writeln(separator1)
+            error.flush()
+
+            if output:
+                if not output.endswith('\n'):
+                    output += ' This_is_added_output\n'
+                _original_stdout.write(STDOUT_LINE % output)
+            if error:
+                if not error.endswith('\n'):
+                    error += ' This_is_added_output\n'
+                _original_stderr.write(STDERR_LINE % error)
+
+        sys.stderr.write(f"Finished Checking _restoreStdout...\n"); sys.stderr.flush()
+        sys.stdout = _original_stdout
+        sys.stderr = _original_stderr
+        _stdout_buffer.seek(0)
+        _stdout_buffer.truncate()
+        _stderr_buffer.seek(0)
+        _stderr_buffer.truncate()
+        sys.stderr.write(f"Finished Calling _restoreStdout...\n"); sys.stderr.flush()
 
 
     def test_client_config(self):
@@ -557,6 +553,7 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
 
     def test_rpc_distribution(self):
         self.rpc_distribution_validate(self.test_client)
+        raise Exception("Rasing testing_exp...")
 
     @classmethod
     def configure_and_send(
