@@ -491,7 +491,7 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         # override io with new io
         sys.stdout = _stdout_buffer
         sys.stderr = _stderr_buffer
-        sys.stderr.write(f"Finished calling _setupStdout...\n"); sys.stderr.flush()
+        _original_stdout.write(f"Finished calling _setupStdout...\n"); _original_stdout.flush()
 
         _should_print = True
         if result.failures or result.errors:
@@ -499,8 +499,8 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         else:
             super().run(result)
 
-        sys.stderr.write(f"Calling _restoreStdout...\n"); sys.stderr.flush()
-        sys.stderr.write(f"Checking _should_print...\n"); sys.stderr.flush()
+        _original_stdout.write(f"Calling _restoreStdout...\n"); _original_stdout.flush()
+        _original_stdout.write(f"Checking _should_print...\n"); _original_stdout.flush()
         if  _should_print:
             sys.stderr.write(f"_should_print=True...\n"); sys.stderr.flush()
             output = sys.stdout.getvalue()
@@ -522,14 +522,14 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
                     error += ' This_is_added_output\n'
                 _original_stderr.write(STDERR_LINE % error)
 
-        sys.stderr.write(f"Finished Checking _restoreStdout...\n"); sys.stderr.flush()
+        _original_stdout.write(f"Finished Checking _restoreStdout...\n"); _original_stdout.flush()
         sys.stdout = _original_stdout
         sys.stderr = _original_stderr
         _stdout_buffer.seek(0)
         _stdout_buffer.truncate()
         _stderr_buffer.seek(0)
         _stderr_buffer.truncate()
-        sys.stderr.write(f"Finished Calling _restoreStdout...\n"); sys.stderr.flush()
+        _original_stdout.write(f"Finished Calling _restoreStdout...\n"); _original_stdout.flush()
 
 
     def test_client_config(self):
