@@ -455,7 +455,7 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
 
     @classmethod
     def cleanupAfterTests(cls):
-        _restoreStdout(cls)
+        cls._restoreStdout()
         logging.info("----- TestCase %s teardown -----", cls.__name__)
         client_restarts: int = 0
         if cls.test_client_runner:
