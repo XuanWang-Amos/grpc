@@ -505,13 +505,9 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
             _original_stdout.write(f"_should_print=True...\n"); _original_stdout.flush()
             output = sys.stdout.getvalue()
             _original_stdout.write(f"Flushing_output...\n"); _original_stdout.flush()
-            output.writeln(separator1)
-            output.flush()
 
             error = sys.stderr.getvalue()
             _original_stdout.write(f"Flushing_error...\n"); _original_stdout.flush()
-            error.writeln(separator1)
-            error.flush()
 
             if output:
                 if not output.endswith('\n'):
