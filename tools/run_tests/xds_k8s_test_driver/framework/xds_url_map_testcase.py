@@ -508,7 +508,7 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
             #     if not error.endswith('\n'):
             #         output += '\n'
             #     _original_stderr.write(STDERR_LINE % error)
-            # result.addError(self, sys.exc_info())
+            result.addError(self, sys.exc_info())
             logging.info("Aborting %s", self.__class__.__name__)
         else:
             super().run(result)
