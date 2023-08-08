@@ -502,14 +502,14 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         _original_stdout.write(f"Calling _restoreStdout...\n"); _original_stdout.flush()
         _original_stdout.write(f"Checking _should_print...\n"); _original_stdout.flush()
         if  _should_print:
-            sys.stderr.write(f"_should_print=True...\n"); sys.stderr.flush()
+            _original_stdout.write(f"_should_print=True...\n"); _original_stdout.flush()
             output = sys.stdout.getvalue()
-            sys.stderr.write(f"Flushing_output...\n"); sys.stderr.flush()
+            _original_stdout.write(f"Flushing_output...\n"); _original_stdout.flush()
             output.writeln(separator1)
             output.flush()
 
             error = sys.stderr.getvalue()
-            sys.stderr.write(f"Flushing_error...\n"); sys.stderr.flush()
+            _original_stdout.write(f"Flushing_error...\n"); _original_stdout.flush()
             error.writeln(separator1)
             error.flush()
 
