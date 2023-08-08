@@ -111,7 +111,8 @@ class TestExactMatch(xds_url_map_testcase.XdsUrlMapTestCase):
             num_rpcs=_NUM_RPCS,
         )
         self.assertEqual(
-            _NUM_RPCS+10, rpc_distribution.empty_call_alternative_service_rpc_count
+            _NUM_RPCS + 10,
+            rpc_distribution.empty_call_alternative_service_rpc_count,
         )
 
 
