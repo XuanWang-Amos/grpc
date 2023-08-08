@@ -482,8 +482,8 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         sys.stderr.write(f"Calling _setupStdout...\n"); sys.stderr.flush()
 
         # save original io
-        # _original_stdout = sys.stdout
-        # _original_stderr = sys.stderr
+        _original_stdout = sys.stdout
+        _original_stderr = sys.stderr
 
         # # create new io
         # _stderr_buffer = io.StringIO()
