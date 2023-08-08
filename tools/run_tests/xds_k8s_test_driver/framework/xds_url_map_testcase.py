@@ -480,6 +480,7 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         """
         sys.stderr.write(f"Calling run....\n"); sys.stderr.flush()
         sys.stderr.write(f"Calling _setupStdout...\n"); sys.stderr.flush()
+        sys.stderr.write(f"result.isinstance(unittest.TextTestResult={result.isinstance(unittest.TextTestResult)}\n"); sys.stderr.flush()
         # save original io
         _original_stdout = sys.stdout
         _original_stderr = sys.stderr
@@ -492,7 +493,7 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         sys.stdout = _stdout_buffer
         sys.stderr = _stderr_buffer
         _original_stdout.write(f"Finished calling _setupStdout...\n"); _original_stdout.flush()
-
+        sys.stderr.write(f"Calling _setupStdout...\n"); sys.stderr.flush()
         _should_print = False
         if result.failures or result.errors:
             _should_print = True
