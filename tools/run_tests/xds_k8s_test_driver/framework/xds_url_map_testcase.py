@@ -69,6 +69,7 @@ RpcTypeEmptyCall = "EMPTY_CALL"
 
 first_error_printed: bool = False
 
+
 def _split_camel(s: str, delimiter: str = "-") -> str:
     """Turn camel case name to snake-case-like name."""
     return "".join(
@@ -481,8 +482,8 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
 
         if result.failures or result.errors:
             if not first_error_printed:
-                self._print_error_list('ERROR', result.errors)
-                self._print_error_list('FAIL', result.failures)
+                self._print_error_list("ERROR", result.errors)
+                self._print_error_list("FAIL", result.failures)
                 first_error_printed = True
             logging.info("Aborting %s", self.__class__.__name__)
         else:
