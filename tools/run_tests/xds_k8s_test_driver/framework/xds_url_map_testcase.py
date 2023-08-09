@@ -477,6 +477,8 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         This prevents the test runner to waste time on RPC distribution test,
         and yields clearer signal.
         """
+        global first_error_printed
+
         if result.failures or result.errors:
             if not first_error_printed:
                 self._print_error_list('ERROR', result.errors)
