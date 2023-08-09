@@ -477,8 +477,8 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         and yields clearer signal.
         """
         if result.failures or result.errors:
-            self._print_error_list('ERROR', result.errors)
-            self._print_error_list('FAIL', result.failures)
+            self._print_error_list("ERROR", result.errors)
+            self._print_error_list("FAIL", result.failures)
             logging.info("Aborting %s", self.__class__.__name__)
         else:
             super().run(result)
