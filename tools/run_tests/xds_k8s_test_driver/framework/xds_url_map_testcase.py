@@ -21,7 +21,7 @@ import os
 import re
 import sys
 import time
-from typing import Any, Iterable, Mapping, Optional, Tuple
+from typing import Any, List, Iterable, Mapping, Optional, Tuple
 import unittest
 
 from absl import flags
@@ -67,7 +67,9 @@ _timedelta = datetime.timedelta
 RpcTypeUnaryCall = "UNARY_CALL"
 RpcTypeEmptyCall = "EMPTY_CALL"
 
-first_error_printed: bool = False
+_first_error_printed: bool = False
+_printed_errors: int = 0
+_printed_failures: int = 0
 
 def _split_camel(s: str, delimiter: str = "-") -> str:
     """Turn camel case name to snake-case-like name."""
@@ -466,27 +468,33 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         # Execute the child class provided validation logic
         self.xds_config_validate(DumpedXdsConfig(self._xds_json_config))
 
-    def _print_error_list(self, flavour, errors):
-        for test, err in errors:
-            logging.error("%s: %s" % (flavour, self.__class__.__name__))
-            logging.error("%s" % err)
-
     def run(self, result: unittest.TestResult = None) -> None:
         """Abort this test case if CSDS check is failed.
 
         This prevents the test runner to waste time on RPC distribution test,
         and yields clearer signal.
         """
-        global first_error_printed
+        global _printed_errors
+        global _printed_failures
 
         if result.failures or result.errors:
-            if not first_error_printed:
-                self._print_error_list('ERROR', result.errors)
-                self._print_error_list('FAIL', result.failures)
-                first_error_printed = True
+            if len(result.errors) > _printed_errors:
+                self._print_error_list('ERROR', result.errors[_printed_errors:])
+                _printed_errors += len(result.errors)
+            if len(result.failures) > _printed_failures:
+                self._print_error_list('FAIL', result.failures[_printed_failures:])
+                _printed_failures += len(result.failures)
+
             logging.info("Aborting %s", self.__class__.__name__)
         else:
             super().run(result)
+
+    def _print_error_list(self,
+                          flavour: str,
+                          errors: List[Tuple[absltest.TestCase, str]]):
+        for test, err in errors:
+            logging.error("%s: %s" % (flavour, self.__class__.__name__))
+            logging.error("%s" % err)
 
     def test_client_config(self):
         retryer = retryers.constant_retryer(

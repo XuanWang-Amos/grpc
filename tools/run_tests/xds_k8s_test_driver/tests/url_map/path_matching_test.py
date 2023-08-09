@@ -210,6 +210,7 @@ class TestRegexMatch(xds_url_map_testcase.XdsUrlMapTestCase):
             ]["regex"],
             r"^\/.*\/UnaryCall$",
         )
+        self.assertEqual(2, 3)
 
     def rpc_distribution_validate(self, test_client: XdsTestClient):
         rpc_distribution = self.configure_and_send(
