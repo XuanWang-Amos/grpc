@@ -418,6 +418,7 @@ class TestRangeMatch(xds_url_map_testcase.XdsUrlMapTestCase):
         self.assertEqual(
             0, rpc_distribution.empty_call_alternative_service_rpc_count
         )
+        self.assertEqual(0, 2)
 
 
 class TestRegexMatch(xds_url_map_testcase.XdsUrlMapTestCase):
