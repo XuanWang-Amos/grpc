@@ -21,7 +21,7 @@ import os
 import re
 import sys
 import time
-from typing import Any, List, Iterable, Mapping, Optional, Tuple
+from typing import Any, Iterable, List, Mapping, Optional, Tuple
 import unittest
 
 from absl import flags
@@ -70,6 +70,7 @@ RpcTypeEmptyCall = "EMPTY_CALL"
 _first_error_printed: bool = False
 _printed_errors: int = 0
 _printed_failures: int = 0
+
 
 def _split_camel(s: str, delimiter: str = "-") -> str:
     """Turn camel case name to snake-case-like name."""
@@ -479,19 +480,21 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
 
         if result.failures or result.errors:
             if len(result.errors) > _printed_errors:
-                self._print_error_list('ERROR', result.errors[_printed_errors:])
+                self._print_error_list("ERROR", result.errors[_printed_errors:])
                 _printed_errors += len(result.errors)
             if len(result.failures) > _printed_failures:
-                self._print_error_list('FAIL', result.failures[_printed_failures:])
+                self._print_error_list(
+                    "FAIL", result.failures[_printed_failures:]
+                )
                 _printed_failures += len(result.failures)
 
             logging.info("Aborting %s", self.__class__.__name__)
         else:
             super().run(result)
 
-    def _print_error_list(self,
-                          flavour: str,
-                          errors: List[Tuple[absltest.TestCase, str]]):
+    def _print_error_list(
+        self, flavour: str, errors: List[Tuple[absltest.TestCase, str]]
+    ):
         for test, err in errors:
             logging.error("%s: %s" % (flavour, self.__class__.__name__))
             logging.error("%s" % err)
