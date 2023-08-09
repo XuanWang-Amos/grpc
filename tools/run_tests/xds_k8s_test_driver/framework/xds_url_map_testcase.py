@@ -67,6 +67,7 @@ _timedelta = datetime.timedelta
 RpcTypeUnaryCall = "UNARY_CALL"
 RpcTypeEmptyCall = "EMPTY_CALL"
 
+first_error_printed: bool = False
 
 def _split_camel(s: str, delimiter: str = "-") -> str:
     """Turn camel case name to snake-case-like name."""
@@ -279,7 +280,6 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
     """
 
     test_client_runner: Optional[_KubernetesClientRunner] = None
-    first_error_printed: bool = False
 
     @staticmethod
     def is_supported(config: skips.TestConfig) -> bool:
@@ -478,10 +478,10 @@ class XdsUrlMapTestCase(absltest.TestCase, metaclass=_MetaXdsUrlMapTestCase):
         and yields clearer signal.
         """
         if result.failures or result.errors:
-            if not self.first_error_printed:
+            if not first_error_printed:
                 self._print_error_list('ERROR', result.errors)
                 self._print_error_list('FAIL', result.failures)
-                self.first_error_printed = True
+                first_error_printed = True
             logging.info("Aborting %s", self.__class__.__name__)
         else:
             super().run(result)
