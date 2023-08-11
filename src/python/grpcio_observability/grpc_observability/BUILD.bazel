@@ -27,6 +27,7 @@ cc_library(
         "python_census_context.cc",
         "sampler.cc",
         "server_call_tracer.cc",
+        "rpc_encoding.cc",
     ],
     hdrs = [
         "client_call_tracer.h",
@@ -35,13 +36,12 @@ cc_library(
         "python_census_context.h",
         "sampler.h",
         "server_call_tracer.h",
+        "rpc_encoding.h",
     ],
     includes = ["."],
     deps = [
         #TODO(xuanwn): Confirm only referenced code is inlcuded in shared object library
         "//:grpc",
-        "//:grpc_rpc_encoding",
-        "//src/cpp/ext/gcp:observability_config",
     ],
 )
 
@@ -67,6 +67,7 @@ py_library(
         "_observability.py",
         "_open_census_exporter.py",
         "_views.py",
+        "_observability_config.py",
     ],
     imports = [
         ".",

@@ -18,6 +18,7 @@ from typing import Any, List, Mapping, Optional, Tuple
 
 from google.rpc import code_pb2
 from grpc_observability import _observability  # pytype: disable=pyi-error
+from grpc_observability import _observability_config
 from grpc_observability import _views
 from opencensus.common.transports import async_
 from opencensus.ext.stackdriver import stats_exporter
@@ -61,16 +62,14 @@ class StackDriverAsyncTransport(async_.AsyncTransport):
 
 
 class OpenCensusExporter(_observability.Exporter):
-    config: "_gcp_observability.GcpObservabilityPythonConfig"
+    config: _observability_config.GcpObservabilityConfig
     default_labels: Optional[Mapping[str, str]]
     project_id: str
     tracer: Optional[tracer.Tracer]
     stats_recorder: Optional[StatsRecorder]
     view_manager: Optional[ViewManager]
 
-    def __init__(
-        self, config: "_gcp_observability.GcpObservabilityPythonConfig"
-    ):
+    def __init__(self, config: _observability_config.GcpObservabilityConfig):
         self.config = config.get()
         self.default_labels = self.config.labels
         self.project_id = self.config.project_id

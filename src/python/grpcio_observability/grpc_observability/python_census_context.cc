@@ -25,7 +25,7 @@
 #include "absl/strings/escaping.h"
 
 #include "src/core/lib/transport/transport.h"
-#include "src/cpp/ext/filters/census/rpc_encoding.h"
+#include "rpc_encoding.h"
 
 namespace grpc_observability {
 
@@ -156,13 +156,13 @@ size_t StatsContextSerialize(size_t /*max_tags_len*/, grpc_slice* /*tags*/) {
 
 size_t ServerStatsDeserialize(const char* buf, size_t buf_size,
                               uint64_t* server_elapsed_time) {
-  return grpc::internal::RpcServerStatsEncoding::Decode(
+  return RpcServerStatsEncoding::Decode(
       absl::string_view(buf, buf_size), server_elapsed_time);
 }
 
 size_t ServerStatsSerialize(uint64_t server_elapsed_time, char* buf,
                             size_t buf_size) {
-  return grpc::internal::RpcServerStatsEncoding::Encode(server_elapsed_time,
+  return RpcServerStatsEncoding::Encode(server_elapsed_time,
                                                         buf, buf_size);
 }
 
