@@ -14,7 +14,7 @@
 
 from datetime import datetime
 import os
-from typing import Any, List, Mapping, Optional, Tuple
+from typing import List, Mapping, Optional, Tuple
 
 from google.rpc import code_pb2
 from grpc_observability import _observability  # pytype: disable=pyi-error

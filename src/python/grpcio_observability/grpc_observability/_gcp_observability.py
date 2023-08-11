@@ -18,9 +18,7 @@ import time
 from typing import Any
 
 import grpc
-from grpc_observability import (
-    _observability_config,  # pytype: disable=pyi-error
-)
+from grpc_observability import _observability_config  # pytype: disable=pyi-error
 from grpc_observability import _cyobservability  # pytype: disable=pyi-error
 from grpc_observability._open_census_exporter import CENSUS_UPLOAD_INTERVAL_SECS
 from grpc_observability._open_census_exporter import OpenCensusExporter
@@ -86,7 +84,7 @@ class GCPOpenCensusObservability(grpc._observability.ObservabilityPlugin):
             self.config = _observability_config.read_config()
             _cyobservability.activate_config(self.config)
         except Exception as e:  # pylint: disable=broad-except
-            raise ValueError("Read configuration failed with: %s", e)
+            raise ValueError(f"Read configuration failed with: {e}")
 
         if exporter:
             self.exporter = exporter

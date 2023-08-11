@@ -116,7 +116,8 @@ def _get_gcp_observability_config_contents() -> str:
     """Get the contents of the observability config from environment variable or file.
 
     Returns:
-        The content from environment variable, or an empty string if the environment variable does not exist.
+        The content from environment variable, or an empty string if the environment
+    variable does not exist.
     """
 
     contents_str = ""
