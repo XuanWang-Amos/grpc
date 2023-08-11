@@ -65,6 +65,7 @@ class GcpObservabilityConfig:
         tracing_config = config_json.get("cloud_trace", {})
         self.sampling_rate = tracing_config.get("sampling_rate", 0.0)
 
+
 def read_config() -> GcpObservabilityConfig:
     """Reads the GCP observability config from the environment variables.
 
@@ -108,7 +109,7 @@ def _get_gcp_project_id_from_env_var() -> str:
     if project_id:
         return project_id
 
-    return project_id
+    return project_id  # pytype: disable=bad-return-type
 
 
 def _get_gcp_observability_config_contents() -> str:
@@ -129,4 +130,4 @@ def _get_gcp_observability_config_contents() -> str:
     if not contents_str:
         contents_str = os.getenv(GRPC_GCP_OBSERVABILITY_CONFIG_ENV)
 
-    return contents_str
+    return contents_str  # pytype: disable=bad-return-type
