@@ -20,8 +20,8 @@ from typing import Any
 import grpc
 
 # pytype: disable=pyi-error
-from grpc_observability import _observability_config
 from grpc_observability import _cyobservability
+from grpc_observability import _observability_config
 
 # pytype: enable=pyi-error
 from grpc_observability._open_census_exporter import CENSUS_UPLOAD_INTERVAL_SECS
