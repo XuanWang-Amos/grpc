@@ -18,8 +18,12 @@ import time
 from typing import Any
 
 import grpc
-from grpc_observability import _observability_config  # pytype: disable=pyi-error
-from grpc_observability import _cyobservability  # pytype: disable=pyi-error
+
+# pytype: disable=pyi-error
+from grpc_observability import _observability_config
+from grpc_observability import _cyobservability
+
+# pytype: enable=pyi-error
 from grpc_observability._open_census_exporter import CENSUS_UPLOAD_INTERVAL_SECS
 from grpc_observability._open_census_exporter import OpenCensusExporter
 from opencensus.trace import execution_context
