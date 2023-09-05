@@ -17,9 +17,10 @@ build_ext has lots of C/C++ files and normally them one by one.
 Enabling parallel build helps a lot.
 """
 
-import distutils.ccompiler
-from distutils.errors import DistutilsExecError, CompileError
 import distutils._msvccompiler
+import distutils.ccompiler
+from distutils.errors import CompileError
+from distutils.errors import DistutilsExecError
 import os
 
 try:
@@ -66,6 +67,7 @@ def _parallel_compile(
     )
     return objects
 
+
 def _parallel_msvc_compile(
     self,
     sources,
@@ -79,12 +81,13 @@ def _parallel_msvc_compile(
 ):
     if not self.initialized:
         self.initialize()
-    compile_info = self._setup_compile(output_dir, macros, include_dirs,
-                                        sources, depends, extra_postargs)
+    compile_info = self._setup_compile(
+        output_dir, macros, include_dirs, sources, depends, extra_postargs
+    )
     macros, objects, extra_postargs, pp_opts, build = compile_info
     compile_opts = extra_preargs or []
-    compile_opts.append('/c')
-    compile_opts.append('/O2')
+    compile_opts.append("/c")
+    compile_opts.append("/O2")
     print("compile_options: " + self.compile_options)
     if debug:
         compile_opts.extend(self.compile_options_debug)
@@ -134,9 +137,9 @@ def _parallel_msvc_compile(
             rc_dir = os.path.dirname(obj)
             try:
                 # first compile .MC to .RC and .H file
-                self.spawn([self.mc, '-h', h_dir, '-r', rc_dir, src])
-                base, _ = os.path.splitext(os.path.basename (src))
-                rc_file = os.path.join(rc_dir, base + '.rc')
+                self.spawn([self.mc, "-h", h_dir, "-r", rc_dir, src])
+                base, _ = os.path.splitext(os.path.basename(src))
+                rc_file = os.path.join(rc_dir, base + ".rc")
                 # then compile .RC to .RES file
                 self.spawn([self.rc, "/fo" + obj, rc_file])
 
@@ -145,12 +148,13 @@ def _parallel_msvc_compile(
             continue
         else:
             # how to handle this file?
-            raise CompileError("Don't know how to compile {} to {}"
-                                .format(src, obj))
+            raise CompileError(
+                "Don't know how to compile {} to {}".format(src, obj)
+            )
 
         args = [self.cc] + compile_opts + pp_opts
         if add_cpp_opts:
-            args.append('/EHsc')
+            args.append("/EHsc")
         args.append(input_opt)
         args.append("/Fo" + obj)
         args.extend(extra_postargs)
@@ -161,6 +165,7 @@ def _parallel_msvc_compile(
             raise CompileError(msg)
 
     return objects
+
 
 def monkeypatch_compile_maybe():
     """Monkeypatching is dumb, but the build speed gain is worth it."""
