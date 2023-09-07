@@ -89,7 +89,6 @@ class TestLite(setuptools.Command):
         pass
 
     def run(self):
-
         import tests
 
         loader = tests.Loader()
