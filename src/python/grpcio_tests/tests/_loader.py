@@ -120,9 +120,7 @@ class Loader(object):
             it has its tests loaded via self.loader into self.suite.
         """
         if self.module_matcher.match(module.__name__):
-            import sys; sys.stderr.write(f"_____ matched module: {module.__name__}\n"); sys.stderr.flush()
             module_suite = self.loader.loadTestsFromModule(module)
-            import sys; sys.stderr.write(f"_____ loaded module suite: {module_suite}\n"); sys.stderr.flush()
             self.suite.addTest(module_suite)
 
 
