@@ -1,4 +1,5 @@
 [
   "unit._metadata_test.MetadataTest",
-  "observability._observability_test.ObservabilityTest"
+  "observability._observability_test.ObservabilityTest",
+  "tests.observability._observability_test.ObservabilityTest"
 ]

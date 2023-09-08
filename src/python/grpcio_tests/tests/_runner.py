@@ -135,7 +135,7 @@ class Runner(object):
         testcase_filter = os.getenv("GRPC_PYTHON_TESTRUNNER_FILTER")
         filtered_cases = []
         for case in _loader.iterate_suite_cases(suite):
-            import sys; sys.stderr.write(f"_____ checking case id: {case.id()} startswith {testcase_filter} ? {case.id().startswith(testcase_filter)} \n"); sys.stderr.flush()
+            import sys; sys.stderr.write(f"  _____ checking case id: {case.id()} startswith {testcase_filter} ? {case.id().startswith(testcase_filter)} \n"); sys.stderr.flush()
             if not testcase_filter or case.id().startswith(testcase_filter):
                 filtered_cases.append(case)
         for case in filtered_cases:
