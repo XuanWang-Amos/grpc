@@ -97,6 +97,7 @@ class TestLite(setuptools.Command):
         import sys; sys.stderr.write(f"________loladed suite: {loader.suite}\n"); sys.stderr.flush()
         runner = tests.Runner(dedicated_threads=True)
         result = runner.run(loader.suite)
+        sys.exit("FAKE_Test failure")
         if not result.wasSuccessful():
             sys.exit("Test failure")
 
