@@ -15,7 +15,6 @@
 import json
 import pkgutil
 import unittest
-import json
 
 import tests
 
