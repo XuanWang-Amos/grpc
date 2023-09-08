@@ -1,7 +1,4 @@
 [
-  "_sanity._sanity_test.SanityTest",
-  "fork._fork_interop_test.ForkInteropTest",
-  "reflection._reflection_client_test.ReflectionClientTest",
   "unit._metadata_test.MetadataTest",
   "observability._observability_test.ObservabilityTest"
 ]

@@ -137,18 +137,20 @@ class Runner(object):
         for case in _loader.iterate_suite_cases(suite):
             if not testcase_filter or case.id().startswith(testcase_filter):
                 filtered_cases.append(case)
-        import sys; sys.stderr.write("_____ filtered_cases: {filtered_cases}\n"); sys.stderr.flush()
+        for case in filtered_cases:
+            import sys; sys.stderr.write(f"_____ filtered_cases: {case}\n"); sys.stderr.flush()
         # Ensure that every test case has no collision with any other test case in
         # the augmented results.
         augmented_cases = [
             AugmentedCase(case, uuid.uuid4()) for case in filtered_cases
         ]
-        import sys; sys.stderr.write("_____ augmented_cases: {augmented_cases}\n"); sys.stderr.flush()
+        import sys; sys.stderr.write(f"_____ augmented_cases: {augmented_cases}\n"); sys.stderr.flush()
         case_id_by_case = dict(
             (augmented_case.case, augmented_case.id)
             for augmented_case in augmented_cases
         )
-        import sys; sys.stderr.write("_____ case_id_by_case: {case_id_by_case}\n"); sys.stderr.flush()
+        for case, case_id in case_id_by_case.items():
+            import sys; sys.stderr.write(f"_____ case_id_by_case with id: {case_id} and case: {case}\n"); sys.stderr.flush()
         result_out = io.StringIO()
         result = _result.TerminalResult(
             result_out, id_map=lambda case: case_id_by_case[case]
