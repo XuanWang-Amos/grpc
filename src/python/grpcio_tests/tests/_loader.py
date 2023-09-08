@@ -71,7 +71,10 @@ class Loader(object):
         # measure unnecessarily suffers)
         coverage_context = coverage.Coverage(data_suffix=True)
         coverage_context.start()
-        import sys; sys.stderr.write(f"_____ importing module with names: {names}\n"); sys.stderr.flush()
+        import sys
+
+        sys.stderr.write(f"_____ importing module with names: {names}\n")
+        sys.stderr.flush()
         imported_modules = tuple(
             importlib.import_module(name) for name in names
         )
