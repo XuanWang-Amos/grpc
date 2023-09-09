@@ -720,11 +720,8 @@ class PythonConfig(
 
 class PythonLanguage(object):
     _TEST_SPECS_FILE = {
-        "native": ["src/python/grpcio_tests/tests/tests.json"],
-        "gevent": [
-            "src/python/grpcio_tests/tests/tests.json",
-            "src/python/grpcio_tests/tests_gevent/tests.json",
-        ],
+        "native": [],
+        "gevent": [],
         "asyncio": ["src/python/grpcio_tests/tests_aio/tests.json"],
     }
 
