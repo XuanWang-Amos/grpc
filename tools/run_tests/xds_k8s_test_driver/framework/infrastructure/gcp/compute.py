@@ -51,6 +51,9 @@ class ComputeV1(
         version: str = "v1",
     ):
         super().__init__(api_manager.compute(version), project)
+        import googleapiclient
+        logger.info(f"___googleapiclient: {googleapiclient.__version__}\n")
+
 
     class HealthCheckProtocol(enum.Enum):
         TCP = enum.auto()
@@ -583,6 +586,7 @@ class ComputeV1(
         # if FLAG_IS_SET:
         request.headers["X-Return-Encrypted-Headers"] = "request_and_response"
         logger.info(f"___calling execute with headers: {request.headers}")
+        logger.info(f"___request json: {request.to_json()}")
         operation = request.execute(num_retries=self._GCP_API_RETRIES)
         logger.info("Operation %s", operation)
         return self._wait(operation["name"], timeout_sec)
