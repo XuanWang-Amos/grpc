@@ -540,6 +540,7 @@ class ComputeV1(
         self._execute(
             collection.patch(project=self.project, body=body, **kwargs)
         )
+        # self._execute(collection.patch(project=self.project, body=body, **kwargs))
 
     def _list_resource(self, collection: discovery.Resource):
         return collection.list(project=self.project).execute(
@@ -579,6 +580,9 @@ class ComputeV1(
     def _execute(  # pylint: disable=arguments-differ
         self, request, *, timeout_sec=_WAIT_FOR_OPERATION_SEC
     ):
+        # if FLAG_IS_SET:
+        # request.headers["X-Return-Encrypted-Headers"] = "request_and_response"
+        logger.info(f"___calling execute with headers: {request.headers}")
         operation = request.execute(num_retries=self._GCP_API_RETRIES)
         logger.debug("Operation %s", operation)
         return self._wait(operation["name"], timeout_sec)
