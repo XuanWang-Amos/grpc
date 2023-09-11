@@ -581,7 +581,7 @@ class ComputeV1(
         self, request, *, timeout_sec=_WAIT_FOR_OPERATION_SEC
     ):
         # if FLAG_IS_SET:
-        # request.headers["X-Return-Encrypted-Headers"] = "request_and_response"
+        request.headers["X-Return-Encrypted-Headers"] = "request_and_response"
         logger.info(f"___calling execute with headers: {request.headers}")
         operation = request.execute(num_retries=self._GCP_API_RETRIES)
         logger.debug("Operation %s", operation)
