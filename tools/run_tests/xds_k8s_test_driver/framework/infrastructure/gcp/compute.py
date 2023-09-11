@@ -52,7 +52,6 @@ class ComputeV1(
     ):
         super().__init__(api_manager.compute(version), project)
 
-
     class HealthCheckProtocol(enum.Enum):
         TCP = enum.auto()
         GRPC = enum.auto()
