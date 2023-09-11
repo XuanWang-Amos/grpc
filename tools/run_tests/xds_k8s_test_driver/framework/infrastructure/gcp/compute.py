@@ -17,7 +17,7 @@ import enum
 import logging
 from typing import Any, Dict, List, Optional, Set
 
-from googleapiclient import discovery
+from googleapiclient import discovery, client_http
 import googleapiclient.errors
 
 import framework.errors
@@ -26,6 +26,88 @@ from framework.infrastructure import gcp
 
 logger = logging.getLogger(__name__)
 
+import httplib2
+import random
+import socket
+try:
+    import ssl
+except ImportError:
+    _ssl_SSLError = object()
+else:
+    _ssl_SSLError = ssl.SSLError
+
+def _my_retry_request(
+    http, num_retries, req_type, sleep, rand, uri, method, *args, **kwargs
+):
+    """Retries an HTTP request multiple times while handling errors.
+
+  If after all retries the request still fails, last error is either returned as
+  return value (for HTTP 5xx errors) or thrown (for ssl.SSLError).
+
+  Args:
+    http: Http object to be used to execute request.
+    num_retries: Maximum number of retries.
+    req_type: Type of the request (used for logging retries).
+    sleep, rand: Functions to sleep for random time between retries.
+    uri: URI to be requested.
+    method: HTTP method to be used.
+    args, kwargs: Additional arguments passed to http.request.
+
+  Returns:
+    resp, content - Response from the http request (may be HTTP 5xx).
+  """
+    resp = None
+    content = None
+    exception = None
+    for retry_num in range(num_retries + 1):
+        if retry_num > 0:
+            # Sleep before retrying.
+            sleep_time = rand() * 2 ** retry_num
+            sleep(sleep_time)
+
+        try:
+            exception = None
+            import sys; sys.stderr.write(f"____http.request: {http}\n")
+            resp, content = http.request(uri, method, *args, **kwargs)
+            import sys; sys.stderr.write(f"____resp: {resp}\n")
+            import sys; sys.stderr.write(f"____content: {content}\n")
+        # Retry on SSL errors and socket timeout errors.
+        except _ssl_SSLError as ssl_error:
+            exception = ssl_error
+        except socket.timeout as socket_timeout:
+            # It's important that this be before socket.error as it's a subclass
+            # socket.timeout has no errorcode
+            exception = socket_timeout
+        except ConnectionError as connection_error:
+            # Needs to be before socket.error as it's a subclass of
+            # OSError (socket.error)
+            exception = connection_error
+        except socket.error as socket_error:
+            # errno's contents differ by platform, so we have to match by name.
+            if socket.errno.errorcode.get(socket_error.errno) not in {
+                "WSAETIMEDOUT",
+                "ETIMEDOUT",
+                "EPIPE",
+                "ECONNABORTED",
+            }:
+                raise
+            exception = socket_error
+        except httplib2.ServerNotFoundError as server_not_found_error:
+            exception = server_not_found_error
+
+        if exception:
+            if retry_num == num_retries:
+                raise exception
+            else:
+                continue
+
+        if not client_http._should_retry_response(resp.status, content):
+            break
+
+    return resp, content
+
+import sys; sys.stderr.write(f"____patching _retry_request\n")
+client_http._retry_request = _my_retry_request
 
 class ComputeV1(
     gcp.api.GcpProjectApiResource
