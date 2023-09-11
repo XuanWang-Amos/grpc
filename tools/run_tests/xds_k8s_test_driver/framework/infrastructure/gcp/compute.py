@@ -51,8 +51,6 @@ class ComputeV1(
         version: str = "v1",
     ):
         super().__init__(api_manager.compute(version), project)
-        import googleapiclient
-        logger.info(f"___googleapiclient: {googleapiclient.__version__}\n")
 
 
     class HealthCheckProtocol(enum.Enum):
