@@ -584,7 +584,7 @@ class ComputeV1(
         request.headers["X-Return-Encrypted-Headers"] = "request_and_response"
         logger.info(f"___calling execute with headers: {request.headers}")
         operation = request.execute(num_retries=self._GCP_API_RETRIES)
-        logger.debug("Operation %s", operation)
+        logger.info("Operation %s", operation)
         return self._wait(operation["name"], timeout_sec)
 
     def _wait(
