@@ -590,7 +590,7 @@ class ComputeV1(
         logger.info(f"___calling execute with headers: {request.headers}")
         logger.info(f"___request json: {request.to_json()}")
         self.old_postproc = request.postproc
-        request.postproc = _test_postproc()
+        request.postproc = _test_postproc
         operation = request.execute(num_retries=self._GCP_API_RETRIES)
         logger.info("Operation %s", operation)
         return self._wait(operation["name"], timeout_sec)
