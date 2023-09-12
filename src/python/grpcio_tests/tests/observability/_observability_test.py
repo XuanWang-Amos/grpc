@@ -174,7 +174,6 @@ class ObservabilityTest(unittest.TestCase):
             self._start_server()
             unary_unary_call(port=self._port)
 
-        self.assertEqual(2, 3)
         self.assertGreater(len(self.all_metric), 0)
         self.assertGreater(len(self.all_span), 0)
         self._validate_metrics(self.all_metric)
