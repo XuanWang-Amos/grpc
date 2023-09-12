@@ -26,9 +26,10 @@ from framework.infrastructure import gcp
 
 logger = logging.getLogger(__name__)
 
-DEBUG_HEADER_IN_RESPONSE = 'x-encrypted-debug-headers'
-DEBUG_HEADER_KEY = 'X-Return-Encrypted-Headers'
+DEBUG_HEADER_IN_RESPONSE = "x-encrypted-debug-headers"
+DEBUG_HEADER_KEY = "X-Return-Encrypted-Headers"
 DEBUG_HEADER_VALUE = "request_and_response"
+
 
 class ComputeV1(
     gcp.api.GcpProjectApiResource
@@ -54,7 +55,6 @@ class ComputeV1(
         version: str = "v1",
     ):
         super().__init__(api_manager.compute(version), project)
-
 
     class HealthCheckProtocol(enum.Enum):
         TCP = enum.auto()
@@ -584,10 +584,14 @@ class ComputeV1(
         self, request, *, timeout_sec=_WAIT_FOR_OPERATION_SEC
     ):
         old_postproc = request.postproc
+
         def _maybe_log_debug_header(resp, contents):
             if DEBUG_HEADER_IN_RESPONSE in resp:
-                logger.info(f"Received debug headers: {resp[DEBUG_HEADER_IN_RESPONSE]}\n")
+                logger.info(
+                    f"Received debug headers: {resp[DEBUG_HEADER_IN_RESPONSE]}\n"
+                )
             return old_postproc(resp, contents)
+
         # if FLAG_IS_SET:
         request.headers[DEBUG_HEADER_KEY] = DEBUG_HEADER_VALUE
         request.postproc = _maybe_log_debug_header
