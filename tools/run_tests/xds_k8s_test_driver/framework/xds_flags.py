@@ -175,7 +175,7 @@ SOCKET_DEFAULT_TIMEOUT = flags.DEFINE_float(
 
 IS_STAGING = flags.DEFINE_bool(
     "is_staging",
-    default=False,
+    default=True,
     help="If tests are running under staging environment",
 )
 
