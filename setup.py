@@ -503,6 +503,7 @@ def cython_extensions_and_necessity():
         ]
         core_c_files = []
     else:
+        core_c_files = []
         c_files = list(CORE_C_FILES)
         for c_file in c_files:
             core_c_files.append(os.path.join(*c_file.split("/")))
