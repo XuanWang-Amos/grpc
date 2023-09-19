@@ -39,6 +39,7 @@ def _commandfile_spawn(self, command, **kwargs):
         # fail as is so we try blindly
         print("Command line length exceeded, using command file")
         print(" __SEP__ ".join(command))
+        print(f" __setuptools_version__: {setuptools.__version__}")
         temporary_directory = tempfile.mkdtemp()
         command_filename = os.path.abspath(
             os.path.join(temporary_directory, "command")
