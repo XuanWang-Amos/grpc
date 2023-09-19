@@ -18,7 +18,8 @@ support an @command_file directive where command_file is a file
 containing the full command line.
 """
 
-import setuptools
+# patch distutils
+import setuptools  # isort:skip
 from distutils import ccompiler
 import os
 import os.path
@@ -37,14 +38,14 @@ def _commandfile_spawn(self, command, **kwargs):
         # Even if this command doesn't support the @command_file, it will
         # fail as is so we try blindly
         print("Command line length exceeded, using command file")
-        print(" ".join(command))
+        print(" __SEP__ ".join(command))
         temporary_directory = tempfile.mkdtemp()
         command_filename = os.path.abspath(
             os.path.join(temporary_directory, "command")
         )
         with open(command_filename, "w") as command_file:
             escaped_args = [
-                '"' + arg.replace("\\", "\\\\") + '"' for arg in command[1:]
+                arg for arg in command[1:]
             ]
             # add each arg on a separate line to avoid hitting the
             # "line in command file contains 131071 or more characters" error
@@ -62,5 +63,4 @@ def _commandfile_spawn(self, command, **kwargs):
 def monkeypatch_spawn():
     """Monkeypatching is dumb, but it's either that or we become maintainers of
     something much, much bigger."""
-    # ccompiler.CCompiler.spawn = _commandfile_spawn
-    pass
+    ccompiler.CCompiler.spawn = _commandfile_spawn
