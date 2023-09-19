@@ -18,6 +18,7 @@ support an @command_file directive where command_file is a file
 containing the full command line.
 """
 
+import setuptools
 from distutils import ccompiler
 import os
 import os.path
