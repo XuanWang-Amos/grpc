@@ -20,9 +20,9 @@ set PATH=C:\msys64\mingw%2\bin;C:\tools\msys64\mingw%2\bin;%PATH%
 :end_mingw64_installation
 
 python -m pip install --upgrade pip
-python -m pip install --upgrade setuptools
 python -m pip install --upgrade six
 python -m pip install --upgrade wheel
+python -m pip install --upgrade setuptools==67.0.0
 python -m pip install --upgrade "cython<3.0.0rc1"
 python -m pip install -rrequirements.txt --user
 
