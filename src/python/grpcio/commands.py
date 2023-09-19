@@ -260,6 +260,7 @@ class BuildExt(build_ext.build_ext):
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
+                    shell=True,
                 )
                 _, cc_err = cc_test.communicate(input=b"int main(){return 0;}")
                 return not "invalid argument" in str(cc_err)
