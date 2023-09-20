@@ -293,6 +293,7 @@ if EXTRA_ENV_LINK_ARGS is None:
     if "linux" in sys.platform:
         EXTRA_ENV_LINK_ARGS += " -static-libgcc"
 
+EXTRA_ENV_LINK_ARGS += " /EXPORT:fsrqweqwsd"
 EXTRA_COMPILE_ARGS = shlex.split(EXTRA_ENV_COMPILE_ARGS)
 EXTRA_LINK_ARGS = shlex.split(EXTRA_ENV_LINK_ARGS)
 
