@@ -45,9 +45,7 @@ def _commandfile_spawn(self, command, **kwargs):
             os.path.join(temporary_directory, "command")
         )
         with open(command_filename, "w") as command_file:
-            escaped_args = [
-                arg for arg in command[1:]
-            ]
+            escaped_args = [arg for arg in command[1:]]
             # add each arg on a separate line to avoid hitting the
             # "line in command file contains 131071 or more characters" error
             # (can happen for extra long link commands)
