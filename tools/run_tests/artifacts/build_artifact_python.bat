@@ -19,7 +19,10 @@ set PATH=C:\%1;C:\%1\scripts;%PATH%
 set PATH=C:\msys64\mingw%2\bin;C:\tools\msys64\mingw%2\bin;%PATH%
 :end_mingw64_installation
 
-if "%1"=="Python37_32bit" || "%1"=="Python37" (
+set IS_PYTHON_37=false
+If "%1" == "Python37_32bit" set IS_PYTHON_37=true
+If "%1" == "Python37" set IS_PYTHON_37=true
+if "%IS_PYTHON_37%" == "true" (
 python -m pip install --upgrade six
 python -m pip install --upgrade setuptools==59.6.0
 ) else (
