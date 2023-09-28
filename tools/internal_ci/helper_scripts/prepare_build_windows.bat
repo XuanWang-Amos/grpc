@@ -24,8 +24,8 @@ set PATH=C:\tools\msys64\usr\bin;C:\Python37;C:\Program Files\CMake\bin;%PATH%
 cat C:\image_id.txt
 
 @rem create "python3" link that normally doesn't exist
-dir C:\Python37\
-mklink C:\Python37\python3.exe C:\Python37\python.exe
+dir C:\Python311\
+mklink C:\Python311\python3.exe C:\Python311\python.exe
 
 python --version
 python3 --version
