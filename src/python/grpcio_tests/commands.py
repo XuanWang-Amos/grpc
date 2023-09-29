@@ -89,6 +89,8 @@ class TestLite(setuptools.Command):
         pass
 
     def run(self):
+        self._add_eggs_to_path()
+
         import tests
 
         loader = tests.Loader()
@@ -97,6 +99,11 @@ class TestLite(setuptools.Command):
         result = runner.run(loader.suite)
         if not result.wasSuccessful():
             sys.exit("Test failure")
+
+    def _add_eggs_to_path(self):
+        """Fetch install and test requirements"""
+        self.distribution.fetch_build_eggs(self.distribution.install_requires)
+        self.distribution.fetch_build_eggs(self.distribution.tests_require)
 
 
 class TestPy3Only(setuptools.Command):
