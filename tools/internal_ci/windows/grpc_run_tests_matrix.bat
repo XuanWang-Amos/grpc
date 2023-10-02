@@ -28,6 +28,8 @@ dir t:\
 @rem enter repo root
 cd /d %~dp0\..\..\..
 
+set RUN_TESTS_FLAGS="-f basictests windows python -j 1 --inner_jobs 8 --max_time=5400"
+
 @rem if RUN_TESTS_FLAGS contains the string "csharp", make sure C# deps are installed.
 If Not "%RUN_TESTS_FLAGS%"=="%RUN_TESTS_FLAGS:csharp=%" (
     set PREPARE_BUILD_INSTALL_DEPS_CSHARP=true
