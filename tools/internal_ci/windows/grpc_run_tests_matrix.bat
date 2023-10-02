@@ -23,21 +23,21 @@ IF "%cd%"=="T:\src" (
 endlocal
 
 @rem Info on disk usage
-dir t:\
+@REM dir t:\
 
 @rem enter repo root
 cd /d %~dp0\..\..\..
 
 @rem if RUN_TESTS_FLAGS contains the string "csharp", make sure C# deps are installed.
-If Not "%RUN_TESTS_FLAGS%"=="%RUN_TESTS_FLAGS:csharp=%" (
-    set PREPARE_BUILD_INSTALL_DEPS_CSHARP=true
-)
+@REM If Not "%RUN_TESTS_FLAGS%"=="%RUN_TESTS_FLAGS:csharp=%" (
+@REM     set PREPARE_BUILD_INSTALL_DEPS_CSHARP=true
+@REM )
 @rem if RUN_TESTS_FLAGS contains the string "python", make sure python deps are installed.
 set PREPARE_BUILD_INSTALL_DEPS_PYTHON=true
 
-call tools/internal_ci/helper_scripts/prepare_build_windows.bat || exit /b 1
+@REM call tools/internal_ci/helper_scripts/prepare_build_windows.bat || exit /b 1
 
-call tools/internal_ci/helper_scripts/prepare_ccache.bat || exit /b 1
+@REM call tools/internal_ci/helper_scripts/prepare_ccache.bat || exit /b 1
 
 @rem TODO(https://github.com/grpc/grpc/issues/28011): Remove once Windows Kokoro workers'
 @rem   Python installs have been upgraded. Currently, removing this line will cause
@@ -48,9 +48,9 @@ python3 tools/run_tests/run_tests_matrix.py -f basictests windows python -j 1 --
 set RUNTESTS_EXITCODE=%errorlevel%
 
 @rem show ccache stats
-ccache --show-stats
+@REM ccache --show-stats
 
 @rem Info on disk usage after test
-dir t:\
+@REM dir t:\
 
 exit /b %RUNTESTS_EXITCODE%
