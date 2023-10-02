@@ -91,12 +91,12 @@ class TestLite(setuptools.Command):
     def run(self):
         import tests
 
-        # import time
-        # import sys
-        # sys.stderr.write(f"start sleeping...\n"); sys.stderr.flush()
-        # time.sleep(2 * 60 * 60)
-        # sys.stderr.write(f"after sleeping...\n"); sys.stderr.flush()
-        sys.exit("Test_failure")
+        import time
+        import sys
+        sys.stderr.write(f"start sleeping...\n"); sys.stderr.flush()
+        time.sleep(2 * 60 * 60)
+        sys.stderr.write(f"after sleeping...\n"); sys.stderr.flush()
+        # sys.exit("Test_failure")
 
         loader = tests.Loader()
         loader.loadTestsFromNames(["tests"])
