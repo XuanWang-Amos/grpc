@@ -721,12 +721,12 @@ class PythonConfig(
 class PythonLanguage(object):
     _TEST_SPECS_FILE = {
         "native": ["src/python/grpcio_tests/tests/tests_1.json"],
-        "asyncio": ["src/python/grpcio_tests/tests_aio/tests.json"],
+        # "asyncio": ["src/python/grpcio_tests/tests_aio/tests.json"],
     }
 
     _TEST_COMMAND = {
         "native": "test_lite",
-        # "asyncio": "test_aio",
+        "asyncio": "test_aio",
     }
 
     def configure(self, config, args):
