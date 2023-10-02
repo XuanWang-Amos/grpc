@@ -138,7 +138,10 @@ pip_install() {
   /usr/bin/env -i PATH="$PATH" "$VENV_PYTHON" -m pip install "$@"
 }
 
-pip_install --upgrade pip setuptools
+# Pin setuptools to < 60.0.0 to restore the distutil installation, see:
+# https://github.com/pypa/setuptools/pull/2896
+pip_install --upgrade pip==21.3.1
+pip_install --upgrade setuptools==59.6.0
 
 # pip-installs the directory specified. Used because on MSYS the vanilla Windows
 # Python gets confused when parsing paths.
@@ -199,7 +202,7 @@ $VENV_PYTHON "$ROOT/tools/distrib/python/xds_protos/build.py"
 pip_install_dir "$ROOT/tools/distrib/python/xds_protos"
 
 # Build/install csds
-pip_install_dir "$ROOT/src/python/grpcio_csds"
+pip_install_dir_and_deps "$ROOT/src/python/grpcio_csds"
 
 # Build/install admin
 pip_install_dir "$ROOT/src/python/grpcio_admin"
