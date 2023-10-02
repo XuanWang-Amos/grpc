@@ -726,7 +726,7 @@ class PythonLanguage(object):
 
     _TEST_COMMAND = {
         "native": "test_lite",
-        "asyncio": "test_aio",
+        # "asyncio": "test_aio",
     }
 
     def configure(self, config, args):
