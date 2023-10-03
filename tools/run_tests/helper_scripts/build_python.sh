@@ -164,7 +164,6 @@ pip_install_dir_and_deps() {
 pip_install_xds() {
   PWD=$(pwd)
   cd "$1"
-  $VENV_PYTHON -m pip install grpcio_tools
   ($VENV_PYTHON setup.py sdist bdist_wheel install || true)
   $VENV_PYTHON -m pip install --no-index --find-links=dist/ xds-protos
   cd "$PWD"
@@ -179,6 +178,8 @@ if [ "$("$VENV_PYTHON" -c "import sys; print(sys.version_info[0])")" == "2" ]
 then
   pip_install --upgrade futures enum34
 fi
+
+pip_install grpcio_tools
 
 # pip_install_dir "$ROOT"
 
