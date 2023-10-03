@@ -161,6 +161,14 @@ pip_install_dir_and_deps() {
   cd "$PWD"
 }
 
+pip_install_xds() {
+  PWD=$(pwd)
+  cd "$1"
+  ($VENV_PYTHON setup.py sdist bdist_wheel install || true)
+  $VENV_PYTHON -m pip install --no-index --find-links=dist/ xds-protos
+  cd "$PWD"
+}
+
 pip_install -U gevent
 
 pip_install --upgrade 'cython<3.0.0rc1'
@@ -171,49 +179,51 @@ then
   pip_install --upgrade futures enum34
 fi
 
-$VENV_PYTHON "$ROOT/tools/distrib/python/make_grpcio_tools.py"
-pip_install_dir_and_deps "$ROOT/tools/distrib/python/grpcio_tools"
+exit 1
 
-# Build/install Channelz
-$VENV_PYTHON "$ROOT/src/python/grpcio_channelz/setup.py" preprocess
-$VENV_PYTHON "$ROOT/src/python/grpcio_channelz/setup.py" build_package_protos
-pip_install_dir "$ROOT/src/python/grpcio_channelz"
+# pip_install_dir "$ROOT"
 
-# Build/install health checking
-$VENV_PYTHON "$ROOT/src/python/grpcio_health_checking/setup.py" preprocess
-$VENV_PYTHON "$ROOT/src/python/grpcio_health_checking/setup.py" build_package_protos
-pip_install_dir "$ROOT/src/python/grpcio_health_checking"
+# $VENV_PYTHON "$ROOT/tools/distrib/python/make_grpcio_tools.py"
+# pip_install_dir_and_deps "$ROOT/tools/distrib/python/grpcio_tools"
 
-# Build/install reflection
-$VENV_PYTHON "$ROOT/src/python/grpcio_reflection/setup.py" preprocess
-$VENV_PYTHON "$ROOT/src/python/grpcio_reflection/setup.py" build_package_protos
-pip_install_dir "$ROOT/src/python/grpcio_reflection"
+# # Build/install Channelz
+# $VENV_PYTHON "$ROOT/src/python/grpcio_channelz/setup.py" preprocess
+# $VENV_PYTHON "$ROOT/src/python/grpcio_channelz/setup.py" build_package_protos
+# pip_install_dir "$ROOT/src/python/grpcio_channelz"
 
-# Build/install status proto mapping
-$VENV_PYTHON "$ROOT/src/python/grpcio_status/setup.py" preprocess
-$VENV_PYTHON "$ROOT/src/python/grpcio_status/setup.py" build_package_protos
-pip_install_dir "$ROOT/src/python/grpcio_status"
+# # Build/install health checking
+# $VENV_PYTHON "$ROOT/src/python/grpcio_health_checking/setup.py" preprocess
+# $VENV_PYTHON "$ROOT/src/python/grpcio_health_checking/setup.py" build_package_protos
+# pip_install_dir "$ROOT/src/python/grpcio_health_checking"
+
+# # Build/install reflection
+# $VENV_PYTHON "$ROOT/src/python/grpcio_reflection/setup.py" preprocess
+# $VENV_PYTHON "$ROOT/src/python/grpcio_reflection/setup.py" build_package_protos
+# pip_install_dir "$ROOT/src/python/grpcio_reflection"
+
+# # Build/install status proto mapping
+# $VENV_PYTHON "$ROOT/src/python/grpcio_status/setup.py" preprocess
+# $VENV_PYTHON "$ROOT/src/python/grpcio_status/setup.py" build_package_protos
+# pip_install_dir "$ROOT/src/python/grpcio_status"
 
 
 # Build/install status proto mapping
 $VENV_PYTHON "$ROOT/tools/distrib/python/xds_protos/build.py"
-pip_install_dir "$ROOT/tools/distrib/python/xds_protos"
+pip_install_xds "$ROOT/tools/distrib/python/xds_protos"
 
-# Build/install csds
-pip_install_dir_and_deps "$ROOT/src/python/grpcio_csds"
+# # Build/install csds
+# pip_install_dir_and_deps "$ROOT/src/python/grpcio_csds"
 
-# Build/install admin
-pip_install_dir "$ROOT/src/python/grpcio_admin"
+# # Build/install admin
+# pip_install_dir "$ROOT/src/python/grpcio_admin"
 
-# Install testing
-pip_install_dir "$ROOT/src/python/grpcio_testing"
+# # Install testing
+# pip_install_dir "$ROOT/src/python/grpcio_testing"
 
-# Build/install tests
-pip_install coverage==4.4 oauth2client==4.1.0 \
-            google-auth>=1.35.0 requests==2.31.0 \
-            googleapis-common-protos>=1.5.5 rsa==4.0 absl-py==1.4.0
-$VENV_PYTHON "$ROOT/src/python/grpcio_tests/setup.py" preprocess
-$VENV_PYTHON "$ROOT/src/python/grpcio_tests/setup.py" build_package_protos
-pip_install_dir "$ROOT/src/python/grpcio_tests"
-
-pip_install_dir "$ROOT"
+# # Build/install tests
+# pip_install coverage==4.4 oauth2client==4.1.0 \
+#             google-auth>=1.35.0 requests==2.31.0 \
+#             googleapis-common-protos>=1.5.5 rsa==4.0 absl-py==1.4.0
+# $VENV_PYTHON "$ROOT/src/python/grpcio_tests/setup.py" preprocess
+# $VENV_PYTHON "$ROOT/src/python/grpcio_tests/setup.py" build_package_protos
+# pip_install_dir "$ROOT/src/python/grpcio_tests"
