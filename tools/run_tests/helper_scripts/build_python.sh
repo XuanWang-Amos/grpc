@@ -164,6 +164,7 @@ pip_install_dir_and_deps() {
 pip_install_xds() {
   PWD=$(pwd)
   cd "$1"
+  $VENV_PYTHON -m pip install grpcio_tools
   ($VENV_PYTHON setup.py sdist bdist_wheel install || true)
   $VENV_PYTHON -m pip install --no-index --find-links=dist/ xds-protos
   cd "$PWD"
