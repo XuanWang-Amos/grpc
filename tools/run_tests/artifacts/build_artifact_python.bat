@@ -33,7 +33,7 @@ python -m pip install --upgrade pip six setuptools wheel
 )
 
 python -m pip install --upgrade "cython<3.0.0rc1"
-python -m pip install -rrequirements.txt --user
+python -m pip install -r requirements.txt --user
 
 @rem set GRPC_PYTHON_OVERRIDE_CYGWIN_DETECTION_FOR_27=1
 set GRPC_PYTHON_BUILD_WITH_CYTHON=1
@@ -51,6 +51,9 @@ set ARTIFACT_DIR=%cd%\%ARTIFACTS_OUT%
 @rem Set up gRPC Python tools
 python tools\distrib\python\make_grpcio_tools.py
 
+@rem Set up gRPC Python xds_protos
+python tools\distrib\python\xds_protos\build.py || goto :error
+
 @rem Build gRPC Python extensions
 python setup.py build_ext -c %EXT_COMPILER% || goto :error
 
@@ -65,11 +68,6 @@ pushd tools\distrib\python\grpcio_tools
 python setup.py bdist_wheel || goto :error
 popd
 
-@rem Build xds_protos source distribution
-pushd tools\distrib\python\xds_protos
-python build.py || goto :error
-python setup.py sdist bdist_wheel install || goto :error
-popd
 
 @rem Ensure the generate artifacts are valid.
 python -m pip install packaging==21.3 twine==3.8.0
@@ -77,9 +75,6 @@ python -m twine check dist\* tools\distrib\python\grpcio_tools\dist\* || goto :e
 
 xcopy /Y /I /S dist\* %ARTIFACT_DIR% || goto :error
 xcopy /Y /I /S tools\distrib\python\grpcio_tools\dist\* %ARTIFACT_DIR% || goto :error
-xcopy /Y /I /S tools\distrib\python\xds_protos\dist\* %ARTIFACT_DIR% || goto :error
-
-python -m pip install xds-protos --no-index --find-links "file://%ARTIFACT_DIR%"
 
 goto :EOF
 
