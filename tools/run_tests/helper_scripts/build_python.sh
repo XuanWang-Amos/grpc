@@ -161,14 +161,6 @@ pip_install_dir_and_deps() {
   cd "$PWD"
 }
 
-pip_install_dist() {
-  PWD=$(pwd)
-  cd "$1"
-  ($VENV_PYTHON setup.py sdist bdist_wheel || true)
-  $VENV_PYTHON -m pip install --no-index --find-links=dist/ xds-protos
-  cd "$PWD"
-}
-
 pip_install -U gevent
 
 pip_install --upgrade 'cython<3.0.0rc1'
@@ -207,7 +199,7 @@ pip_install_dir "$ROOT/src/python/grpcio_status"
 
 # Build/install status proto mapping
 $VENV_PYTHON "$ROOT/tools/distrib/python/xds_protos/build.py"
-pip_install_dist "$ROOT/tools/distrib/python/xds_protos"
+pip_install_dir "$ROOT/tools/distrib/python/xds_protos"
 
 # Build/install csds
 pip_install_dir_and_deps "$ROOT/src/python/grpcio_csds"
