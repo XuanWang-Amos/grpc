@@ -102,10 +102,11 @@ COMPILE_BOTH = COMPILE_PROTO_ONLY + ["--grpc_python_out={}".format(OUTPUT_PATH)]
 
 
 def has_grpc_service(proto_package_path: str) -> bool:
-    return proto_package_path.startswith("envoy/service")
+    return proto_package_path.startswith(os.path.join("envoy", "service"))
 
 
 def compile_protos(proto_root: str, sub_dir: str = ".") -> None:
+    sys.stderr.write(f"Checking path: {os.path.join(proto_root, sub_dir)}\n"); sys.stderr.flush()
     for root, _, files in os.walk(os.path.join(proto_root, sub_dir)):
         proto_package_path = os.path.relpath(root, proto_root)
         if proto_package_path in EXCLUDE_PROTO_PACKAGES_LIST:
@@ -113,9 +114,11 @@ def compile_protos(proto_root: str, sub_dir: str = ".") -> None:
             continue
         for file_name in files:
             if file_name.endswith(".proto"):
+                if "csds" in file_name:
+                    sys.stderr.write(f"calling protoc.main for : {file_name}\n"); sys.stderr.flush()
+                    sys.stderr.write(f"has_grpc_service for {proto_package_path}: {has_grpc_service(proto_package_path)}\n"); sys.stderr.flush()
                 # Compile proto
                 if has_grpc_service(proto_package_path):
-                    sys.stderr.write(f"calling protoc.main for : {file_name}\n"); sys.stderr.flush()
                     return_code = protoc.main(
                         COMPILE_BOTH + [os.path.join(root, file_name)]
                     )

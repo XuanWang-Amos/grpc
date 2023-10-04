@@ -15,7 +15,7 @@
 """Builds the content of xds-protos package"""
 
 import os
-
+import sys
 from grpc_tools import protoc
 import pkg_resources
 
@@ -53,6 +53,7 @@ WELL_KNOWN_PROTOS_INCLUDE = pkg_resources.resource_filename(
 )
 
 OUTPUT_PATH = WORK_DIR
+sys.stderr.write(f"OUTPUT_PATH: {OUTPUT_PATH}\n"); sys.stderr.flush()
 
 # Prepare the test file generation
 TEST_FILE_NAME = "generated_file_import_test.py"
@@ -101,7 +102,7 @@ COMPILE_BOTH = COMPILE_PROTO_ONLY + ["--grpc_python_out={}".format(OUTPUT_PATH)]
 
 
 def has_grpc_service(proto_package_path: str) -> bool:
-    return proto_package_path.startswith("envoy/service")
+    return proto_package_path.startswith(os.path.join("envoy", "service"))
 
 
 def compile_protos(proto_root: str, sub_dir: str = ".") -> None:
@@ -112,11 +113,17 @@ def compile_protos(proto_root: str, sub_dir: str = ".") -> None:
             continue
         for file_name in files:
             if file_name.endswith(".proto"):
+                if "csds" in file_name:
+                    sys.stderr.write(f"calling protoc.main for : {file_name}\n"); sys.stderr.flush()
+                    sys.stderr.write(f"has_grpc_service for {proto_package_path}: {has_grpc_service(proto_package_path)}\n"); sys.stderr.flush()
                 # Compile proto
                 if has_grpc_service(proto_package_path):
                     return_code = protoc.main(
                         COMPILE_BOTH + [os.path.join(root, file_name)]
                     )
+                    if "csds" in file_name:
+                        sys.stderr.write(f"Command: {COMPILE_BOTH + [os.path.join(root, file_name)]}\n"); sys.stderr.flush()
+                        sys.stderr.write(f">>return_code: {return_code}\n"); sys.stderr.flush()
                     add_test_import(proto_package_path, file_name, service=True)
                 else:
                     return_code = protoc.main(
