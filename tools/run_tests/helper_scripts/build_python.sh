@@ -209,7 +209,8 @@ pip_install grpcio_tools
 
 # Build/install status proto mapping
 $VENV_PYTHON "$ROOT/tools/distrib/python/xds_protos/build.py"
-pip_install_dist "$ROOT/tools/distrib/python/xds_protos"
+# pip_install_dist "$ROOT/tools/distrib/python/xds_protos"
+pip_install_dir "$ROOT/tools/distrib/python/xds_protos"
 exit 1
 # # Build/install csds
 # pip_install_dir_and_deps "$ROOT/src/python/grpcio_csds"
