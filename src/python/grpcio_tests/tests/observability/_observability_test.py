@@ -177,7 +177,6 @@ class ObservabilityTest(unittest.TestCase):
         self.assertGreater(len(self.all_metric), 0)
         self._validate_metrics(self.all_metric)
 
-
     def testThrowErrorWithoutConfig(self):
         with self.assertRaises(ValueError):
             with grpc_observability.GCPOpenCensusObservability(
