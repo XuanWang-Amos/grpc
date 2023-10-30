@@ -16,8 +16,8 @@ from concurrent import futures
 import json
 import logging
 import os
-import sys
 import random
+import sys
 from typing import Any, Dict, List
 import unittest
 
@@ -148,6 +148,7 @@ class _GenericHandler(grpc.GenericRpcHandler):
         else:
             return None
 
+
 @unittest.skipIf(
     os.name == "nt" or "darwin" in sys.platform,
     "Observability is not supported in Windows and MacOS",
@@ -176,7 +177,6 @@ class ObservabilityTest(unittest.TestCase):
 
         self.assertGreater(len(self.all_metric), 0)
         self._validate_metrics(self.all_metric)
-
 
     def testThrowErrorWithoutConfig(self):
         with self.assertRaises(ValueError):

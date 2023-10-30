@@ -729,7 +729,9 @@ class PythonLanguage(object):
         "asyncio": "test_aio",
     }
 
-    _OBSERVABILITY_TEST = "tests.observability._observability_test.ObservabilityTest"
+    _OBSERVABILITY_TEST = (
+        "tests.observability._observability_test.ObservabilityTest"
+    )
 
     def configure(self, config, args):
         self.config = config
