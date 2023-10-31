@@ -760,6 +760,9 @@ class PythonLanguage(object):
                     with open(tests_json_file_name) as tests_json_file:
                         test_cases.extend(json.load(tests_json_file))
 
+                if io_platform == "native" and os.name != "nt" and "darwin" not in sys.platform:
+                    test_cases.extend(json.load("tests.observability._observability_test.ObservabilityTest"))
+
                 environment = dict(_FORCE_ENVIRON_FOR_WRAPPERS)
                 # TODO(https://github.com/grpc/grpc/issues/21401) Fork handlers is not
                 # designed for non-native IO manager. It has a side-effect that
