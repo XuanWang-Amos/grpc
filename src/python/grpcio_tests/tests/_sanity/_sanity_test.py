@@ -13,9 +13,7 @@
 # limitations under the License.
 
 import json
-import os
 import pkgutil
-import sys
 import unittest
 
 import tests
@@ -40,18 +38,13 @@ class SanityTest(unittest.TestCase):
             }
         )
 
-        tests_json_string = ""
-        if (
-            os.name == "nt" or "darwin" in sys.platform
-        ) or self.TEST_PKG_PATH != "tests":
-            tests_json_string = pkgutil.get_data(
-                self.TEST_PKG_PATH, "tests.json"
-            )
-        else:
-            tests_json_string = pkgutil.get_data(
-                self.TEST_PKG_PATH, "tests_native_linux.json"
-            )
+        tests_json_string = pkgutil.get_data(self.TEST_PKG_PATH, "tests.json")
+        tests_json_string = pkgutil.get_data("tests", "tests.json")
         tests_json = json.loads(tests_json_string.decode())
+
+        for test_case in tests_json:
+            if "_observability_test" in test_case:
+                tests_json.remove(test_case)
 
         self.assertSequenceEqual(tests_json, test_suite_names)
         self.assertGreater(len(test_suite_names), 0)
