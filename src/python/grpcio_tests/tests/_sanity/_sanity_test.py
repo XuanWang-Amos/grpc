@@ -43,7 +43,7 @@ class SanityTest(unittest.TestCase):
         tests_json = json.loads(tests_json_string.decode())
 
         for test_case in tests_json:
-            if "_observability_test" in test_case:
+            if "_observability_test" in test_case and self.TEST_PKG_PATH == "tests":
                 tests_json.remove(test_case)
 
         self.assertSequenceEqual(tests_json, test_suite_names)
