@@ -168,7 +168,6 @@ class ObservabilityTest(unittest.TestCase):
             self._server.stop(0)
 
     def testRecordUnaryUnary(self):
-        self.assertGreater(0, 0)
         self._set_config_file(_VALID_CONFIG_TRACING_STATS)
         with grpc_observability.GCPOpenCensusObservability(
             exporter=self.test_exporter
