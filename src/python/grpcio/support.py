@@ -18,7 +18,10 @@ import shutil
 import sys
 import tempfile
 
-from setuptools import errors
+if sys.version_info[1] < 8:
+    from distutils import errors
+else:
+    from setuptools import errors
 
 import commands
 
