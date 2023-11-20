@@ -1065,7 +1065,7 @@ class _UnaryUnaryMultiCallable(grpc.UnaryUnaryMultiCallable):
         target: bytes,
         request_serializer: Optional[SerializingFunction],
         response_deserializer: Optional[DeserializingFunction],
-        registered_method: bool,
+        _registered_method: bool,
     ):
         self._channel = channel
         self._managed_call = managed_call
@@ -1074,7 +1074,7 @@ class _UnaryUnaryMultiCallable(grpc.UnaryUnaryMultiCallable):
         self._request_serializer = request_serializer
         self._response_deserializer = response_deserializer
         self._context = cygrpc.build_census_context()
-        self._registered_method = registered_method
+        self._registered_method = _registered_method
 
     def _prepare(
         self,
@@ -1239,7 +1239,7 @@ class _SingleThreadedUnaryStreamMultiCallable(grpc.UnaryStreamMultiCallable):
         target: bytes,
         request_serializer: SerializingFunction,
         response_deserializer: DeserializingFunction,
-        registered_method: bool,
+        _registered_method: bool,
     ):
         self._channel = channel
         self._method = method
@@ -1247,7 +1247,7 @@ class _SingleThreadedUnaryStreamMultiCallable(grpc.UnaryStreamMultiCallable):
         self._request_serializer = request_serializer
         self._response_deserializer = response_deserializer
         self._context = cygrpc.build_census_context()
-        self._registered_method = registered_method
+        self._registered_method = _registered_method
 
     def __call__(  # pylint: disable=too-many-locals
         self,
@@ -1332,7 +1332,7 @@ class _UnaryStreamMultiCallable(grpc.UnaryStreamMultiCallable):
         target: bytes,
         request_serializer: SerializingFunction,
         response_deserializer: DeserializingFunction,
-        registered_method: bool,
+        _registered_method: bool,
     ):
         self._channel = channel
         self._managed_call = managed_call
@@ -1341,7 +1341,7 @@ class _UnaryStreamMultiCallable(grpc.UnaryStreamMultiCallable):
         self._request_serializer = request_serializer
         self._response_deserializer = response_deserializer
         self._context = cygrpc.build_census_context()
-        self._registered_method = registered_method
+        self._registered_method = _registered_method
 
     def __call__(  # pylint: disable=too-many-locals
         self,
@@ -1417,7 +1417,7 @@ class _StreamUnaryMultiCallable(grpc.StreamUnaryMultiCallable):
         target: bytes,
         request_serializer: Optional[SerializingFunction],
         response_deserializer: Optional[DeserializingFunction],
-        registered_method: bool,
+        _registered_method: bool,
     ):
         self._channel = channel
         self._managed_call = managed_call
@@ -1426,7 +1426,7 @@ class _StreamUnaryMultiCallable(grpc.StreamUnaryMultiCallable):
         self._request_serializer = request_serializer
         self._response_deserializer = response_deserializer
         self._context = cygrpc.build_census_context()
-        self._registered_method = registered_method
+        self._registered_method = _registered_method
 
     def _blocking(
         self,
@@ -1583,7 +1583,7 @@ class _StreamStreamMultiCallable(grpc.StreamStreamMultiCallable):
         target: bytes,
         request_serializer: Optional[SerializingFunction],
         response_deserializer: Optional[DeserializingFunction],
-        registered_method: bool,
+        _registered_method: bool,
     ):
         self._channel = channel
         self._managed_call = managed_call
@@ -1592,7 +1592,7 @@ class _StreamStreamMultiCallable(grpc.StreamStreamMultiCallable):
         self._request_serializer = request_serializer
         self._response_deserializer = response_deserializer
         self._context = cygrpc.build_census_context()
-        self._registered_method = registered_method
+        self._registered_method = _registered_method
 
     def __call__(
         self,
@@ -1725,7 +1725,7 @@ def _channel_managed_call_management(state: _ChannelCallState):
         operations: Sequence[Sequence[cygrpc.Operation]],
         event_handler: UserTag,
         context: Any,
-        registered_method: bool,
+        _registered_method: bool,
     ) -> cygrpc.IntegratedCall:
         """Creates a cygrpc.IntegratedCall.
 
@@ -1742,7 +1742,7 @@ def _channel_managed_call_management(state: _ChannelCallState):
           event_handler: A behavior to call to handle the events resultant from
             the operations on the call.
           context: Context object for distributed tracing.
-          registered_method: Whether to create a call for registered method.
+          _registered_method: Whether to create a call for registered method.
         Returns:
           A cygrpc.IntegratedCall with which to conduct an RPC.
         """
@@ -1763,7 +1763,7 @@ def _channel_managed_call_management(state: _ChannelCallState):
                 credentials,
                 operations_and_tags,
                 context,
-                registered_method,
+                _registered_method,
             )
             if state.managed_calls == 0:
                 state.managed_calls = 1
@@ -2060,7 +2060,7 @@ class Channel(grpc.Channel):
         method: str,
         request_serializer: Optional[SerializingFunction] = None,
         response_deserializer: Optional[DeserializingFunction] = None,
-        registered_method: Optional[bool] = False,
+        _registered_method: Optional[bool] = False,
     ) -> grpc.UnaryUnaryMultiCallable:
         return _UnaryUnaryMultiCallable(
             self._channel,
@@ -2069,7 +2069,7 @@ class Channel(grpc.Channel):
             _common.encode(self._target),
             request_serializer,
             response_deserializer,
-            registered_method,
+            _registered_method,
         )
 
     # pylint: disable=arguments-differ
@@ -2078,7 +2078,7 @@ class Channel(grpc.Channel):
         method: str,
         request_serializer: Optional[SerializingFunction] = None,
         response_deserializer: Optional[DeserializingFunction] = None,
-        registered_method: Optional[bool] = False,
+        _registered_method: Optional[bool] = False,
     ) -> grpc.UnaryStreamMultiCallable:
         # NOTE(rbellevi): Benchmarks have shown that running a unary-stream RPC
         # on a single Python thread results in an appreciable speed-up. However,
@@ -2091,7 +2091,7 @@ class Channel(grpc.Channel):
                 _common.encode(self._target),
                 request_serializer,
                 response_deserializer,
-                registered_method,
+                _registered_method,
             )
         else:
             return _UnaryStreamMultiCallable(
@@ -2101,7 +2101,7 @@ class Channel(grpc.Channel):
                 _common.encode(self._target),
                 request_serializer,
                 response_deserializer,
-                registered_method,
+                _registered_method,
             )
 
     # pylint: disable=arguments-differ
@@ -2110,7 +2110,7 @@ class Channel(grpc.Channel):
         method: str,
         request_serializer: Optional[SerializingFunction] = None,
         response_deserializer: Optional[DeserializingFunction] = None,
-        registered_method: Optional[bool] = False,
+        _registered_method: Optional[bool] = False,
     ) -> grpc.StreamUnaryMultiCallable:
         return _StreamUnaryMultiCallable(
             self._channel,
@@ -2119,7 +2119,7 @@ class Channel(grpc.Channel):
             _common.encode(self._target),
             request_serializer,
             response_deserializer,
-            registered_method,
+            _registered_method,
         )
 
     # pylint: disable=arguments-differ
@@ -2128,7 +2128,7 @@ class Channel(grpc.Channel):
         method: str,
         request_serializer: Optional[SerializingFunction] = None,
         response_deserializer: Optional[DeserializingFunction] = None,
-        registered_method: Optional[bool] = False,
+        _registered_method: Optional[bool] = False,
     ) -> grpc.StreamStreamMultiCallable:
         return _StreamStreamMultiCallable(
             self._channel,
@@ -2137,7 +2137,7 @@ class Channel(grpc.Channel):
             _common.encode(self._target),
             request_serializer,
             response_deserializer,
-            registered_method,
+            _registered_method,
         )
 
     def _unsubscribe_all(self) -> None:
