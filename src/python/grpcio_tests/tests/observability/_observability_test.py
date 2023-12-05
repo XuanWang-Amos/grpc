@@ -449,7 +449,7 @@ def unary_unary_call(port, metadata=None):
     with grpc.insecure_channel(f"localhost:{port}") as channel:
         multi_callable = channel.unary_unary(
             _UNARY_UNARY,
-            _registered_call_handle=channel._create_registered_call_handle(
+            _registered_call_handle=channel._get_registered_call_handle(
                 _UNARY_UNARY
             ),
         )
@@ -465,7 +465,7 @@ def unary_stream_call(port):
     with grpc.insecure_channel(f"localhost:{port}") as channel:
         multi_callable = channel.unary_stream(
             _UNARY_STREAM,
-            _registered_call_handle=channel._create_registered_call_handle(
+            _registered_call_handle=channel._get_registered_call_handle(
                 _UNARY_UNARY
             ),
         )
@@ -478,7 +478,7 @@ def stream_unary_call(port):
     with grpc.insecure_channel(f"localhost:{port}") as channel:
         multi_callable = channel.stream_unary(
             _STREAM_UNARY,
-            _registered_call_handle=channel._create_registered_call_handle(
+            _registered_call_handle=channel._get_registered_call_handle(
                 _UNARY_UNARY
             ),
         )
@@ -491,7 +491,7 @@ def stream_stream_call(port):
     with grpc.insecure_channel(f"localhost:{port}") as channel:
         multi_callable = channel.stream_stream(
             _STREAM_STREAM,
-            _registered_call_handle=channel._create_registered_call_handle(
+            _registered_call_handle=channel._get_registered_call_handle(
                 _UNARY_UNARY
             ),
         )

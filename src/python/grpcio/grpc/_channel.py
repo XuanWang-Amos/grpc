@@ -1973,6 +1973,7 @@ class Channel(grpc.Channel):
     _channel: cygrpc.Channel
     _call_state: _ChannelCallState
     _connectivity_state: _ChannelConnectivityState
+    _registered_call_handles: dict[str, int]
 
     def __init__(
         self,
@@ -2002,15 +2003,18 @@ class Channel(grpc.Channel):
         )
         self._call_state = _ChannelCallState(self._channel)
         self._connectivity_state = _ChannelConnectivityState(self._channel)
+        self._registered_call_handle = {}
         cygrpc.fork_register_channel(self)
         if cygrpc.g_gevent_activated:
             cygrpc.gevent_increment_channel_count()
 
-    def _create_registered_call_handle(self, method: str) -> int:
-        registered_call_handle = self._channel.register_method(
-            _common.encode(method), None
-        )
-        return registered_call_handle
+    def _get_registered_call_handle(self, method: str) -> int:
+        if method not in self._registered_call_handles.keys():
+            registered_call_handle = self._channel.register_method(
+                _common.encode(method), None
+            )
+            self._registered_call_handles[method] = registered_call_handle
+        return self._registered_call_handles[method]
 
     def _process_python_options(
         self, python_options: Sequence[ChannelArgumentType]
