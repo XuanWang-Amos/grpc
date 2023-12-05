@@ -2029,7 +2029,7 @@ class Channel(grpc.Channel):
         self._target = target
         self._call_state = _ChannelCallState(self._channel)
         self._connectivity_state = _ChannelConnectivityState(self._channel)
-        self._registered_call_handle = {}
+        self._registered_call_handles = {}
         cygrpc.fork_register_channel(self)
         if cygrpc.g_gevent_activated:
             cygrpc.gevent_increment_channel_count()
