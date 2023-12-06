@@ -24,6 +24,7 @@ import types
 from typing import (
     Any,
     Callable,
+    Dict,
     Iterator,
     List,
     Optional,
@@ -1973,7 +1974,7 @@ class Channel(grpc.Channel):
     _channel: cygrpc.Channel
     _call_state: _ChannelCallState
     _connectivity_state: _ChannelConnectivityState
-    _registered_call_handles: dict[str, int]
+    _registered_call_handles: Dict[str, int]
 
     def __init__(
         self,
