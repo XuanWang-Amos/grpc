@@ -547,9 +547,7 @@ class PythonPluginTest(unittest.TestCase):
         """Tests that we're setting _registered_method to True when create call using generated stub."""
         service = _CreateService()
         self.assertTrue(service.stub.UnaryCall._registered_method)
-        self.assertTrue(
-            service.stub.StreamingOutputCall._registered_method
-        )
+        self.assertTrue(service.stub.StreamingOutputCall._registered_method)
         self.assertTrue(service.stub.StreamingInputCall._registered_method)
         self.assertTrue(service.stub.FullDuplexCall._registered_method)
         service.server.stop(None)
