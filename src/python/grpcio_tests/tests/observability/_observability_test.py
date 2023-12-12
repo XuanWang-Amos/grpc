@@ -449,9 +449,7 @@ def unary_unary_call(port, metadata=None):
     with grpc.insecure_channel(f"localhost:{port}") as channel:
         multi_callable = channel.unary_unary(
             _UNARY_UNARY,
-            _registered_call_handle=channel._get_registered_call_handle(
-                _UNARY_UNARY
-            ),
+            _registered_method=True,
         )
         if metadata:
             unused_response, call = multi_callable.with_call(
@@ -465,9 +463,7 @@ def unary_stream_call(port):
     with grpc.insecure_channel(f"localhost:{port}") as channel:
         multi_callable = channel.unary_stream(
             _UNARY_STREAM,
-            _registered_call_handle=channel._get_registered_call_handle(
-                _UNARY_UNARY
-            ),
+            _registered_method=True,
         )
         call = multi_callable(_REQUEST)
         for _ in call:
@@ -478,9 +474,7 @@ def stream_unary_call(port):
     with grpc.insecure_channel(f"localhost:{port}") as channel:
         multi_callable = channel.stream_unary(
             _STREAM_UNARY,
-            _registered_call_handle=channel._get_registered_call_handle(
-                _UNARY_UNARY
-            ),
+            _registered_method=True,
         )
         unused_response, call = multi_callable.with_call(
             iter([_REQUEST] * STREAM_LENGTH)
@@ -491,9 +485,7 @@ def stream_stream_call(port):
     with grpc.insecure_channel(f"localhost:{port}") as channel:
         multi_callable = channel.stream_stream(
             _STREAM_STREAM,
-            _registered_call_handle=channel._get_registered_call_handle(
-                _UNARY_UNARY
-            ),
+            _registered_method=True,
         )
         call = multi_callable(iter([_REQUEST] * STREAM_LENGTH))
         for _ in call:
