@@ -1743,8 +1743,6 @@ def _channel_managed_call_management(state: _ChannelCallState):
           event_handler: A behavior to call to handle the events resultant from
             the operations on the call.
           context: Context object for distributed tracing.
-          _registered_call_handle: An int representing the call handle of the
-          method, or None if the method is not registered.
         Returns:
           A cygrpc.IntegratedCall with which to conduct an RPC.
         """
@@ -2036,9 +2034,17 @@ class Channel(grpc.Channel):
             cygrpc.gevent_increment_channel_count()
 
     def _get_registered_call_handle(self, method: str) -> int:
+        """
+        Registers the method if it's not registered before and returns the registered
+        call handler.
+
+        This is a semi-private method. It is intended for use only by gRPC generated code.
+
+        This method is not thread-safe.
+        """
         if method not in self._registered_call_handles.keys():
             registered_call_handle = self._channel.register_method(
-                _common.encode(method), None
+                _common.encode(method)
             )
             self._registered_call_handles[method] = registered_call_handle
         return self._registered_call_handles[method]
@@ -2072,8 +2078,11 @@ class Channel(grpc.Channel):
         method: str,
         request_serializer: Optional[SerializingFunction] = None,
         response_deserializer: Optional[DeserializingFunction] = None,
-        _registered_call_handle: Optional[int] = None,
+        _registered_method: Optional[bool] = False,
     ) -> grpc.UnaryUnaryMultiCallable:
+        _registered_call_handle = None
+        if _registered_method:
+            _registered_call_handle = self._get_registered_call_handle(method)
         return _UnaryUnaryMultiCallable(
             self._channel,
             _channel_managed_call_management(self._call_state),
@@ -2090,8 +2099,11 @@ class Channel(grpc.Channel):
         method: str,
         request_serializer: Optional[SerializingFunction] = None,
         response_deserializer: Optional[DeserializingFunction] = None,
-        _registered_call_handle: Optional[int] = None,
+        _registered_method: Optional[bool] = False,
     ) -> grpc.UnaryStreamMultiCallable:
+        _registered_call_handle = None
+        if _registered_method:
+            _registered_call_handle = self._get_registered_call_handle(method)
         # NOTE(rbellevi): Benchmarks have shown that running a unary-stream RPC
         # on a single Python thread results in an appreciable speed-up. However,
         # due to slight differences in capability, the multi-threaded variant
@@ -2122,8 +2134,11 @@ class Channel(grpc.Channel):
         method: str,
         request_serializer: Optional[SerializingFunction] = None,
         response_deserializer: Optional[DeserializingFunction] = None,
-        _registered_call_handle: Optional[int] = None,
+        _registered_method: Optional[bool] = False,
     ) -> grpc.StreamUnaryMultiCallable:
+        _registered_call_handle = None
+        if _registered_method:
+            _registered_call_handle = self._get_registered_call_handle(method)
         return _StreamUnaryMultiCallable(
             self._channel,
             _channel_managed_call_management(self._call_state),
@@ -2140,8 +2155,11 @@ class Channel(grpc.Channel):
         method: str,
         request_serializer: Optional[SerializingFunction] = None,
         response_deserializer: Optional[DeserializingFunction] = None,
-        _registered_call_handle: Optional[int] = None,
+        _registered_method: Optional[bool] = False,
     ) -> grpc.StreamStreamMultiCallable:
+        _registered_call_handle = None
+        if _registered_method:
+            _registered_call_handle = self._get_registered_call_handle(method)
         return _StreamStreamMultiCallable(
             self._channel,
             _channel_managed_call_management(self._call_state),
@@ -2161,6 +2179,7 @@ class Channel(grpc.Channel):
     def _close(self) -> None:
         self._unsubscribe_all()
         self._channel.close(cygrpc.StatusCode.cancelled, "Channel closed!")
+        self._channel._unregister_method(self._registered_call_handles.keys())
         cygrpc.fork_unregister_channel(self)
         if cygrpc.g_gevent_activated:
             cygrpc.gevent_decrement_channel_count()
