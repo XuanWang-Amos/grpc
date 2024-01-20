@@ -116,7 +116,10 @@ class _StatsWatcher:
         for key, value in metadata_to_add:
             if self._include_all_metadata or key.lower() in self._metadata_keys:
                 rpc_metadata.metadata.append(
-                    messages_pb2.LoadBalancerStatsResponse.MetadataEntry(key=key, value=value, type=metadata_type))
+                    messages_pb2.LoadBalancerStatsResponse.MetadataEntry(
+                        key=key, value=value, type=metadata_type
+                    )
+                )
 
     def on_rpc_complete(
         self,
@@ -311,8 +314,8 @@ def _on_rpc_done(
                 rpc_id,
                 hostname,
                 method,
-                initial_metadata = future.initial_metadata(),
-                trailing_metadata = future.trailing_metadata(),
+                initial_metadata=future.initial_metadata(),
+                trailing_metadata=future.trailing_metadata(),
             )
 
 
