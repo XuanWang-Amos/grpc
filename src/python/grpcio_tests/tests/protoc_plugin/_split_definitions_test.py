@@ -26,7 +26,11 @@ import unittest
 
 import grpc
 from grpc_tools import protoc
-import pkg_resources
+
+if sys.version_info >= (3, 9, 0):
+    from importlib import resources
+else:
+    import pkg_resources
 
 from tests.unit import test_common
 
@@ -60,6 +64,20 @@ def _create_directory_tree(root, path_components_sequence):
                 os.makedirs(path.join(root, relative_path))
                 created.add(relative_path)
             thus_far = path.join(thus_far, path_component)
+
+
+def _get_resource_file_name(
+    package_or_requirement: str, resource_name: str
+) -> str:
+    """Obtain the filename for a resource on the file system."""
+    if sys.version_info >= (3, 9, 0):
+        return (
+            resources.files(package_or_requirement) / resource_name
+        ).resolve()
+    else:
+        return pkg_resources.resource_filename(
+            package_or_requirement, resource_name
+        )
 
 
 def _massage_proto_content(
@@ -367,7 +385,7 @@ class WellKnownTypesTest(unittest.TestCase):
     def testWellKnownTypes(self):
         os.chdir(_TEST_DIR)
         out_dir = tempfile.mkdtemp(suffix="wkt_test", dir=".")
-        well_known_protos_include = pkg_resources.resource_filename(
+        well_known_protos_include = _get_resource_file_name(
             "grpc_tools", "_proto"
         )
         args = [
