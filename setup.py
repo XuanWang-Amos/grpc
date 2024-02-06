@@ -37,9 +37,9 @@ import sys
 import sysconfig
 
 import _metadata
-import pkg_resources
 from setuptools import Extension
 from setuptools.command import egg_info
+from packaging.version import parse
 
 # Redirect the manifest template from MANIFEST.in to PYTHON-MANIFEST.in.
 egg_info.manifest_maker.template = "PYTHON-MANIFEST.in"
@@ -51,9 +51,7 @@ CORE_INCLUDE = (
     ".",
 )
 ABSL_INCLUDE = (os.path.join("third_party", "abseil-cpp"),)
-ADDRESS_SORTING_INCLUDE = (
-    os.path.join("third_party", "address_sorting", "include"),
-)
+ADDRESS_SORTING_INCLUDE = (os.path.join("third_party", "address_sorting", "include"),)
 CARES_INCLUDE = (
     os.path.join("third_party", "cares", "cares", "include"),
     os.path.join("third_party", "cares"),
@@ -68,14 +66,10 @@ if "linux" in sys.platform:
 if "openbsd" in sys.platform:
     CARES_INCLUDE += (os.path.join("third_party", "cares", "config_openbsd"),)
 RE2_INCLUDE = (os.path.join("third_party", "re2"),)
-SSL_INCLUDE = (
-    os.path.join("third_party", "boringssl-with-bazel", "src", "include"),
-)
+SSL_INCLUDE = (os.path.join("third_party", "boringssl-with-bazel", "src", "include"),)
 UPB_INCLUDE = (os.path.join("third_party", "upb"),)
 UPB_GRPC_GENERATED_INCLUDE = (os.path.join("src", "core", "ext", "upb-gen"),)
-UPBDEFS_GRPC_GENERATED_INCLUDE = (
-    os.path.join("src", "core", "ext", "upbdefs-gen"),
-)
+UPBDEFS_GRPC_GENERATED_INCLUDE = (os.path.join("src", "core", "ext", "upbdefs-gen"),)
 UTF8_RANGE_INCLUDE = (os.path.join("third_party", "utf8_range"),)
 XXHASH_INCLUDE = (os.path.join("third_party", "xxhash"),)
 ZLIB_INCLUDE = (os.path.join("third_party", "zlib"),)
@@ -117,9 +111,7 @@ def _env_bool_value(env_name, default):
     return os.environ.get(env_name, default).upper() not in ["FALSE", "0", ""]
 
 
-BUILD_WITH_BORING_SSL_ASM = _env_bool_value(
-    "GRPC_BUILD_WITH_BORING_SSL_ASM", "True"
-)
+BUILD_WITH_BORING_SSL_ASM = _env_bool_value("GRPC_BUILD_WITH_BORING_SSL_ASM", "True")
 
 # Export this environment variable to override the platform variant that will
 # be chosen for boringssl assembly optimizations. This option is useful when
@@ -140,23 +132,17 @@ BUILD_WITH_CYTHON = _env_bool_value("GRPC_PYTHON_BUILD_WITH_CYTHON", "False")
 # Export this variable to use the system installation of openssl. You need to
 # have the header files installed (in /usr/include/openssl) and during
 # runtime, the shared library must be installed
-BUILD_WITH_SYSTEM_OPENSSL = _env_bool_value(
-    "GRPC_PYTHON_BUILD_SYSTEM_OPENSSL", "False"
-)
+BUILD_WITH_SYSTEM_OPENSSL = _env_bool_value("GRPC_PYTHON_BUILD_SYSTEM_OPENSSL", "False")
 
 # Export this variable to use the system installation of zlib. You need to
 # have the header files installed (in /usr/include/) and during
 # runtime, the shared library must be installed
-BUILD_WITH_SYSTEM_ZLIB = _env_bool_value(
-    "GRPC_PYTHON_BUILD_SYSTEM_ZLIB", "False"
-)
+BUILD_WITH_SYSTEM_ZLIB = _env_bool_value("GRPC_PYTHON_BUILD_SYSTEM_ZLIB", "False")
 
 # Export this variable to use the system installation of cares. You need to
 # have the header files installed (in /usr/include/) and during
 # runtime, the shared library must be installed
-BUILD_WITH_SYSTEM_CARES = _env_bool_value(
-    "GRPC_PYTHON_BUILD_SYSTEM_CARES", "False"
-)
+BUILD_WITH_SYSTEM_CARES = _env_bool_value("GRPC_PYTHON_BUILD_SYSTEM_CARES", "False")
 
 # Export this variable to use the system installation of re2. You need to
 # have the header files installed (in /usr/include/re2) and during
@@ -190,15 +176,11 @@ BUILD_WITH_STATIC_LIBSTDCXX = _env_bool_value(
 #    make HAS_SYSTEM_OPENSSL_ALPN=0
 #
 # TODO(ericgribkoff) Respect the BUILD_WITH_SYSTEM_* flags alongside this option
-USE_PREBUILT_GRPC_CORE = _env_bool_value(
-    "GRPC_PYTHON_USE_PREBUILT_GRPC_CORE", "False"
-)
+USE_PREBUILT_GRPC_CORE = _env_bool_value("GRPC_PYTHON_USE_PREBUILT_GRPC_CORE", "False")
 
 # Environment variable to determine whether or not to enable coverage analysis
 # in Cython modules.
-ENABLE_CYTHON_TRACING = _env_bool_value(
-    "GRPC_PYTHON_ENABLE_CYTHON_TRACING", "False"
-)
+ENABLE_CYTHON_TRACING = _env_bool_value("GRPC_PYTHON_ENABLE_CYTHON_TRACING", "False")
 
 # Environment variable specifying whether or not there's interest in setting up
 # documentation building.
@@ -210,8 +192,7 @@ ENABLE_DOCUMENTATION_BUILD = _env_bool_value(
 def check_linker_need_libatomic():
     """Test if linker on system needs libatomic."""
     code_test = (
-        b"#include <atomic>\n"
-        + b"int main() { return std::atomic<int64_t>{}; }"
+        b"#include <atomic>\n" + b"int main() { return std::atomic<int64_t>{}; }"
     )
     cxx = shlex.split(os.environ.get("CXX", "c++"))
     cpp_test = subprocess.Popen(
@@ -255,9 +236,7 @@ if EXTRA_ENV_COMPILE_ARGS is None:
     elif "linux" in sys.platform:
         # GCC by defaults uses C17 so only C++14 needs to be specified.
         EXTRA_ENV_COMPILE_ARGS += " -std=c++14"
-        EXTRA_ENV_COMPILE_ARGS += (
-            " -fvisibility=hidden -fno-wrapv -fno-exceptions"
-        )
+        EXTRA_ENV_COMPILE_ARGS += " -fvisibility=hidden -fno-wrapv -fno-exceptions"
     elif "darwin" in sys.platform:
         # AppleClang by defaults uses C17 so only C++14 needs to be specified.
         EXTRA_ENV_COMPILE_ARGS += " -std=c++14"
@@ -297,9 +276,7 @@ if "win32" in sys.platform:
     CORE_C_FILES = filter(lambda x: "third_party/cares" not in x, CORE_C_FILES)
 
 if BUILD_WITH_SYSTEM_OPENSSL:
-    CORE_C_FILES = filter(
-        lambda x: "third_party/boringssl" not in x, CORE_C_FILES
-    )
+    CORE_C_FILES = filter(lambda x: "third_party/boringssl" not in x, CORE_C_FILES)
     CORE_C_FILES = filter(lambda x: "src/boringssl" not in x, CORE_C_FILES)
     SSL_INCLUDE = (os.path.join("/usr", "include", "openssl"),)
 
@@ -316,9 +293,7 @@ if BUILD_WITH_SYSTEM_RE2:
     RE2_INCLUDE = (os.path.join("/usr", "include", "re2"),)
 
 if BUILD_WITH_SYSTEM_ABSL:
-    CORE_C_FILES = filter(
-        lambda x: "third_party/abseil-cpp" not in x, CORE_C_FILES
-    )
+    CORE_C_FILES = filter(lambda x: "third_party/abseil-cpp" not in x, CORE_C_FILES)
     ABSL_INCLUDE = (os.path.join("/usr", "include"),)
 
 EXTENSION_INCLUDE_DIRECTORIES = (
@@ -461,8 +436,8 @@ if "linux" in sys.platform or "darwin" in sys.platform:
 if "darwin" in sys.platform:
     mac_target = sysconfig.get_config_var("MACOSX_DEPLOYMENT_TARGET")
     if mac_target:
-        mac_target = pkg_resources.parse_version(str(mac_target))
-        if mac_target < pkg_resources.parse_version("10.10.0"):
+        mac_target = parse(str(mac_target))
+        if mac_target < parse("10.10.0"):
             os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.10"
             os.environ["_PYTHON_HOST_PLATFORM"] = re.sub(
                 r"macosx-[0-9]+\.[0-9]+-(.+)",
@@ -493,10 +468,7 @@ def cython_extensions_and_necessity():
         Extension(
             name=module_name,
             sources=(
-                [module_file]
-                + list(CYTHON_HELPER_C_FILES)
-                + core_c_files
-                + asm_files
+                [module_file] + list(CYTHON_HELPER_C_FILES) + core_c_files + asm_files
             ),
             include_dirs=list(EXTENSION_INCLUDE_DIRECTORIES),
             libraries=list(EXTENSION_LIBRARIES),
@@ -511,9 +483,8 @@ def cython_extensions_and_necessity():
     ]
     need_cython = BUILD_WITH_CYTHON
     if not BUILD_WITH_CYTHON:
-        need_cython = (
-            need_cython
-            or not commands.check_and_update_cythonization(extensions)
+        need_cython = need_cython or not commands.check_and_update_cythonization(
+            extensions
         )
     # TODO: the strategy for conditional compiling and exposing the aio Cython
     # dependencies will be revisited by https://github.com/grpc/grpc/issues/19728
@@ -540,7 +511,9 @@ EXTRAS_REQUIRES = {
 }
 
 SETUP_REQUIRES = (
-    INSTALL_REQUIRES + ("Sphinx~=1.8.1",) if ENABLE_DOCUMENTATION_BUILD else ()
+    INSTALL_REQUIRES + ("packaging>=23.2",) + ("Sphinx~=1.8.1",)
+    if ENABLE_DOCUMENTATION_BUILD
+    else ()
 )
 
 try:
@@ -553,9 +526,7 @@ except ImportError:
             "other commands, but the extension files will fail to build.\n"
         )
     elif need_cython:
-        sys.stderr.write(
-            "We could not find Cython. Setup may take 10-20 minutes.\n"
-        )
+        sys.stderr.write("We could not find Cython. Setup may take 10-20 minutes.\n")
         SETUP_REQUIRES += ("cython>=0.23,<3.0.0rc1",)
 
 COMMAND_CLASS = {

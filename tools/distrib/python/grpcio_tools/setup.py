@@ -24,7 +24,7 @@ from subprocess import PIPE
 import sys
 import sysconfig
 
-import pkg_resources
+from packaging.version import parse
 import setuptools
 from setuptools import Extension
 from setuptools.command import build_ext
@@ -219,10 +219,7 @@ elif "linux" in sys.platform or "darwin" in sys.platform:
 # We need OSX 10.10, the oldest which supports C++ thread_local.
 if "darwin" in sys.platform:
     mac_target = sysconfig.get_config_var("MACOSX_DEPLOYMENT_TARGET")
-    if mac_target and (
-        pkg_resources.parse_version(mac_target)
-        < pkg_resources.parse_version("10.10.0")
-    ):
+    if mac_target and (parse(mac_target) < parse("10.10.0")):
         os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.10"
         os.environ["_PYTHON_HOST_PLATFORM"] = re.sub(
             r"macosx-[0-9]+\.[0-9]+-(.+)",
@@ -313,6 +310,7 @@ setuptools.setup(
         "grpcio>={version}".format(version=grpc_version.VERSION),
         "setuptools",
     ],
+    setup_requires=["packaging>=23.2"],
     package_data=package_data(),
     cmdclass={
         "build_ext": BuildExt,
