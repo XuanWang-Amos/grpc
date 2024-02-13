@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Iterable, List
+from typing import List
 
 from grpc_observability import _observability  # pytype: disable=pyi-error
 from grpc_observability._open_telemetry_plugin import _OpenTelemetryPlugin
 
 
 class _OpenTelemetryExporterDelegator(_observability.Exporter):
-    _plugins: Iterable[_OpenTelemetryPlugin]
+    _plugins: List[_OpenTelemetryPlugin]
 
-    def __init__(self, plugins: Iterable[_OpenTelemetryPlugin]):
+    def __init__(self, plugins: List[_OpenTelemetryPlugin]):
         self._plugins = plugins
 
     def export_stats_data(

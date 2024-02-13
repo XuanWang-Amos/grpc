@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any
+from typing import Any, Optional
 
 import grpc
 
@@ -128,7 +128,9 @@ class GCPOpenCensusObservability(grpc._observability.ObservabilityPlugin):
 
     def create_server_call_tracer_factory(
         self,
-    ) -> ServerCallTracerFactoryCapsule:
+        *,
+        xds: bool,
+    ) -> Optional[ServerCallTracerFactoryCapsule]:
         capsule = _cyobservability.create_server_call_tracer_factory_capsule()
         return capsule
 

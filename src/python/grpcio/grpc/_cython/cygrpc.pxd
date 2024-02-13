@@ -33,6 +33,7 @@ include "_cygrpc/tag.pxd.pxi"
 include "_cygrpc/time.pxd.pxi"
 include "_cygrpc/vtable.pxd.pxi"
 include "_cygrpc/_hooks.pxd.pxi"
+include "_cygrpc/observability.pxd.pxi"
 
 
 include "_cygrpc/grpc_gevent.pxd.pxi"

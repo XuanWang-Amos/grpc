@@ -32,6 +32,8 @@ class PythonOpenCensusServerCallTracerFactory
   grpc_core::ServerCallTracer* CreateNewServerCallTracer(
       grpc_core::Arena* arena,
       const grpc_core::ChannelArgs& channel_args) override;
+  
+  bool IsServerTraced(const grpc_core::ChannelArgs& args) override;
 };
 
 inline absl::string_view GetMethod(const grpc_core::Slice& path) {

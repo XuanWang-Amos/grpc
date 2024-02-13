@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from grpc import _observability
 
 cdef class Server:
 
@@ -23,6 +24,7 @@ cdef class Server:
     self.is_shutting_down = False
     self.is_shutdown = False
     self.c_server = NULL
+    # arguments = self._maybe_add_server_call_tracer(arguments)
     cdef _ChannelArgs channel_args = _ChannelArgs(arguments)
     self.c_server = grpc_server_create(channel_args.c_args(), NULL)
     cdef grpc_server_xds_status_notifier notifier
@@ -32,6 +34,14 @@ cdef class Server:
       grpc_server_set_config_fetcher(self.c_server,
         grpc_server_config_fetcher_xds_create(notifier, channel_args.c_args()))
     self.references.append(arguments)
+
+  # def _maybe_add_server_call_tracer(self, object arguments):
+  #   with _observability.get_plugin() as plugin:
+  #     if not (plugin and plugin.tracing_enabled):
+  #       return arguments
+  #     addr = plugin.get_server_call_tracer_factory()
+  #     arguments += ("grpc.experimental.server_call_tracer_factory", ServerCallTracerFactory(addr))
+  #     return arguments
 
   def request_call(
       self, CompletionQueue call_queue not None,

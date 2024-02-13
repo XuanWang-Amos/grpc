@@ -286,4 +286,11 @@ PythonOpenCensusServerCallTracerFactory::CreateNewServerCallTracer(
   return new PythonOpenCensusServerCallTracer();
 }
 
+bool PythonOpenCensusServerCallTracerFactory::IsServerTraced(
+    const grpc_core::ChannelArgs& args) {
+  // Return true only if there is no server selector registered or if the server
+  // selector returns true.
+  return true;
+}
+
 }  // namespace grpc_observability

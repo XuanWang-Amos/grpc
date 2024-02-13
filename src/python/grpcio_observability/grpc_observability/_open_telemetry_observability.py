@@ -15,7 +15,7 @@
 import logging
 import threading
 import time
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 import grpc
 
@@ -98,20 +98,21 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
       plugin: OpenTelemetryPlugin to enable.
     """
 
-    exporter: "grpc_observability.Exporter"
+    _exporter: "grpc_observability.Exporter"
+    _plugins: List[OpenTelemetryPlugin]
 
     def __init__(
         self,
         *,
         plugins: Optional[Iterable[OpenTelemetryPlugin]] = None,
     ):
-        _plugins = []
+        self._plugins = []
         if plugins:
             for plugin in plugins:
-                _plugins.append(_OpenTelemetryPlugin(plugin))
+                self._plugins.append(_OpenTelemetryPlugin(plugin))
 
         self._plugins = _plugins
-        self.exporter = _OpenTelemetryExporterDelegator(_plugins)
+        self._exporter = _OpenTelemetryExporterDelegator(self._plugins)
 
     def __enter__(self):
         global _OPEN_TELEMETRY_OBSERVABILITY  # pylint: disable=global-statement
@@ -138,7 +139,7 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
             raise ValueError(f"Activate observability metrics failed with: {e}")
 
         try:
-            _cyobservability.cyobservability_init(self.exporter)
+            _cyobservability.cyobservability_init(self._exporter)
         # TODO(xuanwn): Use specific exceptons
         except Exception as e:  # pylint: disable=broad-except
             _LOGGER.exception("Initiate observability failed with: %s", e)
@@ -172,8 +173,14 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
 
     def create_server_call_tracer_factory(
         self,
-    ) -> ServerCallTracerFactoryCapsule:
-        capsule = _cyobservability.create_server_call_tracer_factory_capsule()
+        *,
+        xds: bool,
+    ) -> Optional[ServerCallTracerFactoryCapsule]:
+        capsule = None
+        if self.is_server_traced(xds):
+            capsule = (
+                _cyobservability.create_server_call_tracer_factory_capsule()
+            )
         return capsule
 
     def delete_client_call_tracer(
@@ -195,7 +202,7 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
     ) -> None:
         status_code = GRPC_STATUS_CODE_TO_STRING.get(status_code, "UNKNOWN")
         _cyobservability._record_rpc_latency(
-            self.exporter, method, target, rpc_latency, status_code
+            self._exporter, method, target, rpc_latency, status_code
         )
 
     def _get_additional_client_labels(self, method_name: str) -> Dict[str, str]:
@@ -203,3 +210,6 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
         for _plugin in self._plugins:
             additional_client_labels.update(_plugin.get_additional_client_labels(method_name))
         return additional_client_labels
+
+    def is_server_traced(self, xds: bool) -> bool:
+        return True
