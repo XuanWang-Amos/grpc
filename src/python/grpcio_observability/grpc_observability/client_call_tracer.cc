@@ -176,6 +176,21 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
+    RecordReceivedInitialMetadata(grpc_metadata_batch* recv_initial_metadata) {
+  // Get labels from recv_initial_metadata and add to metrics.
+  // parent_->parent_->active_plugin_options_view().ForEach(
+  //     [&](const InternalOpenTelemetryPluginOption& plugin_option,
+  //         size_t /*index*/) {
+  //       auto* labels_injector = plugin_option.labels_injector();
+  //       if (labels_injector != nullptr) {
+  //         injected_labels_from_plugin_options_.push_back(
+  //             labels_injector->GetLabels(recv_initial_metadata));
+  //       }
+  //       return true;
+  //     });
+}
+
+void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     RecordSendMessage(const grpc_core::SliceBuffer& /*send_message*/) {
   ++sent_message_count_;
 }

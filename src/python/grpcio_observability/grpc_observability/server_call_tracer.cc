@@ -107,7 +107,24 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
   // arguments.
   // It's not a requirement to have this metric thus left unimplemented.
   void RecordSendInitialMetadata(
-      grpc_metadata_batch* /*send_initial_metadata*/) override {}
+      grpc_metadata_batch* /*send_initial_metadata*/) override {
+    // 1. Check if incoming metadata have x-envoy-peer-metadata label.
+    // 2. If it does, perform metadata exchange.
+    // 3. send_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(), 
+    // serialized_labels_to_send_.Ref())
+    // serialized_labels_to_send_
+    // active_plugin_options_view_.ForEach(
+    //     [&](const InternalOpenTelemetryPluginOption& plugin_option,
+    //         size_t index) {
+    //       auto* labels_injector = plugin_option.labels_injector();
+    //       if (labels_injector != nullptr) {
+    //         labels_injector->AddLabels(
+    //             send_initial_metadata,
+    //             injected_labels_from_plugin_options_[index].get());
+    //       }
+    //       return true;
+    //     });
+      }
 
   void RecordSendTrailingMetadata(
       grpc_metadata_batch* send_trailing_metadata) override;
