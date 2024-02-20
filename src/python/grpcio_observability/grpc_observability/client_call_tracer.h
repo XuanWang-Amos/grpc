@@ -25,6 +25,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "python_census_context.h"
+#include "metadata_exchange.h"
 
 #include <grpc/support/time.h>
 
@@ -74,9 +75,9 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
     void RecordAnnotation(const Annotation& annotation) override;
     std::shared_ptr<grpc_core::TcpTracerInterface> StartNewTcpTrace() override;
     void AddOptionalLabels(
-        OptionalLabelComponent /*component*/,
-        std::shared_ptr<std::map<std::string, std::string>> /*labels*/)
-        override {}
+        OptionalLabelComponent component,
+        std::shared_ptr<std::map<std::string, std::string>> labels)
+        override;
 
    private:
     // Maximum size of trace context is sent on the wire.
@@ -92,11 +93,18 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
     uint64_t sent_message_count_ = 0;
     // End status code
     absl::StatusCode status_code_;
+    // The indices of the array correspond to the OptionalLabelComponent enum.
+    std::array<std::shared_ptr<std::map<std::string, std::string>>,
+               static_cast<size_t>(OptionalLabelComponent::kSize)>
+        optional_labels_array_;
+    std::vector<std::unique_ptr<LabelsIterable>>
+        injected_labels_from_plugin_options_;
   };
 
   explicit PythonOpenCensusCallTracer(const char* method, const char* target,
                                       const char* trace_id,
                                       const char* parent_span_id,
+                                      const std::vector<Label>& additional_labels,
                                       bool tracing_enabled);
   ~PythonOpenCensusCallTracer() override;
 
@@ -128,7 +136,10 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
   absl::string_view target_;
   PythonCensusContext context_;
   bool tracing_enabled_;
+  bool add_csm_optional_labels_;
   mutable grpc_core::Mutex mu_;
+  const std::vector<Label> additional_labels_;
+  PythonLabelsInjector labels_injector_;
   // Non-transparent attempts per call
   uint64_t retries_ ABSL_GUARDED_BY(&mu_) = 0;
   // Transparent retries per call

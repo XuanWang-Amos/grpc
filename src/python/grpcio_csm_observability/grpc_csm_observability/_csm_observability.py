@@ -23,50 +23,45 @@ import grpc
 from grpc_observability._open_telemetry_exporter import (
     _OpenTelemetryExporterDelegator,
 )
-from grpc_observability._open_telemetry_plugin import OpenTelemetryPlugin
 from grpc_observability._open_telemetry_plugin import _OpenTelemetryPlugin
 from grpc_observability import OpenTelemetryObservability
+from grpc_csm_observability._csm_observability_plugin import (
+    CSMOpenTelemetryPlugin,
+    _CSMOpenTelemetryPlugin,
+)
+from grpc_observability._open_telemetry_observability import (
+    _OPEN_TELEMETRY_OBSERVABILITY,
+    _observability_lock,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
-ClientCallTracerCapsule = Any  # it appears only once in the function signature
-ServerCallTracerFactoryCapsule = (
-    Any  # it appears only once in the function signature
-)
-grpc_observability = Any  # grpc_observability.py imports this module.
+
+def start_csm_observability(
+    *,
+    plugins: Optional[Iterable[CSMOpenTelemetryPlugin]] = None,
+) -> None:
+    global _OPEN_TELEMETRY_OBSERVABILITY  # pylint: disable=global-statement
+    with _observability_lock:
+        if _OPEN_TELEMETRY_OBSERVABILITY is None:
+            _OPEN_TELEMETRY_OBSERVABILITY = CSMOpenTelemetryObservability(
+                plugins=plugins
+            )
+            _OPEN_TELEMETRY_OBSERVABILITY.observability_init()
+        else:
+            raise RuntimeError("gPRC Python observability was already initiated!")
 
 
-_observability_lock: threading.RLock = threading.RLock()
-_OPEN_TELEMETRY_OBSERVABILITY: Optional["OpenTelemetryObservability"] = None
-
-
-# def start_open_telemetry_observability(
-#     *,
-#     plugins: Optional[Iterable[OpenTelemetryPlugin]] = None,
-# ) -> None:
-#     global _OPEN_TELEMETRY_OBSERVABILITY  # pylint: disable=global-statement
-#     with _observability_lock:
-#         if _OPEN_TELEMETRY_OBSERVABILITY is None:
-#             _OPEN_TELEMETRY_OBSERVABILITY = OpenTelemetryObservability(
-#                 plugins=plugins
-#             )
-#             _OPEN_TELEMETRY_OBSERVABILITY.observability_init()
-#         else:
-#             raise RuntimeError(
-#                 "gPRC Python observability was already initiated!"
-#             )
-
-
-# def end_open_telemetry_observability() -> None:
-#     global _OPEN_TELEMETRY_OBSERVABILITY  # pylint: disable=global-statement
-#     with _observability_lock:
-#         if not _OPEN_TELEMETRY_OBSERVABILITY:
-#             raise RuntimeError(
-#                 "end_open_telemetry_observability() was called without initiate observability!"
-#             )
-#         else:
-#             _OPEN_TELEMETRY_OBSERVABILITY.observability_deinit()
-#             _OPEN_TELEMETRY_OBSERVABILITY = None
+def end_csm_observability() -> None:
+    global _OPEN_TELEMETRY_OBSERVABILITY  # pylint: disable=global-statement
+    with _observability_lock:
+        if not _OPEN_TELEMETRY_OBSERVABILITY:
+            raise RuntimeError(
+                "end_open_telemetry_observability() was called without initiate observability!"
+            )
+        else:
+            _OPEN_TELEMETRY_OBSERVABILITY.observability_deinit()
+            _OPEN_TELEMETRY_OBSERVABILITY = None
 
 
 # pylint: disable=no-self-use
@@ -76,41 +71,28 @@ class CSMOpenTelemetryObservability(OpenTelemetryObservability):
     This is class is part of an EXPERIMENTAL API.
 
     Args:
-      plugin: OpenTelemetryPlugin to enable.
+      plugin: CSMOpenTelemetryPlugin to enable.
+      csm_diagnostic_reporting_enabled: Whether send csm diagnostic reports to TD.
     """
 
-    exporter: "grpc_observability.Exporter"
+    _exporter: "grpc_observability.Exporter"
 
     def __init__(
         self,
         *,
-        plugins: Optional[Iterable[OpenTelemetryPlugin]] = None,
+        plugins: Optional[Iterable[CSMOpenTelemetryPlugin]] = None,
+        csm_diagnostic_reporting_enabled: Optional[bool] = True,
     ):
-        _plugins = self.get_internal_plugins(plugins)
-        self.exporter = _OpenTelemetryExporterDelegator(_plugins)
-
-    def __enter__(self):
-        global _OPEN_TELEMETRY_OBSERVABILITY  # pylint: disable=global-statement
-        with _observability_lock:
-            if _OPEN_TELEMETRY_OBSERVABILITY:
-                raise RuntimeError(
-                    "gPRC Python observability was already initiated!"
-                )
-            self.observability_init()
-            _OPEN_TELEMETRY_OBSERVABILITY = self
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        global _OPEN_TELEMETRY_OBSERVABILITY  # pylint: disable=global-statement
-        with _observability_lock:
-            self.observability_deinit()
-            _OPEN_TELEMETRY_OBSERVABILITY = None
-
-    def get_internal_plugins(plugins: Optional[Iterable[OpenTelemetryPlugin]] = None,
-                             ) -> List[_OpenTelemetryPlugin]:
-        _plugins = []
+        self._plugins = []
         if plugins:
             for plugin in plugins:
-                _plugins.append(_OpenTelemetryPlugin(plugin))
+                self._plugins.append(_OpenTelemetryPlugin(plugin))
 
-        return _plugins
+        if csm_diagnostic_reporting_enabled:
+            _csm_plugin = self._build_csm_plugin()
+            self._plugins.append(_csm_plugin)
+
+        self._exporter = _OpenTelemetryExporterDelegator(self._plugins)
+
+    def _build_csm_plugin(self) -> _OpenTelemetryPlugin:
+        return _OpenTelemetryPlugin(_CSMOpenTelemetryPlugin())

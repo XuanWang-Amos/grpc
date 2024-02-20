@@ -116,7 +116,7 @@ def activate_stats() -> None:
 
 
 def create_client_call_tracer(bytes method_name, bytes target, bytes trace_id,
-                              bytes parent_span_id=b'') -> cpython.PyObject:
+                              dict additional_labels, bytes parent_span_id=b'') -> cpython.PyObject:
   """Create a ClientCallTracer and save to PyCapsule.
 
   Returns: A grpc_observability._observability.ClientCallTracerCapsule object.
@@ -125,8 +125,9 @@ def create_client_call_tracer(bytes method_name, bytes target, bytes trace_id,
   cdef char* c_target = cpython.PyBytes_AsString(target)
   cdef char* c_trace_id = cpython.PyBytes_AsString(trace_id)
   cdef char* c_parent_span_id = cpython.PyBytes_AsString(parent_span_id)
+  cdef vector[Label] c_labels = _label_to_c_labels(additional_labels)
 
-  cdef void* call_tracer = CreateClientCallTracer(c_method, c_target, c_trace_id, c_parent_span_id)
+  cdef void* call_tracer = CreateClientCallTracer(c_method, c_target, c_trace_id, c_parent_span_id, c_labels)
   capsule = cpython.PyCapsule_New(call_tracer, CLIENT_CALL_TRACER, NULL)
   return capsule
 
@@ -138,7 +139,6 @@ def create_server_call_tracer_factory_capsule() -> cpython.PyObject:
 
   Returns: A grpc_observability._observability.ServerCallTracerFactoryCapsule object.
   """
-  cdef object call_bool = <object>test_bool
   cdef void* call_tracer_factory = CreateServerCallTracerFactory()
   capsule = cpython.PyCapsule_New(call_tracer_factory, SERVER_CALL_TRACER_FACTORY, NULL)
   return capsule
@@ -158,6 +158,18 @@ def _c_label_to_labels(vector[Label] c_labels) -> Mapping[str, str]:
   for label in c_labels:
     py_labels[_decode(label.key)] = _decode(label.value)
   return py_labels
+
+
+def _label_to_c_labels(py_labels):
+  cdef vector[Label] c_labels
+  cdef Label label
+
+  for key, value in py_labels.items():
+      label.key = _encode(key) 
+      label.value = _encode(value)
+      c_labels.push_back(label)
+
+  return c_labels 
 
 
 def _c_measurement_to_measurement(object measurement
@@ -340,3 +352,14 @@ cdef str _decode(bytes bytestring):
     except UnicodeDecodeError:
       _LOGGER.exception('Invalid encoding on %s', bytestring)
       return bytestring.decode('latin1')
+
+
+cdef bytes _encode(object string_or_none):
+  if string_or_none is None:
+    return b''
+  elif isinstance(string_or_none, (bytes,)):
+    return <bytes>string_or_none
+  elif isinstance(string_or_none, (unicode,)):
+    return string_or_none.encode('utf8')
+  else:
+    raise TypeError('Expected str, not {}'.format(type(string_or_none)))

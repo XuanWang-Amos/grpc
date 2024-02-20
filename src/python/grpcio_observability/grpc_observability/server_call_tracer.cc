@@ -220,6 +220,33 @@ void PythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata(
     context_.Labels().emplace_back(kServerMethod, std::string(method_));
     RecordIntMetric(kRpcServerStartedRpcsMeasureName, 1, context_.Labels());
   }
+
+  // path_ =
+  //     recv_initial_metadata->get_pointer(grpc_core::HttpPathMetadata())->Ref();
+  // active_plugin_options_view_.ForEach(
+  //     [&](const InternalOpenTelemetryPluginOption& plugin_option,
+  //         size_t index) {
+  //       auto* labels_injector = plugin_option.labels_injector();
+  //       if (labels_injector != nullptr) {
+  //         injected_labels_from_plugin_options_[index] =
+  //             labels_injector->GetLabels(recv_initial_metadata);
+  //       }
+  //       return true;
+  //     });
+  // registered_method_ =
+  //     recv_initial_metadata->get(grpc_core::GrpcRegisteredMethod())
+  //         .value_or(nullptr) != nullptr;
+  // std::array<std::pair<absl::string_view, absl::string_view>, 1>
+  //     additional_labels = {{{OpenTelemetryMethodKey(), MethodForStats()}}};
+  // if (OpenTelemetryPluginState().server.call.started != nullptr) {
+  //   // We might not have all the injected labels that we want at this point, so
+  //   // avoid recording a subset of injected labels here.
+  //   OpenTelemetryPluginState().server.call.started->Add(
+  //       1, KeyValueIterable(/*injected_labels_from_plugin_options=*/{},
+  //                           additional_labels,
+  //                           /*active_plugin_options_view=*/nullptr, {},
+  //                           /*is_client=*/false));
+  // }
 }
 
 void PythonOpenCensusServerCallTracer::RecordSendTrailingMetadata(
@@ -267,6 +294,35 @@ void PythonOpenCensusServerCallTracer::RecordEnd(
     }
   }
 
+  // std::array<std::pair<absl::string_view, absl::string_view>, 2>
+  //     additional_labels = {
+  //         {{OpenTelemetryMethodKey(), MethodForStats()},
+  //          {OpenTelemetryStatusKey(),
+  //           grpc_status_code_to_string(final_info->final_status)}}};
+  // // Currently we do not have any optional labels on the server side.
+  // KeyValueIterable labels(
+  //     injected_labels_from_plugin_options_, additional_labels,
+  //     /*active_plugin_options_view=*/nullptr, /*optional_labels_span=*/{},
+  //     /*is_client=*/false);
+  // if (OpenTelemetryPluginState().server.call.duration != nullptr) {
+  //   OpenTelemetryPluginState().server.call.duration->Record(
+  //       absl::ToDoubleSeconds(elapsed_time_), labels,
+  //       opentelemetry::context::Context{});
+  // }
+  // if (OpenTelemetryPluginState()
+  //         .server.call.sent_total_compressed_message_size != nullptr) {
+  //   OpenTelemetryPluginState()
+  //       .server.call.sent_total_compressed_message_size->Record(
+  //           final_info->stats.transport_stream_stats.outgoing.data_bytes,
+  //           labels, opentelemetry::context::Context{});
+  // }
+  // if (OpenTelemetryPluginState()
+  //         .server.call.rcvd_total_compressed_message_size != nullptr) {
+  //   OpenTelemetryPluginState()
+  //       .server.call.rcvd_total_compressed_message_size->Record(
+  //           final_info->stats.transport_stream_stats.incoming.data_bytes,
+  //           labels, opentelemetry::context::Context{});
+  // }
   // After RecordEnd, Core will make no further usage of this ServerCallTracer,
   // so we are free it here.
   delete this;

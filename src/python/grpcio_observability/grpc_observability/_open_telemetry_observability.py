@@ -30,9 +30,7 @@ from grpc_observability._open_telemetry_plugin import _OpenTelemetryPlugin
 _LOGGER = logging.getLogger(__name__)
 
 ClientCallTracerCapsule = Any  # it appears only once in the function signature
-ServerCallTracerFactoryCapsule = (
-    Any  # it appears only once in the function signature
-)
+ServerCallTracerFactoryCapsule = Any  # it appears only once in the function signature
 grpc_observability = Any  # grpc_observability.py imports this module.
 
 GRPC_STATUS_CODE_TO_STRING = {
@@ -66,14 +64,10 @@ def start_open_telemetry_observability(
     global _OPEN_TELEMETRY_OBSERVABILITY  # pylint: disable=global-statement
     with _observability_lock:
         if _OPEN_TELEMETRY_OBSERVABILITY is None:
-            _OPEN_TELEMETRY_OBSERVABILITY = OpenTelemetryObservability(
-                plugins=plugins
-            )
+            _OPEN_TELEMETRY_OBSERVABILITY = OpenTelemetryObservability(plugins=plugins)
             _OPEN_TELEMETRY_OBSERVABILITY.observability_init()
         else:
-            raise RuntimeError(
-                "gPRC Python observability was already initiated!"
-            )
+            raise RuntimeError("gPRC Python observability was already initiated!")
 
 
 def end_open_telemetry_observability() -> None:
@@ -111,16 +105,13 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
             for plugin in plugins:
                 self._plugins.append(_OpenTelemetryPlugin(plugin))
 
-        self._plugins = _plugins
         self._exporter = _OpenTelemetryExporterDelegator(self._plugins)
 
     def __enter__(self):
         global _OPEN_TELEMETRY_OBSERVABILITY  # pylint: disable=global-statement
         with _observability_lock:
             if _OPEN_TELEMETRY_OBSERVABILITY:
-                raise RuntimeError(
-                    "gPRC Python observability was already initiated!"
-                )
+                raise RuntimeError("gPRC Python observability was already initiated!")
             self.observability_init()
             _OPEN_TELEMETRY_OBSERVABILITY = self
         return self
@@ -167,7 +158,7 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
         trace_id = b"TRACE_ID"
         additional_labels = self._get_additional_client_labels(method_name)
         capsule = _cyobservability.create_client_call_tracer(
-            method_name, target, trace_id
+            method_name, target, trace_id, additional_labels
         )
         return capsule
 
@@ -177,10 +168,9 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
         xds: bool,
     ) -> Optional[ServerCallTracerFactoryCapsule]:
         capsule = None
+        additional_labels = self._get_additional_server_labels(xds)
         if self.is_server_traced(xds):
-            capsule = (
-                _cyobservability.create_server_call_tracer_factory_capsule()
-            )
+            capsule = _cyobservability.create_server_call_tracer_factory_capsule()
         return capsule
 
     def delete_client_call_tracer(
@@ -188,9 +178,7 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
     ) -> None:
         _cyobservability.delete_client_call_tracer(client_call_tracer)
 
-    def save_trace_context(
-        self, trace_id: str, span_id: str, is_sampled: bool
-    ) -> None:
+    def save_trace_context(self, trace_id: str, span_id: str, is_sampled: bool) -> None:
         pass
 
     def record_rpc_latency(
@@ -208,8 +196,18 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
     def _get_additional_client_labels(self, method_name: str) -> Dict[str, str]:
         additional_client_labels = {}
         for _plugin in self._plugins:
-            additional_client_labels.update(_plugin.get_additional_client_labels(method_name))
+            additional_client_labels.update(
+                _plugin.get_additional_client_labels(method_name)
+            )
+        print(f"additional_client_labels: {additional_client_labels}")
         return additional_client_labels
+
+    def _get_additional_server_labels(self, xds: bool) -> Dict[str, str]:
+        additional_server_labels = {}
+        for _plugin in self._plugins:
+            additional_server_labels.update(_plugin.get_additional_server_labels(xds))
+        print(f"additional_server_labels: {additional_server_labels}")
+        return additional_server_labels
 
     def is_server_traced(self, xds: bool) -> bool:
         return True

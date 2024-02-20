@@ -184,6 +184,14 @@ class _OpenTelemetryPlugin:
                     additional_labels.update(plugin_option.get_label_injector().get_labels())
         return additional_labels
 
+    def get_additional_server_labels(self, xds: bool) -> Dict[str, str]:
+        additional_labels = {}
+        for plugin_option in self._plugin.get_plugin_options():
+            if hasattr(plugin_option, 'is_active_on_server') and plugin_option.is_active_on_server(xds):
+                if hasattr(plugin_option, 'get_label_injector'):
+                    additional_labels.update(plugin_option.get_label_injector().get_labels())
+        return additional_labels
+
     def _register_metrics(
         self, meter: Meter, metrics: List[_open_telemetry_measures.Metric]
     ) -> Dict[MetricsName, Union[Counter, Histogram]]:
