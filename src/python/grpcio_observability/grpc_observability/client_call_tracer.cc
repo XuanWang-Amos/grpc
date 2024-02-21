@@ -198,6 +198,7 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     send_initial_metadata->Set(grpc_core::GrpcTagsBinMetadata(),
                                grpc_core::Slice(tags));
   }
+  parent_->labels_injector_.AddLabels(send_initial_metadata, nullptr);
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
@@ -205,14 +206,14 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
   // Get labels from recv_initial_metadata and add to injected_labels_from_plugin_options_.
   // const std::unique_ptr<LabelsIterable>& plugin_option_injected_iterable = parent_->labels_injector_.GetLabels(recv_initial_metadata);
   injected_labels_from_plugin_options_.push_back(parent_->labels_injector_.GetLabels(recv_initial_metadata));
-  for (const auto& plugin_option_injected_iterable : injected_labels_from_plugin_options_) {
-    if (plugin_option_injected_iterable != nullptr) {
-      plugin_option_injected_iterable->ResetIteratorPosition();
-      while (const auto& pair = plugin_option_injected_iterable->Next()) {
-        std::cout << "parent_->labels_injector_.GetLabels: " << pair->first << ", " << pair->second << std::endl;
-      }
-    }
-  }
+  // for (const auto& plugin_option_injected_iterable : injected_labels_from_plugin_options_) {
+  //   if (plugin_option_injected_iterable != nullptr) {
+  //     plugin_option_injected_iterable->ResetIteratorPosition();
+  //     while (const auto& pair = plugin_option_injected_iterable->Next()) {
+  //       std::cout << "parent_->labels_injector_.GetLabels: " << pair->first << ", " << pair->second << std::endl;
+  //     }
+  //   }
+  // }
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
@@ -282,6 +283,15 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     parent_->labels_injector_.AddXdsOptionalLabels(/*is_client=*/true,
                                                    optional_labels_array_,
                                                    context_.Labels());
+  }
+  for (const auto& plugin_option_injected_iterable : injected_labels_from_plugin_options_) {
+    if (plugin_option_injected_iterable != nullptr) {
+      plugin_option_injected_iterable->ResetIteratorPosition();
+      while (const auto& pair = plugin_option_injected_iterable->Next()) {
+        std::cout << "injected_labels_from_plugin_options_: " << pair->first << ": " << pair->second << std::endl;
+        context_.Labels().emplace_back(std::string(pair->first), std::string(pair->second));
+      }
+    }
   }
   RecordDoubleMetric(
       kRpcClientSentBytesPerRpcMeasureName,

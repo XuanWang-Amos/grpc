@@ -490,9 +490,8 @@ void PythonLabelsInjector::AddXdsOptionalLabels(
 
   labels.emplace_back("csm.service_name", std::string(service_name));
   labels.emplace_back("csm.service_namespace_name", std::string(service_namespace));
-  // for (auto l : labels) {
-  //    std::cout << "labels: " << l.key << ", " << l.value << std::endl;
-  // }
+  std::cout << "AddXdsOptionalLabels: " << "csm.service_name" << ": " << std::string(service_name) << std::endl;
+  std::cout << "AddXdsOptionalLabels: " << "csm.service_namespace_name" << ": " << std::string(service_namespace) << std::endl;
 }
 
 // size_t PythonLabelsInjector::GetXdsOptionalLabelsSize(

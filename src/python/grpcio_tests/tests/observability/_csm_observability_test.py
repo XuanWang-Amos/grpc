@@ -185,7 +185,9 @@ class CSMObservabilityTest(unittest.TestCase):
 
         self._validate_metrics_exist(self.all_metrics)
         self._validate_all_metrics_names(self.all_metrics)
-        print(f"all_metrics: {self.all_metrics}")
+        print(f"-----------all_metrics------------")
+        for key, value in self.all_metrics.items():
+            print(f"{key}: {value}")
 
     # def testRecordUnaryUnaryUseGlobalInit(self):
     #     csm_plugin = BaseTestCSMPlugin(self._provider)
