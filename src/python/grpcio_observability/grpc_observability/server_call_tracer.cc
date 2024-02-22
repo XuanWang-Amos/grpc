@@ -86,7 +86,7 @@ void PythonOpenCensusServerCallTracer::RecordSendInitialMetadata(
     // 1. Check if incoming metadata have x-envoy-peer-metadata label.
     // 2. If it does, perform metadata exchange.
     // 3. send_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(), 
-    labels_injector_.AddLabels(send_initial_metadata, injected_labels_from_plugin_options_[0].get());
+    labels_injector_.AddLabels(send_initial_metadata, injected_labels_from_plugin_options_.get());
     // serialized_labels_to_send_.Ref())
     // serialized_labels_to_send_
     // active_plugin_options_view_.ForEach(
@@ -116,15 +116,13 @@ void PythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata(
     context_.Labels().emplace_back(kServerMethod, std::string(method_));
     RecordIntMetric(kRpcServerStartedRpcsMeasureName, 1, context_.Labels());
   }
-  // labels_injector_.GetLabels(recv_initial_metadata);
-  injected_labels_from_plugin_options_.push_back(labels_injector_.GetLabels(recv_initial_metadata));
-  for (const auto& plugin_option_injected_iterable : injected_labels_from_plugin_options_) {
-    if (plugin_option_injected_iterable != nullptr) {
-      plugin_option_injected_iterable->ResetIteratorPosition();
-      while (const auto& pair = plugin_option_injected_iterable->Next()) {
-        std::cout << "[SERVER] injected_labels_from_plugin_options_: " << pair->first << ": " << pair->second << std::endl;
-        // context_.Labels().emplace_back(std::string(pair->first), std::string(pair->second));
-      }
+
+  injected_labels_from_plugin_options_ = labels_injector_.GetLabels(recv_initial_metadata);
+  if (injected_labels_from_plugin_options_ != nullptr) {
+    injected_labels_from_plugin_options_->ResetIteratorPosition();
+    while (const auto& pair = injected_labels_from_plugin_options_->Next()) {
+      std::cout << "[SERVER] labels from peer: " << pair->first << ": " << pair->second << std::endl;
+      // context_.Labels().emplace_back(std::string(pair->first), std::string(pair->second));
     }
   }
   // path_ =

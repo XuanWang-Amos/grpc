@@ -21,6 +21,8 @@ import grpc
 
 # pytype: disable=pyi-error
 from grpc_observability import _cyobservability
+from grpc_observability._observability import OptionalLabelType
+
 from grpc_observability._open_telemetry_exporter import (
     _OpenTelemetryExporterDelegator,
 )
@@ -158,7 +160,7 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
         trace_id = b"TRACE_ID"
         additional_labels = self._get_additional_client_labels(target)
         capsule = _cyobservability.create_client_call_tracer(
-            method_name, target, trace_id, additional_labels
+            method_name, target, trace_id, additional_labels, self.get_enabled_optional_labels()
         )
         return capsule
 
@@ -211,3 +213,6 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
 
     def is_server_traced(self, xds: bool) -> bool:
         return True
+
+    def get_enabled_optional_labels(self) -> List[OptionalLabelType]:
+        return []

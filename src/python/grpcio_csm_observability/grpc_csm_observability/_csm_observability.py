@@ -24,6 +24,7 @@ from grpc_observability._open_telemetry_exporter import (
     _OpenTelemetryExporterDelegator,
 )
 from grpc_observability._open_telemetry_plugin import _OpenTelemetryPlugin
+from grpc_observability._observability import OptionalLabelType
 from grpc_observability import OpenTelemetryObservability
 from grpc_csm_observability._csm_observability_plugin import (
     CSMOpenTelemetryPlugin,
@@ -96,3 +97,6 @@ class CSMOpenTelemetryObservability(OpenTelemetryObservability):
 
     def _build_csm_plugin(self) -> _OpenTelemetryPlugin:
         return _OpenTelemetryPlugin(_CSMOpenTelemetryPlugin())
+
+    def get_enabled_optional_labels(self) -> List[OptionalLabelType]:
+        return [OptionalLabelType.XDS_SERVICE_LABELS]

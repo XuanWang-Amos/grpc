@@ -281,6 +281,7 @@ class MeshLabelsIterable : public LabelsIterable {
       RemoteAttribute{kPeerLocationAttribute, kMetadataExchangeLocationKey},
       RemoteAttribute{kPeerProjectIdAttribute, kMetadataExchangeProjectIdKey},
   };
+
   static constexpr std::array<RemoteAttribute, 3> kGceAttributeList = {
       RemoteAttribute{kPeerWorkloadNameAttribute,
                       kMetadataExchangeWorkloadNameKey},

@@ -16,6 +16,7 @@ from __future__ import annotations
 import abc
 from dataclasses import dataclass
 from dataclasses import field
+import enum
 from typing import List, Mapping, Tuple
 
 
@@ -101,3 +102,10 @@ class TracingData:
     child_span_count: int
     span_labels: Mapping[str, str] = field(default_factory=dict)
     span_annotations: List[Tuple[str, str]] = field(default_factory=list)
+
+
+@enum.unique
+class OptionalLabelType(enum.Enum):
+    """Describes the control flow style of RPC method implementation."""
+
+    XDS_SERVICE_LABELS = "kXdsServiceLabels"

@@ -116,7 +116,8 @@ def activate_stats() -> None:
 
 
 def create_client_call_tracer(bytes method_name, bytes target, bytes trace_id,
-                              dict additional_labels, bytes parent_span_id=b'') -> cpython.PyObject:
+                              dict additional_labels, object enabled_optional_labels,
+                              bytes parent_span_id=b'') -> cpython.PyObject:
   """Create a ClientCallTracer and save to PyCapsule.
 
   Returns: A grpc_observability._observability.ClientCallTracerCapsule object.
@@ -126,8 +127,13 @@ def create_client_call_tracer(bytes method_name, bytes target, bytes trace_id,
   cdef char* c_trace_id = cpython.PyBytes_AsString(trace_id)
   cdef char* c_parent_span_id = cpython.PyBytes_AsString(parent_span_id)
   cdef vector[Label] c_labels = _labels_to_c_labels(additional_labels)
+  cdef bint add_csm_optional_labels = False
 
-  cdef void* call_tracer = CreateClientCallTracer(c_method, c_target, c_trace_id, c_parent_span_id, c_labels)
+  for label_type in enabled_optional_labels:
+    if label_type == _observability.OptionalLabelType.XDS_SERVICE_LABELS:
+      add_csm_optional_labels = True
+
+  cdef void* call_tracer = CreateClientCallTracer(c_method, c_target, c_trace_id, c_parent_span_id, c_labels, add_csm_optional_labels)
   capsule = cpython.PyCapsule_New(call_tracer, CLIENT_CALL_TRACER, NULL)
   return capsule
 

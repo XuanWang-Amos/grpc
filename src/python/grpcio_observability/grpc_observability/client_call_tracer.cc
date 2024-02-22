@@ -45,11 +45,11 @@ constexpr uint32_t
 PythonOpenCensusCallTracer::PythonOpenCensusCallTracer(
     const char* method, const char* target, const char* trace_id,
     const char* parent_span_id, const std::vector<Label>& additional_labels,
-    bool tracing_enabled)
+    bool add_csm_optional_labels, bool tracing_enabled)
     : method_(GetMethod(method)),
       target_(GetTarget(target)),
       tracing_enabled_(tracing_enabled),
-      add_csm_optional_labels_(true),
+      add_csm_optional_labels_(add_csm_optional_labels),
       // additional_labels_(additional_labels),
       labels_injector_(additional_labels) {
   GenerateClientContext(absl::StrCat("Sent.", method_),
@@ -206,14 +206,14 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
   // Get labels from recv_initial_metadata and add to injected_labels_from_plugin_options_.
   // const std::unique_ptr<LabelsIterable>& plugin_option_injected_iterable = parent_->labels_injector_.GetLabels(recv_initial_metadata);
   injected_labels_from_plugin_options_.push_back(parent_->labels_injector_.GetLabels(recv_initial_metadata));
-  // for (const auto& plugin_option_injected_iterable : injected_labels_from_plugin_options_) {
-  //   if (plugin_option_injected_iterable != nullptr) {
-  //     plugin_option_injected_iterable->ResetIteratorPosition();
-  //     while (const auto& pair = plugin_option_injected_iterable->Next()) {
-  //       std::cout << "parent_->labels_injector_.GetLabels: " << pair->first << ", " << pair->second << std::endl;
-  //     }
-  //   }
-  // }
+  for (const auto& plugin_option_injected_iterable : injected_labels_from_plugin_options_) {
+    if (plugin_option_injected_iterable != nullptr) {
+      plugin_option_injected_iterable->ResetIteratorPosition();
+      while (const auto& pair = plugin_option_injected_iterable->Next()) {
+        std::cout << "[CLIENT] labels from peer: " << pair->first << ": " << pair->second << std::endl;
+      }
+    }
+  }
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
@@ -288,7 +288,7 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     if (plugin_option_injected_iterable != nullptr) {
       plugin_option_injected_iterable->ResetIteratorPosition();
       while (const auto& pair = plugin_option_injected_iterable->Next()) {
-        std::cout << "injected_labels_from_plugin_options_: " << pair->first << ": " << pair->second << std::endl;
+        // std::cout << "injected_labels_from_plugin_options_: " << pair->first << ": " << pair->second << std::endl;
         context_.Labels().emplace_back(std::string(pair->first), std::string(pair->second));
       }
     }
