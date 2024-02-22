@@ -134,12 +134,13 @@ def create_client_call_tracer(bytes method_name, bytes target, bytes trace_id,
 cdef bint test_bool():
   return True
 
-def create_server_call_tracer_factory_capsule() -> cpython.PyObject:
+def create_server_call_tracer_factory_capsule(dict additional_labels) -> cpython.PyObject:
   """Create a ServerCallTracerFactory and save to PyCapsule.
 
   Returns: A grpc_observability._observability.ServerCallTracerFactoryCapsule object.
   """
-  cdef void* call_tracer_factory = CreateServerCallTracerFactory()
+  cdef vector[Label] c_labels = _label_to_c_labels(additional_labels)
+  cdef void* call_tracer_factory = CreateServerCallTracerFactory(c_labels)
   capsule = cpython.PyCapsule_New(call_tracer_factory, SERVER_CALL_TRACER_FACTORY, NULL)
   return capsule
 

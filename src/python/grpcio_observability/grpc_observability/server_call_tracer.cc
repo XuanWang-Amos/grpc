@@ -86,10 +86,11 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
   // Maximum size of server stats that are sent on the wire.
   static constexpr uint32_t kMaxServerStatsLen = 16;
 
-  PythonOpenCensusServerCallTracer()
+  PythonOpenCensusServerCallTracer(const std::vector<Label>& additional_labels)
       : start_time_(absl::Now()),
         recv_message_count_(0),
-        sent_message_count_(0) {}
+        sent_message_count_(0),
+        labels_injector_(additional_labels) {}
 
   std::string TraceId() override {
     return absl::BytesToHexString(
@@ -107,10 +108,11 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
   // arguments.
   // It's not a requirement to have this metric thus left unimplemented.
   void RecordSendInitialMetadata(
-      grpc_metadata_batch* /*send_initial_metadata*/) override {
+      grpc_metadata_batch* send_initial_metadata) override {
     // 1. Check if incoming metadata have x-envoy-peer-metadata label.
     // 2. If it does, perform metadata exchange.
     // 3. send_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(), 
+    labels_injector_.AddLabels(send_initial_metadata, injected_labels_from_plugin_options_[0].get());
     // serialized_labels_to_send_.Ref())
     // serialized_labels_to_send_
     // active_plugin_options_view_.ForEach(
@@ -204,6 +206,8 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
   // Buffer needed for grpc_slice to reference it when adding metadata to
   // response.
   char stats_buf_[kMaxServerStatsLen];
+  PythonLabelsInjector labels_injector_;
+  std::vector<std::unique_ptr<LabelsIterable>> injected_labels_from_plugin_options_;
 };
 
 void PythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata(
@@ -220,7 +224,17 @@ void PythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata(
     context_.Labels().emplace_back(kServerMethod, std::string(method_));
     RecordIntMetric(kRpcServerStartedRpcsMeasureName, 1, context_.Labels());
   }
-
+  // labels_injector_.GetLabels(recv_initial_metadata);
+  injected_labels_from_plugin_options_.push_back(labels_injector_.GetLabels(recv_initial_metadata));
+  for (const auto& plugin_option_injected_iterable : injected_labels_from_plugin_options_) {
+    if (plugin_option_injected_iterable != nullptr) {
+      plugin_option_injected_iterable->ResetIteratorPosition();
+      while (const auto& pair = plugin_option_injected_iterable->Next()) {
+        std::cout << "[SERVER] injected_labels_from_plugin_options_: " << pair->first << ": " << pair->second << std::endl;
+        // context_.Labels().emplace_back(std::string(pair->first), std::string(pair->second));
+      }
+    }
+  }
   // path_ =
   //     recv_initial_metadata->get_pointer(grpc_core::HttpPathMetadata())->Ref();
   // active_plugin_options_view_.ForEach(
@@ -339,7 +353,7 @@ PythonOpenCensusServerCallTracerFactory::CreateNewServerCallTracer(
   // the same DLL in Windows.
   (void)arena;
   (void)channel_args;
-  return new PythonOpenCensusServerCallTracer();
+  return new PythonOpenCensusServerCallTracer(additional_labels_);
 }
 
 bool PythonOpenCensusServerCallTracerFactory::IsServerTraced(
@@ -348,5 +362,9 @@ bool PythonOpenCensusServerCallTracerFactory::IsServerTraced(
   // selector returns true.
   return true;
 }
+
+PythonOpenCensusServerCallTracerFactory::PythonOpenCensusServerCallTracerFactory(
+  const std::vector<Label>& additional_labels)
+    : additional_labels_(additional_labels) {}
 
 }  // namespace grpc_observability

@@ -57,6 +57,7 @@ class OpenTelemetryPluginOption(abc.ABC):
     Please note that this class is still work in progress and NOT READY to be used.
     """
 
+
 # pylint: disable=no-self-use
 class OpenTelemetryPlugin:
     """Describes a Plugin for OpenTelemetry observability.
@@ -139,9 +140,7 @@ class _OpenTelemetryPlugin:
         if meter_provider:
             meter = meter_provider.get_meter("grpc-python", grpc.__version__)
             enabled_metrics = _open_telemetry_measures.base_metrics()
-            self._metric_to_recorder = self._register_metrics(
-                meter, enabled_metrics
-            )
+            self._metric_to_recorder = self._register_metrics(meter, enabled_metrics)
 
     def _should_record(self, stats_data: StatsData) -> bool:
         # Decide if this plugin should record the stats_data.
@@ -177,19 +176,31 @@ class _OpenTelemetryPlugin:
             self._record_stats_data(stats_data)
 
     def get_additional_client_labels(self, method_name: str) -> Dict[str, str]:
-        additional_labels = {}
+        additional_labels = {
+            "CSM_CANONICAL_SERVICE_NAME": "client_CSM_CANONICAL_SERVICE_NAME"
+        }
         for plugin_option in self._plugin.get_plugin_options():
-            if hasattr(plugin_option, 'is_active_on_method') and plugin_option.is_active_on_method(method_name):
-                if hasattr(plugin_option, 'get_label_injector'):
-                    additional_labels.update(plugin_option.get_label_injector().get_labels())
+            if hasattr(
+                plugin_option, "is_active_on_method"
+            ) and plugin_option.is_active_on_method(method_name):
+                if hasattr(plugin_option, "get_label_injector"):
+                    additional_labels.update(
+                        plugin_option.get_label_injector().get_labels()
+                    )
         return additional_labels
 
     def get_additional_server_labels(self, xds: bool) -> Dict[str, str]:
-        additional_labels = {}
+        additional_labels = {
+            "CSM_CANONICAL_SERVICE_NAME": "server_CSM_CANONICAL_SERVICE_NAME"
+        }
         for plugin_option in self._plugin.get_plugin_options():
-            if hasattr(plugin_option, 'is_active_on_server') and plugin_option.is_active_on_server(xds):
-                if hasattr(plugin_option, 'get_label_injector'):
-                    additional_labels.update(plugin_option.get_label_injector().get_labels())
+            if hasattr(
+                plugin_option, "is_active_on_server"
+            ) and plugin_option.is_active_on_server(xds):
+                if hasattr(plugin_option, "get_label_injector"):
+                    additional_labels.update(
+                        plugin_option.get_label_injector().get_labels()
+                    )
         return additional_labels
 
     def _register_metrics(
@@ -222,9 +233,7 @@ class _OpenTelemetryPlugin:
                     unit=metric.unit,
                     description=metric.description,
                 )
-            elif (
-                metric == _open_telemetry_measures.CLIENT_ATTEMPT_RECEIVED_BYTES
-            ):
+            elif metric == _open_telemetry_measures.CLIENT_ATTEMPT_RECEIVED_BYTES:
                 recorder = meter.create_histogram(
                     name=metric.name,
                     unit=metric.unit,

@@ -54,7 +54,7 @@ void* CreateClientCallTracer(const char* method, const char* target,
                              const char* trace_id, const char* parent_span_id,
                              const std::vector<Label> additional_labels);
 
-void* CreateServerCallTracerFactory();
+void* CreateServerCallTracerFactory(const std::vector<Label> additional_labels);
 
 void NativeObservabilityInit();
 

@@ -170,7 +170,7 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
         capsule = None
         additional_labels = self._get_additional_server_labels(xds)
         if self.is_server_traced(xds):
-            capsule = _cyobservability.create_server_call_tracer_factory_capsule()
+            capsule = _cyobservability.create_server_call_tracer_factory_capsule(additional_labels)
         return capsule
 
     def delete_client_call_tracer(

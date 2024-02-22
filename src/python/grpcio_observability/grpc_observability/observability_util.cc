@@ -103,9 +103,13 @@ void* CreateClientCallTracer(const char* method, const char* target,
   return client_call_tracer;
 }
 
-void* CreateServerCallTracerFactory() {
+void* CreateServerCallTracerFactory(const std::vector<Label> additional_labels) {
+  std::cout << "CreateServerCallTracerFactory with additional_labels.size=" << additional_labels.size() << std::endl;
+  for (const Label &label: additional_labels) {
+    std::cout << "label key: " << label.key <<  " label value: " << label.value << std::endl;
+  }
   void* server_call_tracer_factory =
-      new PythonOpenCensusServerCallTracerFactory();
+      new PythonOpenCensusServerCallTracerFactory(additional_labels);
   return server_call_tracer_factory;
 }
 

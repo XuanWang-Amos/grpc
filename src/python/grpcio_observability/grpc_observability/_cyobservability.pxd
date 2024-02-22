@@ -80,7 +80,7 @@ cdef extern from "observability_util.h" namespace "grpc_observability":
                                     const char* trace_id,
                                     const char* parent_span_id,
                                     const vector[Label] additional_labels) except +
-  cdef void* CreateServerCallTracerFactory() except +
+  cdef void* CreateServerCallTracerFactory(const vector[Label] additional_labels) except +
   cdef queue[NativeCensusData]* g_census_data_buffer
   cdef void AwaitNextBatchLocked(unique_lock[mutex]&, int) nogil
   cdef bint PythonCensusStatsEnabled() nogil

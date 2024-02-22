@@ -183,6 +183,21 @@ void AddStringKeyValueToStructProto(google_protobuf_Struct* struct_pb,
 //   return *string_value;
 // }
 
+absl::string_view GetStringValueFromAdditionalLabels(
+    const std::vector<Label>& additional_labels,
+    std::string key) {
+  const auto it = std::find_if(additional_labels.begin(), additional_labels.end(), 
+                       [&key](const Label& label) {
+                           return label.key == key; 
+                       });
+
+  if (it == additional_labels.end()) {
+    return "unknown";
+  }
+  // std::cout << ">>>Found value: " << (*it).value << std::endl;
+  return (*it).value;
+}
+
 absl::string_view GetStringValueFromUpbStruct(google_protobuf_Struct* struct_pb,
                                               absl::string_view key,
                                               upb_Arena* arena) {
@@ -397,7 +412,7 @@ PythonLabelsInjector::PythonLabelsInjector(
   //     grpc_core::GetEnv("CSM_CANONICAL_SERVICE_NAME").value_or("unknown");
   // std::string canonical_service_value = GetStringValueFromAttributeMap(
   //     map, "CSM_CANONICAL_SERVICE_NAME");
-  std::string canonical_service_value = "canonical_service_value";
+  absl::string_view canonical_service_value = GetStringValueFromAdditionalLabels(additional_labels, "CSM_CANONICAL_SERVICE_NAME");
 
   // // Create metadata to be sent over wire.
   // AddStringKeyValueToStructProto(metadata, kMetadataExchangeTypeKey, type_value,
@@ -456,6 +471,7 @@ void PythonLabelsInjector::AddLabels(
            ->GotRemoteLabels()) {
     return;
   }
+  std::cout << ">>> Adding labels to grpc_core::XEnvoyPeerMetadata() "<< std::endl;
   outgoing_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(),
                                  serialized_labels_to_send_.Ref());
 }

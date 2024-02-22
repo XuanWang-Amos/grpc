@@ -23,6 +23,8 @@
 #include "src/core/lib/channel/call_tracer.h"
 #include "src/core/lib/resource_quota/arena.h"
 #include "src/core/lib/slice/slice.h"
+#include "python_census_context.h"
+#include "metadata_exchange.h"
 
 namespace grpc_observability {
 
@@ -32,8 +34,13 @@ class PythonOpenCensusServerCallTracerFactory
   grpc_core::ServerCallTracer* CreateNewServerCallTracer(
       grpc_core::Arena* arena,
       const grpc_core::ChannelArgs& channel_args) override;
+  explicit PythonOpenCensusServerCallTracerFactory(
+                                      const std::vector<Label>& additional_labels);
   
   bool IsServerTraced(const grpc_core::ChannelArgs& args) override;
+
+  private:
+   const std::vector<Label> additional_labels_;
 };
 
 inline absl::string_view GetMethod(const grpc_core::Slice& path) {
