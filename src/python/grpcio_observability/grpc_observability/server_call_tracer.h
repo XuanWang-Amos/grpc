@@ -51,6 +51,83 @@ inline absl::string_view GetMethod(const grpc_core::Slice& path) {
   return absl::StripPrefix(path.as_string_view(), "/");
 }
 
+class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
+ public:
+  // Maximum size of server stats that are sent on the wire.
+  static constexpr uint32_t kMaxServerStatsLen = 16;
+
+  PythonOpenCensusServerCallTracer(const std::vector<Label>& additional_labels)
+      : start_time_(absl::Now()),
+        recv_message_count_(0),
+        sent_message_count_(0),
+        labels_injector_(additional_labels) {}
+
+  std::string TraceId() override {
+    return absl::BytesToHexString(
+        absl::string_view(context_.GetSpanContext().TraceId()));
+  }
+
+  std::string SpanId() override {
+    return absl::BytesToHexString(
+        absl::string_view(context_.GetSpanContext().SpanId()));
+  }
+
+  bool IsSampled() override { return context_.GetSpanContext().IsSampled(); }
+
+  // Please refer to `grpc_transport_stream_op_batch_payload` for details on
+  // arguments.
+  // It's not a requirement to have this metric thus left unimplemented.
+  void RecordSendInitialMetadata(
+      grpc_metadata_batch* send_initial_metadata) override;
+
+  void RecordSendTrailingMetadata(
+      grpc_metadata_batch* send_trailing_metadata) override;
+
+  void RecordSendMessage(const grpc_core::SliceBuffer& send_message) override;
+
+  void RecordSendCompressedMessage(
+      const grpc_core::SliceBuffer& send_compressed_message) override;
+
+  void RecordReceivedInitialMetadata(
+      grpc_metadata_batch* recv_initial_metadata) override;
+
+  void RecordReceivedMessage(
+      const grpc_core::SliceBuffer& recv_message) override;
+
+  void RecordReceivedDecompressedMessage(
+      const grpc_core::SliceBuffer& recv_decompressed_message) override;
+
+  void RecordReceivedTrailingMetadata(
+      grpc_metadata_batch* /*recv_trailing_metadata*/) override {}
+
+  void RecordCancel(grpc_error_handle /*cancel_error*/) override;
+
+  void RecordEnd(const grpc_call_final_info* final_info) override;
+
+  void RecordAnnotation(absl::string_view annotation) override;
+
+  void RecordAnnotation(const Annotation& annotation) override;
+
+  std::shared_ptr<grpc_core::TcpTracerInterface> StartNewTcpTrace() override {
+    return nullptr;
+  }
+
+ private:
+  PythonCensusContext context_;
+  // server method
+  grpc_core::Slice path_;
+  absl::string_view method_;
+  absl::Time start_time_;
+  absl::Duration elapsed_time_;
+  uint64_t recv_message_count_;
+  uint64_t sent_message_count_;
+  // Buffer needed for grpc_slice to reference it when adding metadata to
+  // response.
+  char stats_buf_[kMaxServerStatsLen];
+  PythonLabelsInjector labels_injector_;
+  std::vector<std::unique_ptr<LabelsIterable>> injected_labels_from_plugin_options_;
+};
+
 }  // namespace grpc_observability
 
 #endif  // GRPC_PYTHON_OPENCENSUS_SERVER_CALL_TRACER_H

@@ -156,7 +156,7 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
         self, method_name: bytes, target: bytes
     ) -> ClientCallTracerCapsule:
         trace_id = b"TRACE_ID"
-        additional_labels = self._get_additional_client_labels(method_name)
+        additional_labels = self._get_additional_client_labels(target)
         capsule = _cyobservability.create_client_call_tracer(
             method_name, target, trace_id, additional_labels
         )
@@ -193,11 +193,11 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
             self._exporter, method, target, rpc_latency, status_code
         )
 
-    def _get_additional_client_labels(self, method_name: str) -> Dict[str, str]:
+    def _get_additional_client_labels(self, target: bytes) -> Dict[str, str]:
         additional_client_labels = {}
         for _plugin in self._plugins:
             additional_client_labels.update(
-                _plugin.get_additional_client_labels(method_name)
+                _plugin.get_additional_client_labels(target)
             )
         print(f"additional_client_labels: {additional_client_labels}")
         return additional_client_labels

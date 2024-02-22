@@ -96,7 +96,7 @@ void* CreateClientCallTracer(const char* method, const char* target,
                              const std::vector<Label> additional_labels) {
   std::cout << "CreateClientCallTracer with additional_labels.size=" << additional_labels.size() << std::endl;
   for (const Label &label: additional_labels) {
-    std::cout << "label key: " << label.key <<  " label value: " << label.value << std::endl;
+    std::cout << "  label key: " << label.key <<  " label value: " << label.value << std::endl;
   }
   void* client_call_tracer = new PythonOpenCensusCallTracer(
       method, target, trace_id, parent_span_id, additional_labels, PythonCensusTracingEnabled());
@@ -106,7 +106,7 @@ void* CreateClientCallTracer(const char* method, const char* target,
 void* CreateServerCallTracerFactory(const std::vector<Label> additional_labels) {
   std::cout << "CreateServerCallTracerFactory with additional_labels.size=" << additional_labels.size() << std::endl;
   for (const Label &label: additional_labels) {
-    std::cout << "label key: " << label.key <<  " label value: " << label.value << std::endl;
+    std::cout << "  label key: " << label.key <<  " label value: " << label.value << std::endl;
   }
   void* server_call_tracer_factory =
       new PythonOpenCensusServerCallTracerFactory(additional_labels);

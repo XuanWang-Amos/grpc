@@ -194,7 +194,7 @@ absl::string_view GetStringValueFromAdditionalLabels(
   if (it == additional_labels.end()) {
     return "unknown";
   }
-  // std::cout << ">>>Found value: " << (*it).value << std::endl;
+
   return (*it).value;
 }
 

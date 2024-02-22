@@ -175,14 +175,15 @@ class _OpenTelemetryPlugin:
         if self._should_record(stats_data):
             self._record_stats_data(stats_data)
 
-    def get_additional_client_labels(self, method_name: str) -> Dict[str, str]:
+    def get_additional_client_labels(self, target: bytes) -> Dict[str, str]:
         additional_labels = {
             "CSM_CANONICAL_SERVICE_NAME": "client_CSM_CANONICAL_SERVICE_NAME"
         }
+        target_str = target.decode("utf-8", "replace")
         for plugin_option in self._plugin.get_plugin_options():
             if hasattr(
-                plugin_option, "is_active_on_method"
-            ) and plugin_option.is_active_on_method(method_name):
+                plugin_option, "is_active_on_client_channel"
+            ) and plugin_option.is_active_on_client_channel(target_str):
                 if hasattr(plugin_option, "get_label_injector"):
                     additional_labels.update(
                         plugin_option.get_label_injector().get_labels()

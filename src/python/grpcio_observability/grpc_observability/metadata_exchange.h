@@ -107,7 +107,7 @@ class PythonLabelsInjector : public LabelsInjector {
   void AddLabels(grpc_metadata_batch* outgoing_initial_metadata,
                  LabelsIterable* labels_from_incoming_metadata) const override;
 
-  // Add optional labels to the traced calls.
+  // Add optional xds labels to the traced calls.
   void AddXdsOptionalLabels(
       bool is_client,
       absl::Span<const std::shared_ptr<std::map<std::string, std::string>>>

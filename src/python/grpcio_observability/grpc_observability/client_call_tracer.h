@@ -138,7 +138,7 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
   bool tracing_enabled_;
   bool add_csm_optional_labels_;
   mutable grpc_core::Mutex mu_;
-  const std::vector<Label> additional_labels_;
+//   const std::vector<Label> additional_labels_;
   PythonLabelsInjector labels_injector_;
   // Non-transparent attempts per call
   uint64_t retries_ ABSL_GUARDED_BY(&mu_) = 0;

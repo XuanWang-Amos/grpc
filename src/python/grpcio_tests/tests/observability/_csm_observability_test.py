@@ -126,14 +126,14 @@ class TestPluginOption(OpenTelemetryPluginOption):
     Please note that this class is still work in progress and NOT READY to be used.
     """
 
-    def is_active_on_method(self, method: str) -> bool:
-        """Determines whether this plugin option is active on a given method.
+    def is_active_on_client_channel(self, target: str) -> bool:
+        """Determines whether this plugin option is active on a channel based on target.
 
         Args:
-          method: Required. The RPC method, for example: `/helloworld.Greeter/SayHello`.
+          method: Required. The target for the RPC.
 
         Returns:
-          True if this this plugin option is active on the giving method, false otherwise.
+          True if this this plugin option is active on the channel, false otherwise.
         """
         return True
 

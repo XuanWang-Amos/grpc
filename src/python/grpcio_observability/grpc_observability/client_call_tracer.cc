@@ -50,7 +50,7 @@ PythonOpenCensusCallTracer::PythonOpenCensusCallTracer(
       target_(GetTarget(target)),
       tracing_enabled_(tracing_enabled),
       add_csm_optional_labels_(true),
-      additional_labels_(additional_labels),
+      // additional_labels_(additional_labels),
       labels_injector_(additional_labels) {
   GenerateClientContext(absl::StrCat("Sent.", method_),
                         absl::string_view(trace_id),

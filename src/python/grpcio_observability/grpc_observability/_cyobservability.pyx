@@ -125,7 +125,7 @@ def create_client_call_tracer(bytes method_name, bytes target, bytes trace_id,
   cdef char* c_target = cpython.PyBytes_AsString(target)
   cdef char* c_trace_id = cpython.PyBytes_AsString(trace_id)
   cdef char* c_parent_span_id = cpython.PyBytes_AsString(parent_span_id)
-  cdef vector[Label] c_labels = _label_to_c_labels(additional_labels)
+  cdef vector[Label] c_labels = _labels_to_c_labels(additional_labels)
 
   cdef void* call_tracer = CreateClientCallTracer(c_method, c_target, c_trace_id, c_parent_span_id, c_labels)
   capsule = cpython.PyCapsule_New(call_tracer, CLIENT_CALL_TRACER, NULL)
@@ -139,7 +139,7 @@ def create_server_call_tracer_factory_capsule(dict additional_labels) -> cpython
 
   Returns: A grpc_observability._observability.ServerCallTracerFactoryCapsule object.
   """
-  cdef vector[Label] c_labels = _label_to_c_labels(additional_labels)
+  cdef vector[Label] c_labels = _labels_to_c_labels(additional_labels)
   cdef void* call_tracer_factory = CreateServerCallTracerFactory(c_labels)
   capsule = cpython.PyCapsule_New(call_tracer_factory, SERVER_CALL_TRACER_FACTORY, NULL)
   return capsule
@@ -161,7 +161,7 @@ def _c_label_to_labels(vector[Label] c_labels) -> Mapping[str, str]:
   return py_labels
 
 
-def _label_to_c_labels(py_labels):
+def _labels_to_c_labels(dict py_labels) -> vector[Label]:
   cdef vector[Label] c_labels
   cdef Label label
 
