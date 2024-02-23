@@ -95,7 +95,7 @@ class OTelMetricExporter(MetricExporter):
                         self.all_metrics[metric.name].append(data_point.attributes)
 
 
-class BaseTestCSMPlugin(grpc_csm_observability.CSMOpenTelemetryPlugin):
+class BaseTestCSMPlugin(grpc_csm_observability.CsmOpenTelemetryPlugin):
     def __init__(self, provider: MeterProvider):
         self.provider = provider
 
@@ -175,7 +175,7 @@ class CSMObservabilityTest(unittest.TestCase):
 
     def testRecordUnaryUnaryUseContextManager(self):
         csm_plugin = BaseTestCSMPlugin(self._provider)
-        with grpc_csm_observability.CSMOpenTelemetryObservability(
+        with grpc_csm_observability.CsmObservability(
             plugins=[csm_plugin],
             csm_diagnostic_reporting_enabled=False,
         ):

@@ -95,7 +95,7 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
     """
 
     _exporter: "grpc_observability.Exporter"
-    _plugins: List[OpenTelemetryPlugin]
+    _plugins: List[_OpenTelemetryPlugin]
 
     def __init__(
         self,
@@ -159,8 +159,15 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
     ) -> ClientCallTracerCapsule:
         trace_id = b"TRACE_ID"
         additional_labels = self._get_additional_client_labels(target)
+        enabled_optional_labels = set()
+        for plugin in self._plugins:
+            enabled_optional_labels.update(plugin.get_enabled_optional_labels())
+        import sys
+
+        sys.stderr.write(f"~~enabled_optional_labels: {enabled_optional_labels}\n")
+        sys.stderr.flush()
         capsule = _cyobservability.create_client_call_tracer(
-            method_name, target, trace_id, additional_labels, self.get_enabled_optional_labels()
+            method_name, target, trace_id, additional_labels, enabled_optional_labels
         )
         return capsule
 
@@ -172,7 +179,9 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
         capsule = None
         additional_labels = self._get_additional_server_labels(xds)
         if self.is_server_traced(xds):
-            capsule = _cyobservability.create_server_call_tracer_factory_capsule(additional_labels)
+            capsule = _cyobservability.create_server_call_tracer_factory_capsule(
+                additional_labels
+            )
         return capsule
 
     def delete_client_call_tracer(
@@ -214,5 +223,5 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
     def is_server_traced(self, xds: bool) -> bool:
         return True
 
-    def get_enabled_optional_labels(self) -> List[OptionalLabelType]:
-        return []
+    # def get_enabled_optional_labels(self) -> List[OptionalLabelType]:
+    #     return []

@@ -27,8 +27,8 @@ from grpc_observability._open_telemetry_plugin import _OpenTelemetryPlugin
 from grpc_observability._observability import OptionalLabelType
 from grpc_observability import OpenTelemetryObservability
 from grpc_csm_observability._csm_observability_plugin import (
-    CSMOpenTelemetryPlugin,
-    _CSMOpenTelemetryPlugin,
+    CsmOpenTelemetryPlugin,
+    _CsmOpenTelemetryPlugin,
 )
 from grpc_observability._open_telemetry_observability import (
     _OPEN_TELEMETRY_OBSERVABILITY,
@@ -40,14 +40,15 @@ _LOGGER = logging.getLogger(__name__)
 
 def start_csm_observability(
     *,
-    plugins: Optional[Iterable[CSMOpenTelemetryPlugin]] = None,
+    plugins: Optional[Iterable[CsmOpenTelemetryPlugin]] = None,
+    csm_diagnostic_reporting_enabled: Optional[bool] = True,
 ) -> None:
     global _OPEN_TELEMETRY_OBSERVABILITY  # pylint: disable=global-statement
     with _observability_lock:
         if _OPEN_TELEMETRY_OBSERVABILITY is None:
-            _OPEN_TELEMETRY_OBSERVABILITY = CSMOpenTelemetryObservability(
-                plugins=plugins
-            )
+            _OPEN_TELEMETRY_OBSERVABILITY = CsmObservability(
+                plugins=plugins,
+                csm_diagnostic_reporting_enabled=csm_diagnostic_reporting_enabled)
             _OPEN_TELEMETRY_OBSERVABILITY.observability_init()
         else:
             raise RuntimeError("gPRC Python observability was already initiated!")
@@ -66,13 +67,13 @@ def end_csm_observability() -> None:
 
 
 # pylint: disable=no-self-use
-class CSMOpenTelemetryObservability(OpenTelemetryObservability):
+class CsmObservability(OpenTelemetryObservability):
     """OpenTelemetry based plugin implementation.
 
     This is class is part of an EXPERIMENTAL API.
 
     Args:
-      plugin: CSMOpenTelemetryPlugin to enable.
+      plugin: CsmOpenTelemetryPlugin to enable.
       csm_diagnostic_reporting_enabled: Whether send csm diagnostic reports to TD.
     """
 
@@ -81,7 +82,7 @@ class CSMOpenTelemetryObservability(OpenTelemetryObservability):
     def __init__(
         self,
         *,
-        plugins: Optional[Iterable[CSMOpenTelemetryPlugin]] = None,
+        plugins: Optional[Iterable[CsmOpenTelemetryPlugin]] = None,
         csm_diagnostic_reporting_enabled: Optional[bool] = True,
     ):
         self._plugins = []
@@ -96,7 +97,4 @@ class CSMOpenTelemetryObservability(OpenTelemetryObservability):
         self._exporter = _OpenTelemetryExporterDelegator(self._plugins)
 
     def _build_csm_plugin(self) -> _OpenTelemetryPlugin:
-        return _OpenTelemetryPlugin(_CSMOpenTelemetryPlugin())
-
-    def get_enabled_optional_labels(self) -> List[OptionalLabelType]:
-        return [OptionalLabelType.XDS_SERVICE_LABELS]
+        return _OpenTelemetryPlugin(_CsmOpenTelemetryPlugin())

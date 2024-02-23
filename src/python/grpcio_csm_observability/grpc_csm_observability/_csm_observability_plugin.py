@@ -20,6 +20,7 @@ import grpc
 from grpc_observability import _open_telemetry_measures
 from grpc_observability._cyobservability import MetricsName
 from grpc_observability._observability import StatsData
+from grpc_observability._observability import OptionalLabelType
 from grpc_observability._open_telemetry_plugin import OpenTelemetryPlugin
 from grpc_observability._open_telemetry_plugin import _OpenTelemetryPlugin
 from grpc_observability._open_telemetry_plugin import OpenTelemetryLabelInjector
@@ -48,13 +49,12 @@ class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
         # those lables to OpenTelemetryLabelInjector.labels.
         self._labels = {"injector_label": "value_for_injector_label"}
 
-
     def get_labels(self):
         # Get additional labels for this OpenTelemetryLabelInjector.
         return self._labels
 
 
-class CSMOpenTelemetryPluginOption(OpenTelemetryPluginOption):
+class CsmOpenTelemetryPluginOption(OpenTelemetryPluginOption):
     """
     An interface that allows you to add additional function to OpenTelemetryPlugin.
 
@@ -89,20 +89,23 @@ class CSMOpenTelemetryPluginOption(OpenTelemetryPluginOption):
 
 
 # pylint: disable=no-self-use
-class CSMOpenTelemetryPlugin(OpenTelemetryPlugin):
+class CsmOpenTelemetryPlugin(OpenTelemetryPlugin):
     """Describes a Plugin for OpenTelemetry observability.
 
     This is class is part of an EXPERIMENTAL API.
     """
 
-    def get_plugin_options(
+    def _get_plugin_options(
         self,
     ) -> Iterable[OpenTelemetryPluginOption]:
-        return [CSMOpenTelemetryPluginOption()]
+        return [CsmOpenTelemetryPluginOption()]
+
+    def _get_enabled_optional_labels(self) -> List[OptionalLabelType]:
+        return [OptionalLabelType.XDS_SERVICE_LABELS]
 
 
 # pylint: disable=no-self-use
-class _CSMOpenTelemetryPlugin(CSMOpenTelemetryPlugin):
+class _CsmOpenTelemetryPlugin(CsmOpenTelemetryPlugin):
     """Describes a Plugin for OpenTelemetry observability.
 
     This is class is part of an EXPERIMENTAL API.

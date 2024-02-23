@@ -13,17 +13,17 @@
 # limitations under the License.
 
 from grpc_csm_observability._csm_observability_plugin import (
-    CSMOpenTelemetryPlugin,
+    CsmOpenTelemetryPlugin,
 )
 from grpc_csm_observability._csm_observability import (
-    CSMOpenTelemetryObservability,
+    CsmObservability,
     start_csm_observability,
     end_csm_observability,
 )
 
 __all__ = (
-    "CSMOpenTelemetryObservability",
-    "CSMOpenTelemetryPlugin",
+    "CsmObservability",
+    "CsmOpenTelemetryPlugin",
     "start_csm_observability",
     "end_csm_observability",
 )

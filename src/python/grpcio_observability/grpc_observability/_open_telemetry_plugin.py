@@ -20,6 +20,7 @@ import grpc
 from grpc_observability import _open_telemetry_measures
 from grpc_observability._cyobservability import MetricsName
 from grpc_observability._observability import StatsData
+from grpc_observability._observability import OptionalLabelType
 from opentelemetry.metrics import Counter
 from opentelemetry.metrics import Histogram
 from opentelemetry.metrics import Meter
@@ -65,10 +66,12 @@ class OpenTelemetryPlugin:
     This is class is part of an EXPERIMENTAL API.
     """
 
-    def get_plugin_options(
+    def _get_plugin_options(
         self,
     ) -> Iterable[OpenTelemetryPluginOption]:
         """
+        This is a private method.
+
         This function will be used to get plugin options which are enabled for
         this OpenTelemetryPlugin instance.
 
@@ -127,6 +130,9 @@ class OpenTelemetryPlugin:
         """
         return False
 
+    def _get_enabled_optional_labels(self) -> List[OptionalLabelType]:
+        return []
+
 
 class _OpenTelemetryPlugin:
     _plugin: OpenTelemetryPlugin
@@ -180,7 +186,7 @@ class _OpenTelemetryPlugin:
             "CSM_CANONICAL_SERVICE_NAME": "client_CSM_CANONICAL_SERVICE_NAME"
         }
         target_str = target.decode("utf-8", "replace")
-        for plugin_option in self._plugin.get_plugin_options():
+        for plugin_option in self._plugin._get_plugin_options():
             if hasattr(
                 plugin_option, "is_active_on_client_channel"
             ) and plugin_option.is_active_on_client_channel(target_str):
@@ -194,7 +200,7 @@ class _OpenTelemetryPlugin:
         additional_labels = {
             "CSM_CANONICAL_SERVICE_NAME": "server_CSM_CANONICAL_SERVICE_NAME"
         }
-        for plugin_option in self._plugin.get_plugin_options():
+        for plugin_option in self._plugin._get_plugin_options():
             if hasattr(
                 plugin_option, "is_active_on_server"
             ) and plugin_option.is_active_on_server(xds):
@@ -203,6 +209,9 @@ class _OpenTelemetryPlugin:
                         plugin_option.get_label_injector().get_labels()
                     )
         return additional_labels
+
+    def get_enabled_optional_labels(self) -> List[OptionalLabelType]:
+        return self._plugin._get_enabled_optional_labels()
 
     def _register_metrics(
         self, meter: Meter, metrics: List[_open_telemetry_measures.Metric]
