@@ -15,7 +15,7 @@
 import logging
 import threading
 import time
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, AnyStr, Dict, Iterable, List, Optional
 
 import grpc
 
@@ -162,10 +162,10 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
         enabled_optional_labels = set()
         for plugin in self._plugins:
             enabled_optional_labels.update(plugin.get_enabled_optional_labels())
-        import sys
+        # import sys
 
-        sys.stderr.write(f"~~enabled_optional_labels: {enabled_optional_labels}\n")
-        sys.stderr.flush()
+        # sys.stderr.write(f"~~enabled_optional_labels: {enabled_optional_labels}\n")
+        # sys.stderr.flush()
         capsule = _cyobservability.create_client_call_tracer(
             method_name, target, trace_id, additional_labels, enabled_optional_labels
         )
@@ -180,7 +180,7 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
         additional_labels = self._get_additional_server_labels(xds)
         if self.is_server_traced(xds):
             capsule = _cyobservability.create_server_call_tracer_factory_capsule(
-                additional_labels
+                {}
             )
         return capsule
 
@@ -204,7 +204,7 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
             self._exporter, method, target, rpc_latency, status_code
         )
 
-    def _get_additional_client_labels(self, target: bytes) -> Dict[str, str]:
+    def _get_additional_client_labels(self, target: bytes) -> Dict[str, AnyStr]:
         additional_client_labels = {}
         for _plugin in self._plugins:
             additional_client_labels.update(

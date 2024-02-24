@@ -18,6 +18,7 @@
 
 
 #include "metadata_exchange.h"
+#include "constants.h"
 
 #include <stddef.h>
 
@@ -182,6 +183,19 @@ void AddStringKeyValueToStructProto(google_protobuf_Struct* struct_pb,
 //   }
 //   return *string_value;
 // }
+
+bool KeyInLabels(const std::vector<Label>& labels, std::string key) {
+  const auto it = std::find_if(labels.begin(), labels.end(), 
+                       [&key](const Label& l) {
+                           return l.key == key; 
+                       });
+
+  if (it == labels.end()) {
+    return false;
+  }
+
+  return true;
+}
 
 absl::string_view GetStringValueFromAdditionalLabels(
     const std::vector<Label>& additional_labels,
@@ -387,8 +401,8 @@ std::string GetMeshId() {
 
 PythonLabelsInjector::PythonLabelsInjector(
     const std::vector<Label>& additional_labels) {
-  upb::Arena arena;
-  auto* metadata = google_protobuf_Struct_new(arena.ptr());
+  // upb::Arena arena;
+  // auto* metadata = google_protobuf_Struct_new(arena.ptr());
   // Assume kubernetes for now
   // absl::string_view type_value = GetStringValueFromAttributeMap(
   //     map, "opentelemetry::sdk::resource::SemanticConventions::kCloudPlatform");
@@ -413,13 +427,13 @@ PythonLabelsInjector::PythonLabelsInjector(
   //     grpc_core::GetEnv("CSM_CANONICAL_SERVICE_NAME").value_or("unknown");
   // std::string canonical_service_value = GetStringValueFromAttributeMap(
   //     map, "CSM_CANONICAL_SERVICE_NAME");
-  absl::string_view canonical_service_value = GetStringValueFromAdditionalLabels(additional_labels, "CSM_CANONICAL_SERVICE_NAME");
+  // absl::string_view canonical_service_value = GetStringValueFromAdditionalLabels(additional_labels, "CSM_CANONICAL_SERVICE_NAME");
 
   // // Create metadata to be sent over wire.
   // AddStringKeyValueToStructProto(metadata, kMetadataExchangeTypeKey, type_value,
   //                                arena.ptr());
-  AddStringKeyValueToStructProto(metadata, kMetadataExchangeCanonicalServiceKey,
-                                 canonical_service_value, arena.ptr());
+  // AddStringKeyValueToStructProto(metadata, kMetadataExchangeCanonicalServiceKey,
+  //                                canonical_service_value, arena.ptr());
   // if (type_value == kGkeType) {
   //   AddStringKeyValueToStructProto(metadata, kMetadataExchangeWorkloadNameKey,
   //                                  workload_name_value, arena.ptr());
@@ -432,49 +446,120 @@ PythonLabelsInjector::PythonLabelsInjector(
   //   AddStringKeyValueToStructProto(metadata, kMetadataExchangeProjectIdKey,
   //                                  project_id_value, arena.ptr());
   // } else if (type_value == kGceType) {
-  //   AddStringKeyValueToStructProto(metadata, kMetadataExchangeWorkloadNameKey,
-  //                                  workload_name_value, arena.ptr());
+    // AddStringKeyValueToStructProto(metadata, kMetadataExchangeWorkloadNameKey,
+    //                                absl::string_view("workload_name_Alice_Fake"), arena.ptr());
   //   AddStringKeyValueToStructProto(metadata, kMetadataExchangeLocationKey,
   //                                  location_value, arena.ptr());
   //   AddStringKeyValueToStructProto(metadata, kMetadataExchangeProjectIdKey,
   //                                  project_id_value, arena.ptr());
   // }
 
-  size_t output_length;
-  char* output =
-      google_protobuf_Struct_serialize(metadata, arena.ptr(), &output_length);
-  serialized_labels_to_send_ = grpc_core::Slice::FromCopiedString(
-      absl::Base64Escape(absl::string_view(output, output_length)));
+  // size_t output_length;
+  // char* output =
+  //     google_protobuf_Struct_serialize(metadata, arena.ptr(), &output_length);
+  // std::cout << ">>> [TRUE] Adding labels to grpc_core::XEnvoyPeerMetadata() with value: " << absl::Base64Escape(absl::string_view(output, output_length)) << std::endl;
+  // serialized_labels_to_send_ = grpc_core::Slice::FromCopiedString(
+  //     absl::Base64Escape(absl::string_view(output, output_length)));
   // Fill up local labels map. The rest we get from the detected Resource and
   // from the peer.
-  local_labels_.emplace_back(kCanonicalServiceAttribute,
-                             canonical_service_value);
-  local_labels_.emplace_back(kMeshIdAttribute, GetMeshId());
+  // local_labels_.emplace_back(kCanonicalServiceAttribute,
+  //                            canonical_service_value);
+  // local_labels_.emplace_back(kMeshIdAttribute, GetMeshId());
+
+  for (const auto& label : additional_labels) {
+    auto it = MetadataKeyNames.find(label.key);
+    if (it != MetadataKeyNames.end()) {
+      // std::cout << ">>> Adding labels to metadata_to_send_ with key: " << label.key << " value: " << label.value << std::endl;
+      metadata_to_send_.emplace_back(label.key, label.value);
+    }
+  }
 }
 
-std::unique_ptr<LabelsIterable> PythonLabelsInjector::GetLabels(
+std::vector<Label> PythonLabelsInjector::GetLabels(
     grpc_metadata_batch* incoming_initial_metadata) const {
-  auto peer_metadata =
-      incoming_initial_metadata->Take(grpc_core::XEnvoyPeerMetadata());
-  return std::make_unique<MeshLabelsIterable>(
-      local_labels_, peer_metadata.has_value() ? *std::move(peer_metadata)
-                                               : grpc_core::Slice());
+  // auto peer_metadata =
+  //     incoming_initial_metadata->Take(grpc_core::XEnvoyPeerMetadata());
+  // return std::make_unique<MeshLabelsIterable>(
+  //     local_labels_, peer_metadata.has_value() ? *std::move(peer_metadata)
+  //                                              : grpc_core::Slice());
+  std::vector<Label> labels;
+  auto peer_metadata = incoming_initial_metadata->Take(grpc_core::XEnvoyPeerMetadata());
+  grpc_core::Slice remote_metadata = peer_metadata.has_value() ? *std::move(peer_metadata) : grpc_core::Slice();
+  if (remote_metadata.empty()) {
+    std::cout << "[SERVER] remote_metadata->empty() TRUE" << std::endl;
+  } else {
+    std::string decoded_metadata;
+    bool metadata_decoded =
+        absl::Base64Unescape(remote_metadata.as_string_view(), &decoded_metadata);
+    if (metadata_decoded) {
+      labels.emplace_back(kXEnvoyPeerMetadata, decoded_metadata);
+    }
+  }
+  return labels;
 }
 
-void PythonLabelsInjector::AddLabels(
-    grpc_metadata_batch* outgoing_initial_metadata,
-    LabelsIterable* labels_from_incoming_metadata) const {
+void PythonLabelsInjector::ClientAddLabels(
+    grpc_metadata_batch* outgoing_initial_metadata) const {
   // On the server, if the labels from incoming metadata did not have a
   // non-empty base64 encoded "x-envoy-peer-metadata", do not perform metadata
   // exchange.
-  if (labels_from_incoming_metadata != nullptr &&
-      !static_cast<MeshLabelsIterable*>(labels_from_incoming_metadata)
-           ->GotRemoteLabels()) {
+  // if (labels_from_incoming_metadata != nullptr &&
+  //     !static_cast<MeshLabelsIterable*>(labels_from_incoming_metadata)
+  //          ->GotRemoteLabels()) {
+  //   return;
+  // }
+  // std::cout << ">>> Adding labels to grpc_core::XEnvoyPeerMetadata() "<< std::endl;
+  // grpc_core::Slice slice = grpc_core::Slice(grpc_core::StaticSlice::FromStaticString());
+  for (const auto& metadata : metadata_to_send_) {
+    // auto iter = MetadataMap.find(metadata_to_send.first);
+    // if (iter != MetadataMap.end()) {
+    if (metadata.first == kXEnvoyPeerMetadata) {
+      std::cout << ">>> [Client] Adding labels to grpc_core::XEnvoyPeerMetadata() with value: " << absl::Base64Escape(absl::string_view(metadata.second)) << std::endl;
+      grpc_core::Slice metadata_slice = grpc_core::Slice::FromCopiedString(absl::Base64Escape(absl::string_view(metadata.second)));
+      outgoing_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(),
+                                     metadata_slice.Ref());
+    }
+  }
+  // outgoing_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(),
+  //                                serialized_labels_to_send_.Ref());
+}
+
+void PythonLabelsInjector::ServerAddLabels(
+    grpc_metadata_batch* outgoing_initial_metadata, const std::vector<Label>& injected_labels) const {
+  // On the server, if the labels from incoming metadata did not have a
+  // non-empty base64 encoded "x-envoy-peer-metadata", do not perform metadata
+  // exchange.
+  // if (labels_from_incoming_metadata != nullptr &&
+  //     !static_cast<MeshLabelsIterable*>(labels_from_incoming_metadata)
+  //          ->GotRemoteLabels()) {
+  //   return;
+  // }
+  // std::cout << ">>> Adding labels to grpc_core::XEnvoyPeerMetadata() "<< std::endl;
+  // grpc_core::Slice slice = grpc_core::Slice(grpc_core::StaticSlice::FromStaticString());
+  if (!KeyInLabels(injected_labels, kXEnvoyPeerMetadata)) {
     return;
   }
-  std::cout << ">>> Adding labels to grpc_core::XEnvoyPeerMetadata() "<< std::endl;
-  outgoing_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(),
-                                 serialized_labels_to_send_.Ref());
+
+  for (const auto& label : injected_labels) {
+    if (label.key == kXEnvoyPeerMetadata) {
+      std::cout << ">>> [Server] Adding labels to grpc_core::XEnvoyPeerMetadata() with value: " << absl::Base64Escape(absl::string_view(label.value)) << std::endl;
+      grpc_core::Slice metadata_slice = grpc_core::Slice::FromCopiedString(absl::Base64Escape(absl::string_view(label.value)));
+      outgoing_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(),
+                                     metadata_slice.Ref());
+    }
+  }
+  // for (const auto& metadata : metadata_to_send_) {
+  //   // auto iter = MetadataMap.find(metadata_to_send.first);
+  //   // if (iter != MetadataMap.end()) {
+  //   if (metadata.first == kXEnvoyPeerMetadata) {
+  //     std::cout << ">>> Adding labels to grpc_core::XEnvoyPeerMetadata() with value: " << absl::Base64Escape(absl::string_view(metadata.second)) << std::endl;
+  //     grpc_core::Slice metadata_slice = grpc_core::Slice::FromCopiedString(absl::Base64Escape(absl::string_view(metadata.second)));
+  //     outgoing_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(),
+  //                                    metadata_slice.Ref());
+  //   }
+  // }
+  // outgoing_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(),
+  //                                serialized_labels_to_send_.Ref());
 }
 
 void PythonLabelsInjector::AddXdsOptionalLabels(

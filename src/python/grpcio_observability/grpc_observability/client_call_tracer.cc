@@ -198,21 +198,37 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     send_initial_metadata->Set(grpc_core::GrpcTagsBinMetadata(),
                                grpc_core::Slice(tags));
   }
-  parent_->labels_injector_.AddLabels(send_initial_metadata, nullptr);
+  parent_->labels_injector_.ClientAddLabels(send_initial_metadata);
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     RecordReceivedInitialMetadata(grpc_metadata_batch* recv_initial_metadata) {
   // Get labels from recv_initial_metadata and add to injected_labels_from_plugin_options_.
   // const std::unique_ptr<LabelsIterable>& plugin_option_injected_iterable = parent_->labels_injector_.GetLabels(recv_initial_metadata);
-  injected_labels_from_plugin_options_.push_back(parent_->labels_injector_.GetLabels(recv_initial_metadata));
-  for (const auto& plugin_option_injected_iterable : injected_labels_from_plugin_options_) {
-    if (plugin_option_injected_iterable != nullptr) {
-      plugin_option_injected_iterable->ResetIteratorPosition();
-      while (const auto& pair = plugin_option_injected_iterable->Next()) {
-        std::cout << "[CLIENT] labels from peer: " << pair->first << ": " << pair->second << std::endl;
-      }
-    }
+  // injected_labels_from_plugin_options_.push_back(parent_->labels_injector_.GetLabels(recv_initial_metadata));
+  // for (const auto& plugin_option_injected_iterable : injected_labels_from_plugin_options_) {
+  //   if (plugin_option_injected_iterable != nullptr) {
+  //     plugin_option_injected_iterable->ResetIteratorPosition();
+  //     while (const auto& pair = plugin_option_injected_iterable->Next()) {
+  //       std::cout << "[CLIENT] labels from peer: " << pair->first << ": " << pair->second << std::endl;
+  //     }
+  //   }
+  // }
+
+  // injected_labels_ = parent_->labels_injector_.GetLabels(recv_initial_metadata);
+  // auto peer_metadata = recv_initial_metadata->Take(grpc_core::XEnvoyPeerMetadata());
+  // grpc_core::Slice remote_metadata = peer_metadata.has_value() ? *std::move(peer_metadata) : grpc_core::Slice();
+  // if (remote_metadata.empty()) {
+  //   std::cout << "[CLIENT] remote_metadata->empty() TRUE" << std::endl;
+  // } else {
+  //   std::string decoded_metadata;
+  //   bool metadata_decoded =
+  //       absl::Base64Unescape(remote_metadata.as_string_view(), &decoded_metadata);
+  injected_labels_ = parent_->labels_injector_.GetLabels(recv_initial_metadata);
+
+  for (const auto& label : injected_labels_) {
+      std::cout << "[CLIENT] labels from peer: " << label.key << ": " << label.value << std::endl;
+      context_.Labels().emplace_back(label);
   }
 }
 

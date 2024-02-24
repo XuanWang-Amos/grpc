@@ -32,6 +32,7 @@ py_library(
     deps = [
         requirement("opentelemetry-sdk"),
         requirement("opentelemetry-api"),
+        requirement("protobuf"),
         "//src/python/grpcio/grpc:grpcio",
         "//src/python/grpcio_observability/grpc_observability:pyobservability",
     ],

@@ -86,7 +86,7 @@ void PythonOpenCensusServerCallTracer::RecordSendInitialMetadata(
     // 1. Check if incoming metadata have x-envoy-peer-metadata label.
     // 2. If it does, perform metadata exchange.
     // 3. send_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(), 
-    labels_injector_.AddLabels(send_initial_metadata, injected_labels_from_plugin_options_.get());
+    labels_injector_.ServerAddLabels(send_initial_metadata, injected_labels_);
     // serialized_labels_to_send_.Ref())
     // serialized_labels_to_send_
     // active_plugin_options_view_.ForEach(
@@ -117,14 +117,15 @@ void PythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata(
     RecordIntMetric(kRpcServerStartedRpcsMeasureName, 1, context_.Labels());
   }
 
-  injected_labels_from_plugin_options_ = labels_injector_.GetLabels(recv_initial_metadata);
-  if (injected_labels_from_plugin_options_ != nullptr) {
-    injected_labels_from_plugin_options_->ResetIteratorPosition();
-    while (const auto& pair = injected_labels_from_plugin_options_->Next()) {
-      std::cout << "[SERVER] labels from peer: " << pair->first << ": " << pair->second << std::endl;
-      // context_.Labels().emplace_back(std::string(pair->first), std::string(pair->second));
-    }
+  // C++ GetLabels returns metadata_label + local_label
+  // Python GetLabels returns metadata_label + additional_labels
+  injected_labels_ = labels_injector_.GetLabels(recv_initial_metadata);
+
+  for (const auto& label : injected_labels_) {
+      std::cout << "[SERVER] labels from peer: " << label.key << ": " << label.value << std::endl;
+      context_.Labels().emplace_back(label);
   }
+
   // path_ =
   //     recv_initial_metadata->get_pointer(grpc_core::HttpPathMetadata())->Ref();
   // active_plugin_options_view_.ForEach(

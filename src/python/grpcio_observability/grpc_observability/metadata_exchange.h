@@ -33,6 +33,7 @@
 #include "absl/types/optional.h"
 
 #include "python_census_context.h"
+#include "constants.h"
 #include "src/core/lib/transport/metadata_batch.h"
 
 namespace grpc_observability {
@@ -54,58 +55,21 @@ class LabelsIterable {
   virtual void ResetIteratorPosition() = 0;
 };
 
-
-// An interface that allows you to add additional labels on the calls traced
-// through the OpenTelemetry plugin.
-class LabelsInjector {
- public:
-  virtual ~LabelsInjector() {}
-  // Read the incoming initial metadata to get the set of labels to be added to
-  // metrics.
-  virtual std::unique_ptr<LabelsIterable> GetLabels(
-      grpc_metadata_batch* incoming_initial_metadata) const = 0;
-
-  // Modify the outgoing initial metadata with metadata information to be sent
-  // to the peer. On the server side, \a labels_from_incoming_metadata returned
-  // from `GetLabels` should be provided as input here. On the client side, this
-  // should be nullptr.
-  virtual void AddLabels(
-      grpc_metadata_batch* outgoing_initial_metadata,
-      LabelsIterable* labels_from_incoming_metadata) const = 0;
-
-//   // Adds optional labels to the traced calls. Each entry in the span
-//   // corresponds to the CallAttemptTracer::OptionalLabelComponent enum. Returns
-//   // false when callback returns false.
-//   virtual bool AddOptionalLabels(
-//       bool is_client,
-//       absl::Span<const std::shared_ptr<std::map<std::string, std::string>>>
-//           optional_labels_span,
-//       opentelemetry::nostd::function_ref<
-//           bool(opentelemetry::nostd::string_view,
-//                opentelemetry::common::AttributeValue)>
-//           callback) const = 0;
-
-//   // Gets the actual size of the optional labels that the Plugin is going to
-//   // produce through the AddOptionalLabels method.
-//   virtual size_t GetOptionalLabelsSize(
-//       bool is_client,
-//       absl::Span<const std::shared_ptr<std::map<std::string, std::string>>>
-//           optional_labels_span) const = 0;
-};
-
-class PythonLabelsInjector : public LabelsInjector {
+class PythonLabelsInjector {
  public:
   explicit PythonLabelsInjector(const std::vector<Label>& additional_labels);
 
   // Read the incoming initial metadata to get the set of labels to be added to
   // metrics.
-  std::unique_ptr<LabelsIterable> GetLabels(
-      grpc_metadata_batch* incoming_initial_metadata) const override;
+  std::vector<Label> GetLabels(
+      grpc_metadata_batch* incoming_initial_metadata) const;
 
   // Modify the outgoing initial metadata with metadata information to be sent
   // to the peer.
-  void AddLabels(grpc_metadata_batch* outgoing_initial_metadata,
-                 LabelsIterable* labels_from_incoming_metadata) const override;
+  void ClientAddLabels(grpc_metadata_batch* outgoing_initial_metadata) const;
+
+  void ServerAddLabels(grpc_metadata_batch* outgoing_initial_metadata,
+    const std::vector<Label>& injected_labels) const;
 
   // Add optional xds labels to the traced calls.
   void AddXdsOptionalLabels(
@@ -123,6 +87,7 @@ class PythonLabelsInjector : public LabelsInjector {
  private:
   std::vector<std::pair<absl::string_view, std::string>> local_labels_;
   grpc_core::Slice serialized_labels_to_send_;
+  std::vector<std::pair<std::string, std::string>> metadata_to_send_;
 };
 
 }  // namespace grpc_observability

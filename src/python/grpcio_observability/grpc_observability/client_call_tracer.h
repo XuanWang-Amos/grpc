@@ -99,6 +99,7 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
         optional_labels_array_;
     std::vector<std::unique_ptr<LabelsIterable>>
         injected_labels_from_plugin_options_;
+    std::vector<Label> injected_labels_;
   };
 
   explicit PythonOpenCensusCallTracer(const char* method, const char* target,

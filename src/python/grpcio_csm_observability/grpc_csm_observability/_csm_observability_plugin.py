@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import abc
-from typing import Dict, Iterable, List, Optional, Union
+from typing import AnyStr, Dict, Iterable, List, Optional, Union
 
 # pytype: disable=pyi-error
 import grpc
@@ -30,6 +30,8 @@ from opentelemetry.metrics import Histogram
 from opentelemetry.metrics import Meter
 from opentelemetry.metrics import MeterProvider
 
+from google.protobuf import struct_pb2
+
 GRPC_METHOD_LABEL = "grpc.method"
 GRPC_TARGET_LABEL = "grpc.target"
 GRPC_OTHER_LABEL_VALUE = "other"
@@ -42,16 +44,37 @@ class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
     Please note that this class is still work in progress and NOT READY to be used.
     """
 
-    _labels: Dict[str, str]
+    _labels: Dict[str, AnyStr]
 
     def __init__(self):
         # Calls Python OTel API to detect resource and get labels, save
         # those lables to OpenTelemetryLabelInjector.labels.
-        self._labels = {"injector_label": "value_for_injector_label"}
+        fields = {}
+        fields["workload_name"] = struct_pb2.Value(string_value="workload_name_Alice")
+        serialized_struct = struct_pb2.Struct(fields=fields)
+        serialized_str = serialized_struct.SerializeToString()
 
-    def get_labels(self):
-        # Get additional labels for this OpenTelemetryLabelInjector.
-        return self._labels
+        # my_struct = struct_pb2.Struct()
+        # my_struct.ParseFromString(serialized_str)
+
+        self._labels = {"XEnvoyPeerMetadata": serialized_str}
+
+    def add_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, AnyStr]:
+        labels.update(self._labels)
+        return labels
+
+    def get_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, AnyStr]:
+        new_labels = {}
+        for key, value in labels.items():
+            if "XEnvoyPeerMetadata" == key:
+                struct = struct_pb2.Struct()
+                struct.ParseFromString(value)
+                # for key, value in struct.items():
+                # print(f": {key}: {value}")
+                new_labels.update(struct)
+            else:
+                new_labels[key] = value
+        return new_labels
 
 
 class CsmOpenTelemetryPluginOption(OpenTelemetryPluginOption):
@@ -101,6 +124,19 @@ class CsmOpenTelemetryPlugin(OpenTelemetryPlugin):
         return [CsmOpenTelemetryPluginOption()]
 
     def _get_enabled_optional_labels(self) -> List[OptionalLabelType]:
+        fields = {}
+        fields["name"] = struct_pb2.Value(string_value="Alice")
+        serialized_struct = struct_pb2.Struct(fields=fields)
+
+        serialized_str = serialized_struct.SerializeToString()
+
+        my_struct = struct_pb2.Struct()
+        my_struct.ParseFromString(serialized_str)
+
+        # Access the fields
+
+        for key, value in my_struct.items():
+            print(f"==my_struct: {key}: {value}")
         return [OptionalLabelType.XDS_SERVICE_LABELS]
 
 

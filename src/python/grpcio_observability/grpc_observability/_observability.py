@@ -17,7 +17,7 @@ import abc
 from dataclasses import dataclass
 from dataclasses import field
 import enum
-from typing import List, Mapping, Tuple
+from typing import AnyStr, Dict, List, Mapping, Tuple
 
 
 class Exporter(metaclass=abc.ABCMeta):
@@ -42,7 +42,7 @@ class Exporter(metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
 
-@dataclass(frozen=True)
+@dataclass
 class StatsData:
     """A data class representing stats data.
 
@@ -61,7 +61,7 @@ class StatsData:
     measure_double: bool
     value_int: int = 0
     value_float: float = 0.0
-    labels: Mapping[str, str] = field(default_factory=dict)
+    labels: Dict[str, AnyStr] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -100,7 +100,7 @@ class TracingData:
     status: str
     should_sample: bool
     child_span_count: int
-    span_labels: Mapping[str, str] = field(default_factory=dict)
+    span_labels: Mapping[str, AnyStr] = field(default_factory=dict)
     span_annotations: List[Tuple[str, str]] = field(default_factory=list)
 
 

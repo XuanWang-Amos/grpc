@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import abc
-from typing import Dict, Iterable, List, Optional, Union
+from typing import AnyStr, Dict, Iterable, List, Optional, Union
 
 # pytype: disable=pyi-error
 import grpc
@@ -46,8 +46,30 @@ class OpenTelemetryLabelInjector(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_labels(self):
-        # Get additional labels for this OpenTelemetryLabelInjector.
+    def get_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, AnyStr]:
+        """
+        Get the set of labels to be added to metrics, if some labels are added by this
+        label injector, calling this method will deserialize the label.
+
+        Args:
+          labels: Original labels dict, new labels will be added to this dict.
+
+        Returns:
+          A new dict of labels with labels deserialized.
+        """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def add_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, AnyStr]:
+        """
+        Will be called to inject more labels from this label injector.
+
+        Args:
+          labels: Original labels dict, new labels will be added to this dict.
+
+        Returns:
+          A new dict of labels with additional labels added.
+        """
         raise NotImplementedError()
 
 
@@ -166,6 +188,7 @@ class _OpenTelemetryPlugin:
             stats_data.labels[GRPC_METHOD_LABEL] = GRPC_OTHER_LABEL_VALUE
 
         value = 0
+        stats_data.labels = self.maybe_add_and_deserialize_labels(stats_data.labels)
         if stats_data.measure_double:
             value = stats_data.value_float
         else:
@@ -181,34 +204,40 @@ class _OpenTelemetryPlugin:
         if self._should_record(stats_data):
             self._record_stats_data(stats_data)
 
-    def get_additional_client_labels(self, target: bytes) -> Dict[str, str]:
-        additional_labels = {
-            "CSM_CANONICAL_SERVICE_NAME": "client_CSM_CANONICAL_SERVICE_NAME"
-        }
+    def get_additional_client_labels(self, target: bytes) -> Dict[str, AnyStr]:
+        additional_labels = {}
         target_str = target.decode("utf-8", "replace")
         for plugin_option in self._plugin._get_plugin_options():
             if hasattr(
                 plugin_option, "is_active_on_client_channel"
             ) and plugin_option.is_active_on_client_channel(target_str):
                 if hasattr(plugin_option, "get_label_injector"):
-                    additional_labels.update(
-                        plugin_option.get_label_injector().get_labels()
+                    additional_labels = plugin_option.get_label_injector().add_labels(
+                        additional_labels
                     )
         return additional_labels
 
     def get_additional_server_labels(self, xds: bool) -> Dict[str, str]:
-        additional_labels = {
-            "CSM_CANONICAL_SERVICE_NAME": "server_CSM_CANONICAL_SERVICE_NAME"
-        }
+        additional_labels = {}
         for plugin_option in self._plugin._get_plugin_options():
             if hasattr(
                 plugin_option, "is_active_on_server"
             ) and plugin_option.is_active_on_server(xds):
                 if hasattr(plugin_option, "get_label_injector"):
-                    additional_labels.update(
-                        plugin_option.get_label_injector().get_labels()
+                    additional_labels = plugin_option.get_label_injector().add_labels(
+                        additional_labels
                     )
         return additional_labels
+
+    def maybe_add_and_deserialize_labels(
+        self, labels: Dict[str, str]
+    ) -> Dict[str, str]:
+        for plugin_option in self._plugin._get_plugin_options():
+            if hasattr(plugin_option, "get_label_injector"):
+                labels = plugin_option.get_label_injector().get_labels(
+                    labels
+                )
+        return labels
 
     def get_enabled_optional_labels(self) -> List[OptionalLabelType]:
         return self._plugin._get_enabled_optional_labels()

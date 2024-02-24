@@ -20,7 +20,7 @@ import functools
 import logging
 import os
 from threading import Thread
-from typing import List, Mapping, Tuple, Union
+from typing import AnyStr, Dict, List, Mapping, Tuple, Union
 
 from grpc_observability import _observability
 
@@ -160,10 +160,10 @@ def delete_client_call_tracer(object client_call_tracer) -> None:
     del call_tracer_ptr
 
 
-def _c_label_to_labels(vector[Label] c_labels) -> Mapping[str, str]:
+def _c_label_to_labels(vector[Label] c_labels) -> Dict[str, AnyStr]:
   py_labels = {}
   for label in c_labels:
-    py_labels[_decode(label.key)] = _decode(label.value)
+    py_labels[_decode(label.key)] = label.value
   return py_labels
 
 
@@ -172,7 +172,7 @@ def _labels_to_c_labels(dict py_labels) -> vector[Label]:
   cdef Label label
 
   for key, value in py_labels.items():
-      label.key = _encode(key) 
+      label.key = _encode(key)
       label.value = _encode(value)
       c_labels.push_back(label)
 
@@ -236,10 +236,10 @@ def _get_stats_data(object measurement, object labels) -> _observability.StatsDa
       name -> cMetricsName
       type -> MeasurementType
       value -> {value_double: float | value_int: int}
-  labels: Labels assciociated with stats data with type of dict[str, str].
+  labels: Labels assciociated with stats data with type of dict[str, AnyStr].
   """
   measurement: Measurement
-  labels: Mapping[str, str]
+  labels: Mapping[str, AnyStr]
 
   metric_name = _cy_metric_name_to_py_metric_name(measurement['name'])
   if measurement['type'] == kMeasurementDouble:
