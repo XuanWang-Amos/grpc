@@ -17,7 +17,7 @@ import abc
 from dataclasses import dataclass
 from dataclasses import field
 import enum
-from typing import AnyStr, Dict, List, Mapping, Tuple
+from typing import AnyStr, Dict, List, Mapping, Set, Tuple
 
 
 class Exporter(metaclass=abc.ABCMeta):
@@ -55,6 +55,8 @@ class StatsData:
       value_float: The actual metric value if measure_double is True.
       labels: A dictionary that maps label tags associated with this metric to
        corresponding label value.
+      identifiers: A set of strings identifying which stats plugin this StatsData
+        belongs to.
     """
 
     name: "grpc_observability._cyobservability.MetricsName"
@@ -62,6 +64,7 @@ class StatsData:
     value_int: int = 0
     value_float: float = 0.0
     labels: Dict[str, AnyStr] = field(default_factory=dict)
+    identifiers: Set[str] = field(default_factory=set)
 
 
 @dataclass(frozen=True)

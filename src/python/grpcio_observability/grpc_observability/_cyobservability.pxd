@@ -79,9 +79,10 @@ cdef extern from "observability_util.h" namespace "grpc_observability":
                                     const char* target,
                                     const char* trace_id,
                                     const char* parent_span_id,
+                                    const char* identifier,
                                     const vector[Label] additional_labels,
                                     bint add_csm_optional_labels) except +
-  cdef void* CreateServerCallTracerFactory(const vector[Label] additional_labels) except +
+  cdef void* CreateServerCallTracerFactory(const vector[Label] additional_labels, const char* identifier) except +
   cdef queue[NativeCensusData]* g_census_data_buffer
   cdef void AwaitNextBatchLocked(unique_lock[mutex]&, int) nogil
   cdef bint PythonCensusStatsEnabled() nogil
@@ -91,6 +92,7 @@ cdef extern from "observability_util.h" namespace "grpc_observability":
 
   cppclass NativeCensusData "::grpc_observability::CensusData":
     DataType type
+    string identifier
     Measurement measurement_data
     SpanCensusData span_data
     vector[Label] labels

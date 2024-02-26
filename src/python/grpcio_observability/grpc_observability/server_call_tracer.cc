@@ -114,7 +114,8 @@ void PythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata(
       absl::StrCat("Recv.", method_), &context_);
   if (PythonCensusStatsEnabled()) {
     context_.Labels().emplace_back(kServerMethod, std::string(method_));
-    RecordIntMetric(kRpcServerStartedRpcsMeasureName, 1, context_.Labels());
+    // std::cout << "[CALLTRACER][Server] Adding data with identifier RecordReceivedInitialMetadata: " << identifier_ << std::endl;
+    RecordIntMetric(kRpcServerStartedRpcsMeasureName, 1, context_.Labels(), identifier_);
   }
 
   // C++ GetLabels returns metadata_label + local_label
@@ -209,17 +210,18 @@ void PythonOpenCensusServerCallTracer::RecordEnd(
     context_.Labels().emplace_back(
         kServerStatus,
         std::string(StatusCodeToString(final_info->final_status)));
+    // std::cout << "[CALLTRACER][Server] Adding data with identifier RecordEnd: " << identifier_ << std::endl;
     RecordDoubleMetric(kRpcServerSentBytesPerRpcMeasureName,
-                       static_cast<double>(response_size), context_.Labels());
+                       static_cast<double>(response_size), context_.Labels(), identifier_);
     RecordDoubleMetric(kRpcServerReceivedBytesPerRpcMeasureName,
-                       static_cast<double>(request_size), context_.Labels());
+                       static_cast<double>(request_size), context_.Labels(), identifier_);
     RecordDoubleMetric(kRpcServerServerLatencyMeasureName, elapsed_time_s,
-                       context_.Labels());
-    RecordIntMetric(kRpcServerCompletedRpcMeasureName, 1, context_.Labels());
+                       context_.Labels(), identifier_);
+    RecordIntMetric(kRpcServerCompletedRpcMeasureName, 1, context_.Labels(), identifier_);
     RecordIntMetric(kRpcServerSentMessagesPerRpcMeasureName,
-                    sent_message_count_, context_.Labels());
+                    sent_message_count_, context_.Labels(), identifier_);
     RecordIntMetric(kRpcServerReceivedMessagesPerRpcMeasureName,
-                    recv_message_count_, context_.Labels());
+                    recv_message_count_, context_.Labels(), identifier_);
   }
   if (PythonCensusTracingEnabled()) {
     context_.EndSpan();
@@ -296,7 +298,7 @@ PythonOpenCensusServerCallTracerFactory::CreateNewServerCallTracer(
   // the same DLL in Windows.
   (void)arena;
   (void)channel_args;
-  return new PythonOpenCensusServerCallTracer(additional_labels_);
+  return new PythonOpenCensusServerCallTracer(additional_labels_, identifier_);
 }
 
 bool PythonOpenCensusServerCallTracerFactory::IsServerTraced(
@@ -307,7 +309,7 @@ bool PythonOpenCensusServerCallTracerFactory::IsServerTraced(
 }
 
 PythonOpenCensusServerCallTracerFactory::PythonOpenCensusServerCallTracerFactory(
-  const std::vector<Label>& additional_labels)
-    : additional_labels_(additional_labels) {}
+  const std::vector<Label>& additional_labels, const char* identifier)
+    : additional_labels_(additional_labels), identifier_(identifier) {}
 
 }  // namespace grpc_observability

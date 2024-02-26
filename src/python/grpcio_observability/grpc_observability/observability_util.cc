@@ -61,24 +61,26 @@ int GetMaxExportBufferSize() {
 }  // namespace
 
 void RecordIntMetric(MetricsName name, int64_t value,
-                     const std::vector<Label>& labels) {
+                     const std::vector<Label>& labels, std::string identifier) {
   Measurement measurement_data;
   measurement_data.type = kMeasurementInt;
   measurement_data.name = name;
   measurement_data.value.value_int = value;
 
-  CensusData data = CensusData(measurement_data, labels);
+  CensusData data = CensusData(measurement_data, labels, identifier);
+  // std::cout << "[BUFFER] Adding data with identifier: " << data.identifier << std::endl;
   AddCensusDataToBuffer(data);
 }
 
 void RecordDoubleMetric(MetricsName name, double value,
-                        const std::vector<Label>& labels) {
+                        const std::vector<Label>& labels, std::string identifier) {
   Measurement measurement_data;
   measurement_data.type = kMeasurementDouble;
   measurement_data.name = name;
   measurement_data.value.value_double = value;
 
-  CensusData data = CensusData(measurement_data, labels);
+  CensusData data = CensusData(measurement_data, labels, identifier);
+  // std::cout << "[BUFFER] Adding data with identifier: " << data.identifier << std::endl;
   AddCensusDataToBuffer(data);
 }
 
@@ -91,26 +93,26 @@ void NativeObservabilityInit() {
   g_census_data_buffer = new std::queue<CensusData>;
 }
 
-void* CreateClientCallTracer(const char* method, const char* target,
-                             const char* trace_id, const char* parent_span_id,
+void* CreateClientCallTracer(const char* method, const char* target, const char* trace_id,
+                             const char* parent_span_id, const char* identifier,
                              const std::vector<Label> additional_labels,
                              bool add_csm_optional_labels) {
-  std::cout << "CreateClientCallTracer with additional_labels.size=" << additional_labels.size() << std::endl;
+  std::cout << "CreateClientCallTracer with additional_labels.size=" << additional_labels.size() << " identifier= " << std::string(identifier) << std::endl;
   for (const Label &label: additional_labels) {
     std::cout << "  label key: " << label.key <<  " label value: " << label.value << std::endl;
   }
   void* client_call_tracer = new PythonOpenCensusCallTracer(
-      method, target, trace_id, parent_span_id, additional_labels, PythonCensusTracingEnabled(), add_csm_optional_labels);
+      method, target, trace_id, parent_span_id, identifier, additional_labels, PythonCensusTracingEnabled(), add_csm_optional_labels);
   return client_call_tracer;
 }
 
-void* CreateServerCallTracerFactory(const std::vector<Label> additional_labels) {
-  std::cout << "CreateServerCallTracerFactory with additional_labels.size=" << additional_labels.size() << std::endl;
+void* CreateServerCallTracerFactory(const std::vector<Label> additional_labels, const char* identifier) {
+  std::cout << "CreateServerCallTracerFactory with additional_labels.size=" << additional_labels.size() << " identifier= " << std::string(identifier) << std::endl;
   for (const Label &label: additional_labels) {
     std::cout << "  label key: " << label.key <<  " label value: " << label.value << std::endl;
   }
   void* server_call_tracer_factory =
-      new PythonOpenCensusServerCallTracerFactory(additional_labels);
+      new PythonOpenCensusServerCallTracerFactory(additional_labels, identifier);
   return server_call_tracer_factory;
 }
 

@@ -28,6 +28,9 @@ from grpc_observability._open_telemetry_exporter import (
 )
 from grpc_observability._open_telemetry_plugin import OpenTelemetryPlugin
 from grpc_observability._open_telemetry_plugin import _OpenTelemetryPlugin
+from grpc_observability._cyobservability import (
+    PLUGIN_IDENTIFIER_SEP,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -159,15 +162,18 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
     ) -> ClientCallTracerCapsule:
         trace_id = b"TRACE_ID"
         additional_labels = self._get_additional_client_labels(target)
+        print(f"client identifier: {self._get_identifier()}")
         enabled_optional_labels = set()
         for plugin in self._plugins:
             enabled_optional_labels.update(plugin.get_enabled_optional_labels())
-        # import sys
 
-        # sys.stderr.write(f"~~enabled_optional_labels: {enabled_optional_labels}\n")
-        # sys.stderr.flush()
         capsule = _cyobservability.create_client_call_tracer(
-            method_name, target, trace_id, additional_labels, enabled_optional_labels
+            method_name,
+            target,
+            trace_id,
+            self._get_identifier(),
+            additional_labels,
+            enabled_optional_labels,
         )
         return capsule
 
@@ -178,9 +184,10 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
     ) -> Optional[ServerCallTracerFactoryCapsule]:
         capsule = None
         additional_labels = self._get_additional_server_labels(xds)
+        print(f"server identifier: {self._get_identifier()}")
         if self.is_server_traced(xds):
             capsule = _cyobservability.create_server_call_tracer_factory_capsule(
-                {}
+                additional_labels, self._get_identifier()
             )
         return capsule
 
@@ -201,7 +208,12 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
     ) -> None:
         status_code = GRPC_STATUS_CODE_TO_STRING.get(status_code, "UNKNOWN")
         _cyobservability._record_rpc_latency(
-            self._exporter, method, target, rpc_latency, status_code
+            self._exporter,
+            method,
+            target,
+            rpc_latency,
+            status_code,
+            self._get_identifier(),
         )
 
     def _get_additional_client_labels(self, target: bytes) -> Dict[str, AnyStr]:
@@ -219,6 +231,12 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
             additional_server_labels.update(_plugin.get_additional_server_labels(xds))
         print(f"additional_server_labels: {additional_server_labels}")
         return additional_server_labels
+
+    def _get_identifier(self) -> str:
+        plugin_identifiers = []
+        for _plugin in self._plugins:
+            plugin_identifiers.append(_plugin.identifier)
+        return PLUGIN_IDENTIFIER_SEP.join(plugin_identifiers)
 
     def is_server_traced(self, xds: bool) -> bool:
         return True

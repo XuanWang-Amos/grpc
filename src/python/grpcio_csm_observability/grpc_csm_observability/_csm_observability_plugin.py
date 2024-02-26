@@ -124,19 +124,6 @@ class CsmOpenTelemetryPlugin(OpenTelemetryPlugin):
         return [CsmOpenTelemetryPluginOption()]
 
     def _get_enabled_optional_labels(self) -> List[OptionalLabelType]:
-        fields = {}
-        fields["name"] = struct_pb2.Value(string_value="Alice")
-        serialized_struct = struct_pb2.Struct(fields=fields)
-
-        serialized_str = serialized_struct.SerializeToString()
-
-        my_struct = struct_pb2.Struct()
-        my_struct.ParseFromString(serialized_str)
-
-        # Access the fields
-
-        for key, value in my_struct.items():
-            print(f"==my_struct: {key}: {value}")
         return [OptionalLabelType.XDS_SERVICE_LABELS]
 
 

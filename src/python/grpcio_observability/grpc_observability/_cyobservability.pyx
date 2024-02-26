@@ -33,6 +33,9 @@ cdef const char* SERVER_CALL_TRACER_FACTORY = "server_call_tracer_factory"
 cdef bint GLOBAL_SHUTDOWN_EXPORT_THREAD = False
 cdef object GLOBAL_EXPORT_THREAD
 
+PLUGIN_IDENTIFIER_SEP = ","
+PLUGIN_IDENTIFIER_KEY = "grpc_plugin_identifier"
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -115,7 +118,7 @@ def activate_stats() -> None:
   EnablePythonCensusStats(True);
 
 
-def create_client_call_tracer(bytes method_name, bytes target, bytes trace_id,
+def create_client_call_tracer(bytes method_name, bytes target, bytes trace_id, str identifier,
                               dict additional_labels, object enabled_optional_labels,
                               bytes parent_span_id=b'') -> cpython.PyObject:
   """Create a ClientCallTracer and save to PyCapsule.
@@ -126,6 +129,8 @@ def create_client_call_tracer(bytes method_name, bytes target, bytes trace_id,
   cdef char* c_target = cpython.PyBytes_AsString(target)
   cdef char* c_trace_id = cpython.PyBytes_AsString(trace_id)
   cdef char* c_parent_span_id = cpython.PyBytes_AsString(parent_span_id)
+  identifier_bytes = _encode(identifier)
+  cdef char* c_identifier = cpython.PyBytes_AsString(identifier_bytes)
   cdef vector[Label] c_labels = _labels_to_c_labels(additional_labels)
   cdef bint add_csm_optional_labels = False
 
@@ -133,20 +138,22 @@ def create_client_call_tracer(bytes method_name, bytes target, bytes trace_id,
     if label_type == _observability.OptionalLabelType.XDS_SERVICE_LABELS:
       add_csm_optional_labels = True
 
-  cdef void* call_tracer = CreateClientCallTracer(c_method, c_target, c_trace_id, c_parent_span_id, c_labels, add_csm_optional_labels)
+  cdef void* call_tracer = CreateClientCallTracer(c_method, c_target, c_trace_id, c_parent_span_id,
+                                                  c_identifier, c_labels, add_csm_optional_labels)
   capsule = cpython.PyCapsule_New(call_tracer, CLIENT_CALL_TRACER, NULL)
   return capsule
 
 cdef bint test_bool():
   return True
 
-def create_server_call_tracer_factory_capsule(dict additional_labels) -> cpython.PyObject:
+def create_server_call_tracer_factory_capsule(dict additional_labels, str identifier) -> cpython.PyObject:
   """Create a ServerCallTracerFactory and save to PyCapsule.
 
   Returns: A grpc_observability._observability.ServerCallTracerFactoryCapsule object.
   """
   cdef vector[Label] c_labels = _labels_to_c_labels(additional_labels)
-  cdef void* call_tracer_factory = CreateServerCallTracerFactory(c_labels)
+  cdef char* c_identifier = cpython.PyBytes_AsString(_encode(identifier))
+  cdef void* call_tracer_factory = CreateServerCallTracerFactory(c_labels, c_identifier)
   capsule = cpython.PyCapsule_New(call_tracer_factory, SERVER_CALL_TRACER_FACTORY, NULL)
   return capsule
 
@@ -176,7 +183,7 @@ def _labels_to_c_labels(dict py_labels) -> vector[Label]:
       label.value = _encode(value)
       c_labels.push_back(label)
 
-  return c_labels 
+  return c_labels
 
 
 def _c_measurement_to_measurement(object measurement
@@ -227,7 +234,7 @@ def _cy_metric_name_to_py_metric_name(cMetricsName metric_name) -> MetricsName:
     raise ValueError('Invalid metric name %s' % metric_name)
 
 
-def _get_stats_data(object measurement, object labels) -> _observability.StatsData:
+def _get_stats_data(object measurement, object labels, object identifier) -> _observability.StatsData:
   """Convert a Python measurement to StatsData.
 
   Args:
@@ -242,14 +249,17 @@ def _get_stats_data(object measurement, object labels) -> _observability.StatsDa
   labels: Mapping[str, AnyStr]
 
   metric_name = _cy_metric_name_to_py_metric_name(measurement['name'])
+  identifier = set(identifier.split(PLUGIN_IDENTIFIER_SEP))
   if measurement['type'] == kMeasurementDouble:
     py_stat = _observability.StatsData(name=metric_name, measure_double=True,
                                        value_float=measurement['value']['value_double'],
-                                       labels=labels)
+                                       labels=labels,
+                                       identifiers=identifier)
   else:
     py_stat = _observability.StatsData(name=metric_name, measure_double=False,
                                        value_int=measurement['value']['value_int'],
-                                       labels=labels)
+                                       labels=labels,
+                                       identifiers=identifier)
   return py_stat
 
 
@@ -270,7 +280,9 @@ def _get_tracing_data(SpanCensusData span_data, vector[Label] span_labels,
                                     span_annotations = py_span_annotations)
 
 
-def _record_rpc_latency(object exporter, str method, str target, float rpc_latency, str status_code) -> None:
+def _record_rpc_latency(object exporter, str method, str target,
+                        float rpc_latency, str status_code,
+                        str identifier) -> None:
   exporter: _observability.Exporter
 
   measurement = {}
@@ -282,7 +294,7 @@ def _record_rpc_latency(object exporter, str method, str target, float rpc_laten
   labels[_decode(kClientMethod)] = method.strip("/")
   labels[_decode(kClientTarget)] = target
   labels[_decode(kClientStatus)] = status_code
-  metric = _get_stats_data(measurement, labels)
+  metric = _get_stats_data(measurement, labels, identifier)
   exporter.export_stats_data([metric])
 
 
@@ -328,8 +340,9 @@ cdef void _flush_census_data(object exporter):
     c_census_data = g_census_data_buffer.front()
     if c_census_data.type == kMetricData:
       py_labels = _c_label_to_labels(c_census_data.labels)
+      py_identifier = _decode(c_census_data.identifier)
       py_measurement = _c_measurement_to_measurement(c_census_data.measurement_data)
-      py_metric = _get_stats_data(py_measurement, py_labels)
+      py_metric = _get_stats_data(py_measurement, py_labels, py_identifier)
       py_metrics_batch.append(py_metric)
     else:
       py_span = _get_tracing_data(c_census_data.span_data, c_census_data.span_data.span_labels,

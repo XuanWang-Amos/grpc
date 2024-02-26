@@ -25,6 +25,7 @@
 #include "src/core/lib/slice/slice.h"
 #include "python_census_context.h"
 #include "metadata_exchange.h"
+#include "constants.h"
 
 namespace grpc_observability {
 
@@ -35,12 +36,14 @@ class PythonOpenCensusServerCallTracerFactory
       grpc_core::Arena* arena,
       const grpc_core::ChannelArgs& channel_args) override;
   explicit PythonOpenCensusServerCallTracerFactory(
-                                      const std::vector<Label>& additional_labels);
+                                      const std::vector<Label>& additional_labels,
+                                      const char* identifier);
   
   bool IsServerTraced(const grpc_core::ChannelArgs& args) override;
 
   private:
    const std::vector<Label> additional_labels_;
+   std::string identifier_;
 };
 
 inline absl::string_view GetMethod(const grpc_core::Slice& path) {
@@ -56,11 +59,12 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
   // Maximum size of server stats that are sent on the wire.
   static constexpr uint32_t kMaxServerStatsLen = 16;
 
-  PythonOpenCensusServerCallTracer(const std::vector<Label>& additional_labels)
+  PythonOpenCensusServerCallTracer(const std::vector<Label>& additional_labels, std::string identifier)
       : start_time_(absl::Now()),
         recv_message_count_(0),
         sent_message_count_(0),
-        labels_injector_(additional_labels) {}
+        labels_injector_(additional_labels),
+        identifier_(identifier) {}
 
   std::string TraceId() override {
     return absl::BytesToHexString(
@@ -127,6 +131,8 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
   PythonLabelsInjector labels_injector_;
   std::unique_ptr<LabelsIterable> injected_labels_from_plugin_options_;
   std::vector<Label> injected_labels_;
+  // absl::string_view identifier_;
+  std::string identifier_;
 };
 
 }  // namespace grpc_observability

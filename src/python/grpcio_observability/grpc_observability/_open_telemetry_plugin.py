@@ -159,10 +159,12 @@ class OpenTelemetryPlugin:
 class _OpenTelemetryPlugin:
     _plugin: OpenTelemetryPlugin
     _metric_to_recorder: Dict[MetricsName, Union[Counter, Histogram]]
+    identifier: str
 
     def __init__(self, plugin: OpenTelemetryPlugin):
         self._plugin = plugin
         self._metric_to_recorder = dict()
+        self.identifier = str(id(self))
 
         meter_provider = self._plugin.get_meter_provider()
         if meter_provider:
@@ -172,31 +174,35 @@ class _OpenTelemetryPlugin:
 
     def _should_record(self, stats_data: StatsData) -> bool:
         # Decide if this plugin should record the stats_data.
-        return stats_data.name in self._metric_to_recorder.keys()
+        if self.identifier in stats_data.identifiers:
+            return stats_data.name in self._metric_to_recorder.keys()
+        else:
+            print(f"!!!!metrics id not match")
 
     def _record_stats_data(self, stats_data: StatsData) -> None:
         recorder = self._metric_to_recorder[stats_data.name]
+        labels = self.maybe_deserialize_labels(stats_data.labels)
+        decoded_labels = self.decode_labels(labels)
 
-        target = stats_data.labels.get(GRPC_TARGET_LABEL, "")
+        target = decoded_labels.get(GRPC_TARGET_LABEL, "")
         if not self._plugin.target_attribute_filter(target):
             # Filter target name.
-            stats_data.labels[GRPC_TARGET_LABEL] = GRPC_OTHER_LABEL_VALUE
+            decoded_labels[GRPC_TARGET_LABEL] = GRPC_OTHER_LABEL_VALUE
 
-        method = stats_data.labels.get(GRPC_METHOD_LABEL, "")
+        method = decoded_labels.get(GRPC_METHOD_LABEL, "")
         if not self._plugin.generic_method_attribute_filter(method):
             # Filter method name.
-            stats_data.labels[GRPC_METHOD_LABEL] = GRPC_OTHER_LABEL_VALUE
+            decoded_labels[GRPC_METHOD_LABEL] = GRPC_OTHER_LABEL_VALUE
 
         value = 0
-        stats_data.labels = self.maybe_add_and_deserialize_labels(stats_data.labels)
         if stats_data.measure_double:
             value = stats_data.value_float
         else:
             value = stats_data.value_int
         if isinstance(recorder, Counter):
-            recorder.add(value, attributes=stats_data.labels)
+            recorder.add(value, attributes=decoded_labels)
         elif isinstance(recorder, Histogram):
-            recorder.record(value, attributes=stats_data.labels)
+            recorder.record(value, attributes=decoded_labels)
 
     # pylint: disable=no-self-use
     def maybe_record_stats_data(self, stats_data: List[StatsData]) -> None:
@@ -211,9 +217,11 @@ class _OpenTelemetryPlugin:
             if hasattr(
                 plugin_option, "is_active_on_client_channel"
             ) and plugin_option.is_active_on_client_channel(target_str):
-                if hasattr(plugin_option, "get_label_injector"):
-                    additional_labels = plugin_option.get_label_injector().add_labels(
-                        additional_labels
+                if hasattr(plugin_option, "get_client_label_injector"):
+                    additional_labels = (
+                        plugin_option.get_client_label_injector().add_labels(
+                            additional_labels
+                        )
                     )
         return additional_labels
 
@@ -223,20 +231,18 @@ class _OpenTelemetryPlugin:
             if hasattr(
                 plugin_option, "is_active_on_server"
             ) and plugin_option.is_active_on_server(xds):
-                if hasattr(plugin_option, "get_label_injector"):
-                    additional_labels = plugin_option.get_label_injector().add_labels(
-                        additional_labels
+                if hasattr(plugin_option, "get_server_label_injector"):
+                    additional_labels = (
+                        plugin_option.get_server_label_injector().add_labels(
+                            additional_labels
+                        )
                     )
         return additional_labels
 
-    def maybe_add_and_deserialize_labels(
-        self, labels: Dict[str, str]
-    ) -> Dict[str, str]:
+    def maybe_deserialize_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, AnyStr]:
         for plugin_option in self._plugin._get_plugin_options():
             if hasattr(plugin_option, "get_label_injector"):
-                labels = plugin_option.get_label_injector().get_labels(
-                    labels
-                )
+                labels = plugin_option.get_label_injector().get_labels(labels)
         return labels
 
     def get_enabled_optional_labels(self) -> List[OptionalLabelType]:
@@ -304,3 +310,11 @@ class _OpenTelemetryPlugin:
                 )
             metric_to_recorder_map[metric.cyname] = recorder
         return metric_to_recorder_map
+
+    def decode_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, str]:
+        decoded_labels = {}
+        for key, value in labels.items():
+            if isinstance(value, bytes):
+                value = value.decode()
+            decoded_labels[key] = value
+        return decoded_labels
