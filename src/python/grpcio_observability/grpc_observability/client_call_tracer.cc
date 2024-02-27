@@ -228,10 +228,10 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
   //       absl::Base64Unescape(remote_metadata.as_string_view(), &decoded_metadata);
   injected_labels_ = parent_->labels_injector_.GetLabels(recv_initial_metadata);
 
-  for (const auto& label : injected_labels_) {
-      std::cout << "[CLIENT] labels from peer: " << label.key << ": " << label.value << std::endl;
-      context_.Labels().emplace_back(label);
-  }
+  // for (const auto& label : injected_labels_) {
+  //     std::cout << "[CLIENT] labels from peer: " << label.key << ": " << label.value << std::endl;
+  //     context_.Labels().emplace_back(label);
+  // }
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
@@ -302,16 +302,20 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
                                                    optional_labels_array_,
                                                    context_.Labels());
   }
-  for (const auto& plugin_option_injected_iterable : injected_labels_from_plugin_options_) {
-    if (plugin_option_injected_iterable != nullptr) {
-      plugin_option_injected_iterable->ResetIteratorPosition();
-      while (const auto& pair = plugin_option_injected_iterable->Next()) {
-        // std::cout << "injected_labels_from_plugin_options_: " << pair->first << ": " << pair->second << std::endl;
-        context_.Labels().emplace_back(std::string(pair->first), std::string(pair->second));
-      }
-    }
-  }
+  // for (const auto& plugin_option_injected_iterable : injected_labels_from_plugin_options_) {
+  //   if (plugin_option_injected_iterable != nullptr) {
+  //     plugin_option_injected_iterable->ResetIteratorPosition();
+  //     while (const auto& pair = plugin_option_injected_iterable->Next()) {
+  //       // std::cout << "injected_labels_from_plugin_options_: " << pair->first << ": " << pair->second << std::endl;
+  //       context_.Labels().emplace_back(std::string(pair->first), std::string(pair->second));
+  //     }
+  //   }
+  // }
   // std::cout << "[CALLTRACER] Adding data with identifier RecordReceivedTrailingMetadata: " << parent_->identifier_ << std::endl;
+  for (const auto& label : injected_labels_) {
+      // std::cout << "[SERVER] labels from peer: " << label.key << ": " << label.value << std::endl;
+      context_.Labels().emplace_back(label);
+  }
   RecordDoubleMetric(
       kRpcClientSentBytesPerRpcMeasureName,
       static_cast<double>(transport_stream_stats != nullptr

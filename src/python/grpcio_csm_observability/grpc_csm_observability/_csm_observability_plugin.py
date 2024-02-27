@@ -35,6 +35,26 @@ from google.protobuf import struct_pb2
 GRPC_METHOD_LABEL = "grpc.method"
 GRPC_TARGET_LABEL = "grpc.target"
 GRPC_OTHER_LABEL_VALUE = "other"
+UNKNOWN_TYPE = "unknown"
+TYPE_KEY = "type"
+TYPE_GCE = "GCE"
+TYPE_GKE = "GKE"
+METADATA_EXCHANGE_KEY_FIXED_MAP = {
+    TYPE_KEY: "csm.remote_workload_type",
+    "canonical_service": "csm.remote_workload_canonical_service",
+}
+METADATA_EXCHANGE_KEY_GKE_MAP = {
+    "workload_name": "csm.remote_workload_name",
+    "namespace_name": "csm.remote_workload_namespace_name",
+    "cluster_name": "csm.remote_workload_cluster_name",
+    "location": "csm.remote_workload_location",
+    "project_id": "csm.remote_workload_project_id",
+}
+METADATA_EXCHANGE_KEY_GCE_MAP = {
+    "workload_name": "csm.remote_workload_name",
+    "location": "csm.remote_workload_type",
+    "project_id": "csm.remote_workload_type",
+}
 
 
 class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
@@ -46,11 +66,45 @@ class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
 
     _labels: Dict[str, AnyStr]
 
-    def __init__(self):
+    def __init__(self, is_client=False):
         # Calls Python OTel API to detect resource and get labels, save
         # those lables to OpenTelemetryLabelInjector.labels.
         fields = {}
-        fields["workload_name"] = struct_pb2.Value(string_value="workload_name_Alice")
+
+        prefix = ""
+        _type = ""
+        # print(f"is_client={is_client}")
+        if is_client:
+            prefix = "[Client]"
+            _type = "GCE"
+        else:
+            prefix = "[Server]"
+            _type = "GKE"
+        # print(f"prefix={prefix}")
+
+        fields["type"] = struct_pb2.Value(string_value=f"{prefix}{_type}")
+        fields["canonical_service"] = struct_pb2.Value(
+            string_value=f"{prefix}canonical_service"
+        )
+        if _type == "GKE":
+            fields["workload_name"] = struct_pb2.Value(
+                string_value=f"{prefix}workload_name"
+            )
+            fields["namespace_name"] = struct_pb2.Value(
+                string_value=f"{prefix}namespace_name"
+            )
+            fields["cluster_name"] = struct_pb2.Value(
+                string_value=f"{prefix}cluster_name"
+            )
+            fields["location"] = struct_pb2.Value(string_value=f"{prefix}location")
+            fields["project_id"] = struct_pb2.Value(string_value=f"{prefix}project_id")
+        else:
+            fields["workload_name"] = struct_pb2.Value(
+                string_value=f"{prefix}workload_name"
+            )
+            fields["location"] = struct_pb2.Value(string_value=f"{prefix}location")
+            fields["project_id"] = struct_pb2.Value(string_value=f"{prefix}project_id")
+
         serialized_struct = struct_pb2.Struct(fields=fields)
         serialized_str = serialized_struct.SerializeToString()
 
@@ -69,12 +123,32 @@ class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
             if "XEnvoyPeerMetadata" == key:
                 struct = struct_pb2.Struct()
                 struct.ParseFromString(value)
-                # for key, value in struct.items():
-                # print(f": {key}: {value}")
-                new_labels.update(struct)
+
+                remote_type = self._get_value_from_struct(TYPE_KEY, struct)
+
+                for key, remote_key in METADATA_EXCHANGE_KEY_FIXED_MAP.items():
+                    new_labels[remote_key] = self._get_value_from_struct(key, struct)
+
+                if TYPE_GCE in remote_type:
+                    for key, remote_key in METADATA_EXCHANGE_KEY_GKE_MAP.items():
+                        new_labels[remote_key] = self._get_value_from_struct(
+                            key, struct
+                        )
+                else:
+                    for key, remote_key in METADATA_EXCHANGE_KEY_GCE_MAP.items():
+                        new_labels[remote_key] = self._get_value_from_struct(
+                            key, struct
+                        )
             else:
                 new_labels[key] = value
+        # print(f"_Label_injector: {new_labels}")
         return new_labels
+
+    def _get_value_from_struct(self, key: str, struct: struct_pb2.Struct) -> str:
+        value = struct.fields.get(key)
+        if not value:
+            return "unknown"
+        return value.string_value
 
 
 class CsmOpenTelemetryPluginOption(OpenTelemetryPluginOption):
@@ -109,6 +183,14 @@ class CsmOpenTelemetryPluginOption(OpenTelemetryPluginOption):
     def get_label_injector(self) -> Optional[OpenTelemetryLabelInjector]:
         # Returns the LabelsInjector used by this plugin option, or None.
         return CSMOpenTelemetryLabelInjector()
+
+    def get_server_label_injector(self) -> Optional[OpenTelemetryLabelInjector]:
+        # Returns the LabelsInjector used by this plugin option, or None.
+        return CSMOpenTelemetryLabelInjector(is_client=False)
+
+    def get_client_label_injector(self) -> Optional[OpenTelemetryLabelInjector]:
+        # Returns the LabelsInjector used by this plugin option, or None.
+        return CSMOpenTelemetryLabelInjector(is_client=True)
 
 
 # pylint: disable=no-self-use

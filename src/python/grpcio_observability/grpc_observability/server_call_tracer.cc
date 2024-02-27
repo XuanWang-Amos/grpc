@@ -122,10 +122,10 @@ void PythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata(
   // Python GetLabels returns metadata_label + additional_labels
   injected_labels_ = labels_injector_.GetLabels(recv_initial_metadata);
 
-  for (const auto& label : injected_labels_) {
-      std::cout << "[SERVER] labels from peer: " << label.key << ": " << label.value << std::endl;
-      context_.Labels().emplace_back(label);
-  }
+  // for (const auto& label : injected_labels_) {
+  //     std::cout << "[SERVER] labels from peer: " << label.key << ": " << label.value << std::endl;
+  //     context_.Labels().emplace_back(label);
+  // }
 
   // path_ =
   //     recv_initial_metadata->get_pointer(grpc_core::HttpPathMetadata())->Ref();
@@ -210,6 +210,10 @@ void PythonOpenCensusServerCallTracer::RecordEnd(
     context_.Labels().emplace_back(
         kServerStatus,
         std::string(StatusCodeToString(final_info->final_status)));
+    for (const auto& label : injected_labels_) {
+        // std::cout << "[SERVER] labels from peer: " << label.key << ": " << label.value << std::endl;
+        context_.Labels().emplace_back(label);
+    }
     // std::cout << "[CALLTRACER][Server] Adding data with identifier RecordEnd: " << identifier_ << std::endl;
     RecordDoubleMetric(kRpcServerSentBytesPerRpcMeasureName,
                        static_cast<double>(response_size), context_.Labels(), identifier_);

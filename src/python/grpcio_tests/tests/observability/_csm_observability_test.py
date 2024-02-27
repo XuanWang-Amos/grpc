@@ -177,7 +177,7 @@ class CSMObservabilityTest(unittest.TestCase):
         csm_plugin = BaseTestCSMPlugin(self._provider)
         with grpc_csm_observability.CsmObservability(
             plugins=[csm_plugin],
-            csm_diagnostic_reporting_enabled=False,
+            # csm_diagnostic_reporting_enabled=False,
         ):
             server, port = _test_server.start_server()
             self._server = server

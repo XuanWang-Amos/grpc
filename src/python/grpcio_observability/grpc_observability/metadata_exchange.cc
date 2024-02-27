@@ -56,41 +56,41 @@ namespace grpc_observability {
 using OptionalLabelComponent =
     grpc_core::ClientCallTracer::CallAttemptTracer::OptionalLabelComponent;
 
-namespace {
+// namespace {
 
 // The keys that will be used in the Metadata Exchange between local and remote.
-constexpr absl::string_view kMetadataExchangeTypeKey = "type";
-constexpr absl::string_view kMetadataExchangeWorkloadNameKey = "workload_name";
-constexpr absl::string_view kMetadataExchangeNamespaceNameKey =
-    "namespace_name";
-constexpr absl::string_view kMetadataExchangeClusterNameKey = "cluster_name";
-constexpr absl::string_view kMetadataExchangeLocationKey = "location";
-constexpr absl::string_view kMetadataExchangeProjectIdKey = "project_id";
-constexpr absl::string_view kMetadataExchangeCanonicalServiceKey =
-    "canonical_service";
-// The keys that will be used for the local attributes when recording metrics.
-constexpr absl::string_view kCanonicalServiceAttribute =
-    "csm.workload_canonical_service";
-constexpr absl::string_view kMeshIdAttribute = "csm.mesh_id";
-// The keys that will be used for the peer attributes when recording metrics.
-constexpr absl::string_view kPeerTypeAttribute = "csm.remote_workload_type";
-constexpr absl::string_view kPeerWorkloadNameAttribute =
-    "csm.remote_workload_name";
-constexpr absl::string_view kPeerNamespaceNameAttribute =
-    "csm.remote_workload_namespace_name";
-constexpr absl::string_view kPeerClusterNameAttribute =
-    "csm.remote_workload_cluster_name";
-constexpr absl::string_view kPeerLocationAttribute =
-    "csm.remote_workload_location";
-constexpr absl::string_view kPeerProjectIdAttribute =
-    "csm.remote_workload_project_id";
-constexpr absl::string_view kPeerCanonicalServiceAttribute =
-    "csm.remote_workload_canonical_service";
-// Type values used by Google Cloud Resource Detector
-constexpr absl::string_view kGkeType = "gcp_kubernetes_engine";
-constexpr absl::string_view kGceType = "gcp_compute_engine";
+// constexpr absl::string_view kMetadataExchangeTypeKey = "type";
+// constexpr absl::string_view kMetadataExchangeWorkloadNameKey = "workload_name";
+// constexpr absl::string_view kMetadataExchangeNamespaceNameKey =
+//     "namespace_name";
+// constexpr absl::string_view kMetadataExchangeClusterNameKey = "cluster_name";
+// constexpr absl::string_view kMetadataExchangeLocationKey = "location";
+// constexpr absl::string_view kMetadataExchangeProjectIdKey = "project_id";
+// constexpr absl::string_view kMetadataExchangeCanonicalServiceKey =
+//     "canonical_service";
+// // The keys that will be used for the local attributes when recording metrics.
+// constexpr absl::string_view kCanonicalServiceAttribute =
+//     "csm.workload_canonical_service";
+// constexpr absl::string_view kMeshIdAttribute = "csm.mesh_id";
+// // The keys that will be used for the peer attributes when recording metrics.
+// constexpr absl::string_view kPeerTypeAttribute = "csm.remote_workload_type";
+// constexpr absl::string_view kPeerWorkloadNameAttribute =
+//     "csm.remote_workload_name";
+// constexpr absl::string_view kPeerNamespaceNameAttribute =
+//     "csm.remote_workload_namespace_name";
+// constexpr absl::string_view kPeerClusterNameAttribute =
+//     "csm.remote_workload_cluster_name";
+// constexpr absl::string_view kPeerLocationAttribute =
+//     "csm.remote_workload_location";
+// constexpr absl::string_view kPeerProjectIdAttribute =
+//     "csm.remote_workload_project_id";
+// constexpr absl::string_view kPeerCanonicalServiceAttribute =
+//     "csm.remote_workload_canonical_service";
+// // Type values used by Google Cloud Resource Detector
+// constexpr absl::string_view kGkeType = "gcp_kubernetes_engine";
+// constexpr absl::string_view kGceType = "gcp_compute_engine";
 
-enum class GcpResourceType : std::uint8_t { kGke, kGce, kUnknown };
+// enum class GcpResourceType : std::uint8_t { kGke, kGce, kUnknown };
 
 // A minimal class for helping with the information we need from the xDS
 // bootstrap file for GSM Observability reasons.
@@ -144,31 +144,31 @@ enum class GcpResourceType : std::uint8_t { kGke, kGce, kUnknown };
 //   return "";
 // }
 
-GcpResourceType StringToGcpResourceType(absl::string_view type) {
-  if (type == kGkeType) {
-    return GcpResourceType::kGke;
-  } else if (type == kGceType) {
-    return GcpResourceType::kGce;
-  }
-  return GcpResourceType::kUnknown;
-}
+// GcpResourceType StringToGcpResourceType(absl::string_view type) {
+//   if (type == kGkeType) {
+//     return GcpResourceType::kGke;
+//   } else if (type == kGceType) {
+//     return GcpResourceType::kGce;
+//   }
+//   return GcpResourceType::kUnknown;
+// }
 
-upb_StringView AbslStrToUpbStr(absl::string_view str) {
-  return upb_StringView_FromDataAndSize(str.data(), str.size());
-}
+// upb_StringView AbslStrToUpbStr(absl::string_view str) {
+//   return upb_StringView_FromDataAndSize(str.data(), str.size());
+// }
 
-absl::string_view UpbStrToAbslStr(upb_StringView str) {
-  return absl::string_view(str.data, str.size);
-}
+// absl::string_view UpbStrToAbslStr(upb_StringView str) {
+//   return absl::string_view(str.data, str.size);
+// }
 
-void AddStringKeyValueToStructProto(google_protobuf_Struct* struct_pb,
-                                    absl::string_view key,
-                                    absl::string_view value, upb_Arena* arena) {
-  google_protobuf_Value* value_pb = google_protobuf_Value_new(arena);
-  google_protobuf_Value_set_string_value(value_pb, AbslStrToUpbStr(value));
-  google_protobuf_Struct_fields_set(struct_pb, AbslStrToUpbStr(key), value_pb,
-                                    arena);
-}
+// void AddStringKeyValueToStructProto(google_protobuf_Struct* struct_pb,
+//                                     absl::string_view key,
+//                                     absl::string_view value, upb_Arena* arena) {
+//   google_protobuf_Value* value_pb = google_protobuf_Value_new(arena);
+//   google_protobuf_Value_set_string_value(value_pb, AbslStrToUpbStr(value));
+//   google_protobuf_Struct_fields_set(struct_pb, AbslStrToUpbStr(key), value_pb,
+//                                     arena);
+// }
 
 // absl::string_view GetStringValueFromAttributeMap(
 //     absl::Span<const std::shared_ptr<std::map<std::string, std::string>>> attributes,
@@ -197,181 +197,181 @@ bool KeyInLabels(const std::vector<Label>& labels, std::string key) {
   return true;
 }
 
-absl::string_view GetStringValueFromAdditionalLabels(
-    const std::vector<Label>& additional_labels,
-    std::string key) {
-  const auto it = std::find_if(additional_labels.begin(), additional_labels.end(), 
-                       [&key](const Label& label) {
-                           return label.key == key; 
-                       });
+// absl::string_view GetStringValueFromAdditionalLabels(
+//     const std::vector<Label>& additional_labels,
+//     std::string key) {
+//   const auto it = std::find_if(additional_labels.begin(), additional_labels.end(), 
+//                        [&key](const Label& label) {
+//                            return label.key == key; 
+//                        });
 
-  if (it == additional_labels.end()) {
-    return "unknown";
-  }
+//   if (it == additional_labels.end()) {
+//     return "unknown";
+//   }
 
-  return (*it).value;
-}
+//   return (*it).value;
+// }
 
-absl::string_view GetStringValueFromUpbStruct(google_protobuf_Struct* struct_pb,
-                                              absl::string_view key,
-                                              upb_Arena* arena) {
-  if (struct_pb == nullptr) {
-    return "unknown";
-  }
-  google_protobuf_Value* value_pb = google_protobuf_Value_new(arena);
-  bool present = google_protobuf_Struct_fields_get(
-      struct_pb, AbslStrToUpbStr(key), &value_pb);
-  if (present) {
-    if (google_protobuf_Value_has_string_value(value_pb)) {
-      return UpbStrToAbslStr(google_protobuf_Value_string_value(value_pb));
-    }
-  }
-  return "unknown";
-}
+// absl::string_view GetStringValueFromUpbStruct(google_protobuf_Struct* struct_pb,
+//                                               absl::string_view key,
+//                                               upb_Arena* arena) {
+//   if (struct_pb == nullptr) {
+//     return "unknown";
+//   }
+//   google_protobuf_Value* value_pb = google_protobuf_Value_new(arena);
+//   bool present = google_protobuf_Struct_fields_get(
+//       struct_pb, AbslStrToUpbStr(key), &value_pb);
+//   if (present) {
+//     if (google_protobuf_Value_has_string_value(value_pb)) {
+//       return UpbStrToAbslStr(google_protobuf_Value_string_value(value_pb));
+//     }
+//   }
+//   return "unknown";
+// }
 
 // TODO(xuanwn): We should consider reuse C++ MeshLabelsIterable
-class MeshLabelsIterable : public LabelsIterable {
- public:
-  explicit MeshLabelsIterable(
-      const std::vector<std::pair<absl::string_view, std::string>>&
-          local_labels,
-      grpc_core::Slice remote_metadata)
-      : local_labels_(local_labels), metadata_(std::move(remote_metadata)) {}
+// class MeshLabelsIterable : public LabelsIterable {
+//  public:
+//   explicit MeshLabelsIterable(
+//       const std::vector<std::pair<absl::string_view, std::string>>&
+//           local_labels,
+//       grpc_core::Slice remote_metadata)
+//       : local_labels_(local_labels), metadata_(std::move(remote_metadata)) {}
 
-  absl::optional<std::pair<absl::string_view, absl::string_view>> Next()
-      override {
-    auto& struct_pb = GetDecodedMetadata();
-    size_t local_labels_size = local_labels_.size();
-    if (pos_ < local_labels_size) {
-      return local_labels_[pos_++];
-    }
-    const size_t fixed_attribute_end =
-        local_labels_size + kFixedAttributes.size();
-    if (pos_ < fixed_attribute_end) {
-      return NextFromAttributeList(struct_pb, kFixedAttributes,
-                                   local_labels_size);
-    }
-    return NextFromAttributeList(struct_pb, GetAttributesForType(remote_type_),
-                                 fixed_attribute_end);
-  }
+//   absl::optional<std::pair<absl::string_view, absl::string_view>> Next()
+//       override {
+//     auto& struct_pb = GetDecodedMetadata();
+//     size_t local_labels_size = local_labels_.size();
+//     if (pos_ < local_labels_size) {
+//       return local_labels_[pos_++];
+//     }
+//     const size_t fixed_attribute_end =
+//         local_labels_size + kFixedAttributes.size();
+//     if (pos_ < fixed_attribute_end) {
+//       return NextFromAttributeList(struct_pb, kFixedAttributes,
+//                                    local_labels_size);
+//     }
+//     return NextFromAttributeList(struct_pb, GetAttributesForType(remote_type_),
+//                                  fixed_attribute_end);
+//   }
 
-  size_t Size() const override {
-    return local_labels_.size() + kFixedAttributes.size() +
-           GetAttributesForType(remote_type_).size();
-  }
+//   size_t Size() const override {
+//     return local_labels_.size() + kFixedAttributes.size() +
+//            GetAttributesForType(remote_type_).size();
+//   }
 
-  void ResetIteratorPosition() override { pos_ = 0; }
+//   void ResetIteratorPosition() override { pos_ = 0; }
 
-  // Returns true if the peer sent a non-empty base64 encoded
-  // "x-envoy-peer-metadata" metadata.
-  bool GotRemoteLabels() const {
-    return GetDecodedMetadata().struct_pb != nullptr;
-  }
+//   // Returns true if the peer sent a non-empty base64 encoded
+//   // "x-envoy-peer-metadata" metadata.
+//   bool GotRemoteLabels() const {
+//     return GetDecodedMetadata().struct_pb != nullptr;
+//   }
 
- private:
-  struct RemoteAttribute {
-    absl::string_view otel_attribute;
-    absl::string_view metadata_attribute;
-  };
+//  private:
+//   struct RemoteAttribute {
+//     absl::string_view otel_attribute;
+//     absl::string_view metadata_attribute;
+//   };
 
-  struct StructPb {
-    upb::Arena arena;
-    google_protobuf_Struct* struct_pb = nullptr;
-  };
+//   struct StructPb {
+//     upb::Arena arena;
+//     google_protobuf_Struct* struct_pb = nullptr;
+//   };
 
-  static constexpr std::array<RemoteAttribute, 2> kFixedAttributes = {
-      RemoteAttribute{kPeerTypeAttribute, kMetadataExchangeTypeKey},
-      RemoteAttribute{kPeerCanonicalServiceAttribute,
-                      kMetadataExchangeCanonicalServiceKey},
-  };
+//   static constexpr std::array<RemoteAttribute, 2> kFixedAttributes = {
+//       RemoteAttribute{kPeerTypeAttribute, kMetadataExchangeTypeKey},
+//       RemoteAttribute{kPeerCanonicalServiceAttribute,
+//                       kMetadataExchangeCanonicalServiceKey},
+//   };
 
-  static constexpr std::array<RemoteAttribute, 5> kGkeAttributeList = {
-      RemoteAttribute{kPeerWorkloadNameAttribute,
-                      kMetadataExchangeWorkloadNameKey},
-      RemoteAttribute{kPeerNamespaceNameAttribute,
-                      kMetadataExchangeNamespaceNameKey},
-      RemoteAttribute{kPeerClusterNameAttribute,
-                      kMetadataExchangeClusterNameKey},
-      RemoteAttribute{kPeerLocationAttribute, kMetadataExchangeLocationKey},
-      RemoteAttribute{kPeerProjectIdAttribute, kMetadataExchangeProjectIdKey},
-  };
+//   static constexpr std::array<RemoteAttribute, 5> kGkeAttributeList = {
+//       RemoteAttribute{kPeerWorkloadNameAttribute,
+//                       kMetadataExchangeWorkloadNameKey},
+//       RemoteAttribute{kPeerNamespaceNameAttribute,
+//                       kMetadataExchangeNamespaceNameKey},
+//       RemoteAttribute{kPeerClusterNameAttribute,
+//                       kMetadataExchangeClusterNameKey},
+//       RemoteAttribute{kPeerLocationAttribute, kMetadataExchangeLocationKey},
+//       RemoteAttribute{kPeerProjectIdAttribute, kMetadataExchangeProjectIdKey},
+//   };
 
-  static constexpr std::array<RemoteAttribute, 3> kGceAttributeList = {
-      RemoteAttribute{kPeerWorkloadNameAttribute,
-                      kMetadataExchangeWorkloadNameKey},
-      RemoteAttribute{kPeerLocationAttribute, kMetadataExchangeLocationKey},
-      RemoteAttribute{kPeerProjectIdAttribute, kMetadataExchangeProjectIdKey},
-  };
+//   static constexpr std::array<RemoteAttribute, 3> kGceAttributeList = {
+//       RemoteAttribute{kPeerWorkloadNameAttribute,
+//                       kMetadataExchangeWorkloadNameKey},
+//       RemoteAttribute{kPeerLocationAttribute, kMetadataExchangeLocationKey},
+//       RemoteAttribute{kPeerProjectIdAttribute, kMetadataExchangeProjectIdKey},
+//   };
 
-  static absl::Span<const RemoteAttribute> GetAttributesForType(
-      GcpResourceType remote_type) {
-    switch (remote_type) {
-      case GcpResourceType::kGke:
-        return kGkeAttributeList;
-      case GcpResourceType::kGce:
-        return kGceAttributeList;
-      default:
-        return {};
-    }
-  }
+//   static absl::Span<const RemoteAttribute> GetAttributesForType(
+//       GcpResourceType remote_type) {
+//     switch (remote_type) {
+//       case GcpResourceType::kGke:
+//         return kGkeAttributeList;
+//       case GcpResourceType::kGce:
+//         return kGceAttributeList;
+//       default:
+//         return {};
+//     }
+//   }
 
-  absl::optional<std::pair<absl::string_view, absl::string_view>>
-  NextFromAttributeList(const StructPb& struct_pb,
-                        absl::Span<const RemoteAttribute> attributes,
-                        size_t start_index) {
-    GPR_DEBUG_ASSERT(pos_ >= start_index);
-    const size_t index = pos_ - start_index;
-    if (index >= attributes.size()) return absl::nullopt;
-    ++pos_;
-    const auto& attribute = attributes[index];
-    return std::make_pair(attribute.otel_attribute,
-                          GetStringValueFromUpbStruct(
-                              struct_pb.struct_pb, attribute.metadata_attribute,
-                              struct_pb.arena.ptr()));
-  }
+//   absl::optional<std::pair<absl::string_view, absl::string_view>>
+//   NextFromAttributeList(const StructPb& struct_pb,
+//                         absl::Span<const RemoteAttribute> attributes,
+//                         size_t start_index) {
+//     GPR_DEBUG_ASSERT(pos_ >= start_index);
+//     const size_t index = pos_ - start_index;
+//     if (index >= attributes.size()) return absl::nullopt;
+//     ++pos_;
+//     const auto& attribute = attributes[index];
+//     return std::make_pair(attribute.otel_attribute,
+//                           GetStringValueFromUpbStruct(
+//                               struct_pb.struct_pb, attribute.metadata_attribute,
+//                               struct_pb.arena.ptr()));
+//   }
 
-  StructPb& GetDecodedMetadata() const {
-    auto* slice = absl::get_if<grpc_core::Slice>(&metadata_);
-    if (slice == nullptr) {
-      return absl::get<StructPb>(metadata_);
-    }
-    // Treat an empty slice as an invalid metadata value.
-    if (slice->empty()) {
-      metadata_ = StructPb{};
-      auto& struct_pb = absl::get<StructPb>(metadata_);
-      return struct_pb;
-    }
-    std::string decoded_metadata;
-    bool metadata_decoded =
-        absl::Base64Unescape(slice->as_string_view(), &decoded_metadata);
-    metadata_ = StructPb{};
-    auto& struct_pb = absl::get<StructPb>(metadata_);
-    if (metadata_decoded) {
-      struct_pb.struct_pb = google_protobuf_Struct_parse(
-          decoded_metadata.c_str(), decoded_metadata.size(),
-          struct_pb.arena.ptr());
-      remote_type_ = StringToGcpResourceType(GetStringValueFromUpbStruct(
-          struct_pb.struct_pb, kMetadataExchangeTypeKey,
-          struct_pb.arena.ptr()));
-    }
-    return struct_pb;
-  }
+//   StructPb& GetDecodedMetadata() const {
+//     auto* slice = absl::get_if<grpc_core::Slice>(&metadata_);
+//     if (slice == nullptr) {
+//       return absl::get<StructPb>(metadata_);
+//     }
+//     // Treat an empty slice as an invalid metadata value.
+//     if (slice->empty()) {
+//       metadata_ = StructPb{};
+//       auto& struct_pb = absl::get<StructPb>(metadata_);
+//       return struct_pb;
+//     }
+//     std::string decoded_metadata;
+//     bool metadata_decoded =
+//         absl::Base64Unescape(slice->as_string_view(), &decoded_metadata);
+//     metadata_ = StructPb{};
+//     auto& struct_pb = absl::get<StructPb>(metadata_);
+//     if (metadata_decoded) {
+//       struct_pb.struct_pb = google_protobuf_Struct_parse(
+//           decoded_metadata.c_str(), decoded_metadata.size(),
+//           struct_pb.arena.ptr());
+//       remote_type_ = StringToGcpResourceType(GetStringValueFromUpbStruct(
+//           struct_pb.struct_pb, kMetadataExchangeTypeKey,
+//           struct_pb.arena.ptr()));
+//     }
+//     return struct_pb;
+//   }
 
-  const std::vector<std::pair<absl::string_view, std::string>>& local_labels_;
-  // Holds either the metadata slice or the decoded proto struct.
-  mutable absl::variant<grpc_core::Slice, StructPb> metadata_;
-  mutable GcpResourceType remote_type_ = GcpResourceType::kUnknown;
-  uint32_t pos_ = 0;
-};
+//   const std::vector<std::pair<absl::string_view, std::string>>& local_labels_;
+//   // Holds either the metadata slice or the decoded proto struct.
+//   mutable absl::variant<grpc_core::Slice, StructPb> metadata_;
+//   mutable GcpResourceType remote_type_ = GcpResourceType::kUnknown;
+//   uint32_t pos_ = 0;
+// };
 
-constexpr std::array<MeshLabelsIterable::RemoteAttribute, 2>
-    MeshLabelsIterable::kFixedAttributes;
-constexpr std::array<MeshLabelsIterable::RemoteAttribute, 5>
-    MeshLabelsIterable::kGkeAttributeList;
-constexpr std::array<MeshLabelsIterable::RemoteAttribute, 3>
-    MeshLabelsIterable::kGceAttributeList;
+// constexpr std::array<MeshLabelsIterable::RemoteAttribute, 2>
+//     MeshLabelsIterable::kFixedAttributes;
+// constexpr std::array<MeshLabelsIterable::RemoteAttribute, 5>
+//     MeshLabelsIterable::kGkeAttributeList;
+// constexpr std::array<MeshLabelsIterable::RemoteAttribute, 3>
+//     MeshLabelsIterable::kGceAttributeList;
 
-}  // namespace
+// }  // namespace
 
 // Returns the mesh ID by reading and parsing the bootstrap file. Returns
 // "unknown" if for some reason, mesh ID could not be figured out.
@@ -486,7 +486,7 @@ std::vector<Label> PythonLabelsInjector::GetLabels(
   auto peer_metadata = incoming_initial_metadata->Take(grpc_core::XEnvoyPeerMetadata());
   grpc_core::Slice remote_metadata = peer_metadata.has_value() ? *std::move(peer_metadata) : grpc_core::Slice();
   if (remote_metadata.empty()) {
-    std::cout << "[SERVER] remote_metadata->empty() TRUE" << std::endl;
+    std::cout << "remote_metadata->empty() TRUE" << std::endl;
   } else {
     std::string decoded_metadata;
     bool metadata_decoded =
@@ -514,7 +514,7 @@ void PythonLabelsInjector::ClientAddLabels(
     // auto iter = MetadataMap.find(metadata_to_send.first);
     // if (iter != MetadataMap.end()) {
     if (metadata.first == kXEnvoyPeerMetadata) {
-      std::cout << ">>> [Client] Adding labels to grpc_core::XEnvoyPeerMetadata() with value: " << absl::Base64Escape(absl::string_view(metadata.second)) << std::endl;
+      // std::cout << ">>> [Client] Adding labels to grpc_core::XEnvoyPeerMetadata() with value: " << absl::Base64Escape(absl::string_view(metadata.second)) << std::endl;
       grpc_core::Slice metadata_slice = grpc_core::Slice::FromCopiedString(absl::Base64Escape(absl::string_view(metadata.second)));
       outgoing_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(),
                                      metadata_slice.Ref());
@@ -540,24 +540,24 @@ void PythonLabelsInjector::ServerAddLabels(
     return;
   }
 
-  for (const auto& label : injected_labels) {
-    if (label.key == kXEnvoyPeerMetadata) {
-      std::cout << ">>> [Server] Adding labels to grpc_core::XEnvoyPeerMetadata() with value: " << absl::Base64Escape(absl::string_view(label.value)) << std::endl;
-      grpc_core::Slice metadata_slice = grpc_core::Slice::FromCopiedString(absl::Base64Escape(absl::string_view(label.value)));
-      outgoing_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(),
-                                     metadata_slice.Ref());
-    }
-  }
-  // for (const auto& metadata : metadata_to_send_) {
-  //   // auto iter = MetadataMap.find(metadata_to_send.first);
-  //   // if (iter != MetadataMap.end()) {
-  //   if (metadata.first == kXEnvoyPeerMetadata) {
-  //     std::cout << ">>> Adding labels to grpc_core::XEnvoyPeerMetadata() with value: " << absl::Base64Escape(absl::string_view(metadata.second)) << std::endl;
-  //     grpc_core::Slice metadata_slice = grpc_core::Slice::FromCopiedString(absl::Base64Escape(absl::string_view(metadata.second)));
+  // for (const auto& label : injected_labels) {
+  //   if (label.key == kXEnvoyPeerMetadata) {
+  //     // std::cout << ">>> [Server] Adding labels to grpc_core::XEnvoyPeerMetadata() with value: " << absl::Base64Escape(absl::string_view(label.value)) << std::endl;
+  //     grpc_core::Slice metadata_slice = grpc_core::Slice::FromCopiedString(absl::Base64Escape(absl::string_view(label.value)));
   //     outgoing_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(),
   //                                    metadata_slice.Ref());
   //   }
   // }
+  for (const auto& metadata : metadata_to_send_) {
+    // auto iter = MetadataMap.find(metadata_to_send.first);
+    // if (iter != MetadataMap.end()) {
+    if (metadata.first == kXEnvoyPeerMetadata) {
+      // std::cout << ">>> [Server] Adding labels to grpc_core::XEnvoyPeerMetadata() with value: " << absl::Base64Escape(absl::string_view(metadata.second)) << std::endl;
+      grpc_core::Slice metadata_slice = grpc_core::Slice::FromCopiedString(absl::Base64Escape(absl::string_view(metadata.second)));
+      outgoing_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(),
+                                     metadata_slice.Ref());
+    }
+  }
   // outgoing_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(),
   //                                serialized_labels_to_send_.Ref());
 }
