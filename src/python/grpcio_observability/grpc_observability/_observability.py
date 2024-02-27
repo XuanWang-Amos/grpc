@@ -55,7 +55,7 @@ class StatsData:
       value_float: The actual metric value if measure_double is True.
       labels: A dictionary that maps label tags associated with this metric to
        corresponding label value.
-      identifiers: A set of strings identifying which stats plugin this StatsData
+      identifiers: A list of strings identifying which stats plugins this StatsData
         belongs to.
     """
 
@@ -64,7 +64,7 @@ class StatsData:
     value_int: int = 0
     value_float: float = 0.0
     labels: Dict[str, AnyStr] = field(default_factory=dict)
-    identifiers: Set[str] = field(default_factory=set)
+    identifiers: List[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

@@ -249,17 +249,17 @@ def _get_stats_data(object measurement, object labels, object identifier) -> _ob
   labels: Mapping[str, AnyStr]
 
   metric_name = _cy_metric_name_to_py_metric_name(measurement['name'])
-  identifier = set(identifier.split(PLUGIN_IDENTIFIER_SEP))
+  identifiers = identifier.split(PLUGIN_IDENTIFIER_SEP)
   if measurement['type'] == kMeasurementDouble:
     py_stat = _observability.StatsData(name=metric_name, measure_double=True,
                                        value_float=measurement['value']['value_double'],
                                        labels=labels,
-                                       identifiers=identifier)
+                                       identifiers=identifiers)
   else:
     py_stat = _observability.StatsData(name=metric_name, measure_double=False,
                                        value_int=measurement['value']['value_int'],
                                        labels=labels,
-                                       identifiers=identifier)
+                                       identifiers=identifiers)
   return py_stat
 
 

@@ -162,7 +162,6 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
     ) -> ClientCallTracerCapsule:
         trace_id = b"TRACE_ID"
         additional_labels = self._get_additional_client_labels(target)
-        print(f"client identifier: {self._get_identifier()}")
         enabled_optional_labels = set()
         for plugin in self._plugins:
             enabled_optional_labels.update(plugin.get_enabled_optional_labels())

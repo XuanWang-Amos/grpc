@@ -12,25 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
+from typing import Dict, List
 
 from grpc_observability import _observability  # pytype: disable=pyi-error
 from grpc_observability._open_telemetry_plugin import _OpenTelemetryPlugin
 
 
 class _OpenTelemetryExporterDelegator(_observability.Exporter):
-    _plugins: List[_OpenTelemetryPlugin]
+    _plugin_map: Dict[str, _OpenTelemetryPlugin]
 
     def __init__(self, plugins: List[_OpenTelemetryPlugin]):
-        self._plugins = plugins
+        self._plugin_map = {}
+        for plugin in plugins:
+            self._plugin_map[plugin.identifier] = plugin
 
-    def export_stats_data(
-        self, stats_data: List[_observability.StatsData]
-    ) -> None:
-        # Records stats data to MeterProvider.
+    def export_stats_data(self, stats_data: List[_observability.StatsData]) -> None:
         for data in stats_data:
-            for plugin in self._plugins:
-                plugin.maybe_record_stats_data(data)
+            for identifier in data.identifiers:
+                if identifier in self._plugin_map.keys():
+                    self._plugin_map[identifier].maybe_record_stats_data(data)
 
     def export_tracing_data(
         self, tracing_data: List[_observability.TracingData]

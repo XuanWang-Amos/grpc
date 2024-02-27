@@ -174,10 +174,7 @@ class _OpenTelemetryPlugin:
 
     def _should_record(self, stats_data: StatsData) -> bool:
         # Decide if this plugin should record the stats_data.
-        if self.identifier in stats_data.identifiers:
-            return stats_data.name in self._metric_to_recorder.keys()
-        else:
-            print(f"!!!!metrics id not match")
+        return stats_data.name in self._metric_to_recorder.keys()
 
     def _record_stats_data(self, stats_data: StatsData) -> None:
         recorder = self._metric_to_recorder[stats_data.name]
