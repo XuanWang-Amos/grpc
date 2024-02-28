@@ -13,10 +13,11 @@
 # limitations under the License.
 
 import abc
+import json
+import os
 from typing import AnyStr, Dict, Iterable, List, Optional, Union
 
 # pytype: disable=pyi-error
-import grpc
 from grpc_observability import _open_telemetry_measures
 from grpc_observability._cyobservability import MetricsName
 from grpc_observability._observability import StatsData
@@ -30,17 +31,21 @@ from opentelemetry.metrics import Histogram
 from opentelemetry.metrics import Meter
 from opentelemetry.metrics import MeterProvider
 
+from opentelemetry.sdk.resources import Resource, get_aggregated_resources
+# from opentelemetry.tools.resource_detector import GoogleCloudResourceDetector
+from opentelemetry.resourcedetector.gcp_resource_detector import GoogleCloudResourceDetector
+from opentelemetry.semconv.resource import ResourceAttributes
 from google.protobuf import struct_pb2
 
 GRPC_METHOD_LABEL = "grpc.method"
 GRPC_TARGET_LABEL = "grpc.target"
 GRPC_OTHER_LABEL_VALUE = "other"
-UNKNOWN_TYPE = "unknown"
-TYPE_KEY = "type"
-TYPE_GCE = "GCE"
-TYPE_GKE = "GKE"
+UNKNOWN_VALUE = "unknown"
+TYPE_GCE = "gcp_compute_engine"
+TYPE_GKE = "gcp_kubernetes_engine"
+
 METADATA_EXCHANGE_KEY_FIXED_MAP = {
-    TYPE_KEY: "csm.remote_workload_type",
+    "type": "csm.remote_workload_type",
     "canonical_service": "csm.remote_workload_canonical_service",
 }
 METADATA_EXCHANGE_KEY_GKE_MAP = {
@@ -64,12 +69,15 @@ class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
     Please note that this class is still work in progress and NOT READY to be used.
     """
 
-    _labels: Dict[str, AnyStr]
+    _exchange_labels: Dict[str, AnyStr]
+    _local_labels: Dict[str, str]
 
     def __init__(self, is_client=False):
         # Calls Python OTel API to detect resource and get labels, save
         # those lables to OpenTelemetryLabelInjector.labels.
         fields = {}
+        self._exchange_labels = {}
+        self._local_labels = {}
 
         prefix = ""
         _type = ""
@@ -82,49 +90,71 @@ class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
             _type = "GKE"
         # print(f"prefix={prefix}")
 
-        fields["type"] = struct_pb2.Value(string_value=f"{prefix}{_type}")
-        fields["canonical_service"] = struct_pb2.Value(
-            string_value=f"{prefix}canonical_service"
-        )
-        if _type == "GKE":
-            fields["workload_name"] = struct_pb2.Value(
-                string_value=f"{prefix}workload_name"
-            )
-            fields["namespace_name"] = struct_pb2.Value(
-                string_value=f"{prefix}namespace_name"
-            )
-            fields["cluster_name"] = struct_pb2.Value(
-                string_value=f"{prefix}cluster_name"
-            )
-            fields["location"] = struct_pb2.Value(string_value=f"{prefix}location")
-            fields["project_id"] = struct_pb2.Value(string_value=f"{prefix}project_id")
+        # fields["type"] = struct_pb2.Value(string_value=f"{prefix}{_type}")
+        # fields["canonical_service"] = struct_pb2.Value(
+        #     string_value=f"{prefix}canonical_service"
+        # )
+        # if _type == "GKE":
+        #     fields["workload_name"] = struct_pb2.Value(
+        #         string_value=f"{prefix}workload_name"
+        #     )
+        #     fields["namespace_name"] = struct_pb2.Value(
+        #         string_value=f"{prefix}namespace_name"
+        #     )
+        #     fields["cluster_name"] = struct_pb2.Value(
+        #         string_value=f"{prefix}cluster_name"
+        #     )
+        #     fields["location"] = struct_pb2.Value(string_value=f"{prefix}location")
+        #     fields["project_id"] = struct_pb2.Value(string_value=f"{prefix}project_id")
+        # else:
+        #     fields["workload_name"] = struct_pb2.Value(
+        #         string_value=f"{prefix}workload_name"
+        #     )
+        #     fields["location"] = struct_pb2.Value(string_value=f"{prefix}location")
+        #     fields["project_id"] = struct_pb2.Value(string_value=f"{prefix}project_id")
+
+        resource = get_aggregated_resources([GoogleCloudResourceDetector()])
+        type_value = self._get_str_value_from_resource(ResourceAttributes.CLOUD_PLATFORM, resource)
+        canonical_service_value = os.getenv("CSM_CANONICAL_SERVICE_NAME", UNKNOWN_VALUE)
+        workload_name_value = os.getenv("CSM_WORKLOAD_NAME", UNKNOWN_VALUE)
+        namespace_value = self._get_str_value_from_resource(ResourceAttributes.K8S_NAMESPACE_NAME, resource)
+        cluster_name_value = self._get_str_value_from_resource(ResourceAttributes.K8S_CLUSTER_NAME, resource)
+        location_value = self._get_str_value_from_resource(ResourceAttributes.CLOUD_AVAILABILITY_ZONE, resource)
+        if (UNKNOWN_VALUE == location_value):
+            location_value = self._get_str_value_from_resource(ResourceAttributes.CLOUD_REGION, resource)
+        project_id_value = self._get_str_value_from_resource(ResourceAttributes.CLOUD_ACCOUNT_ID, resource)
+
+        fields["type"] = struct_pb2.Value(string_value=type_value)
+        fields["canonical_service"] = struct_pb2.Value(string_value=canonical_service_value)
+        if type_value == "GKE":
+            fields["workload_name"] = struct_pb2.Value(string_value=workload_name_value)
+            fields["namespace_name"] = struct_pb2.Value(string_value=namespace_value)
+            fields["cluster_name"] = struct_pb2.Value(string_value=cluster_name_value)
+            fields["location"] = struct_pb2.Value(string_value=location_value)
+            fields["project_id"] = struct_pb2.Value(string_value=project_id_value)
         else:
-            fields["workload_name"] = struct_pb2.Value(
-                string_value=f"{prefix}workload_name"
-            )
-            fields["location"] = struct_pb2.Value(string_value=f"{prefix}location")
-            fields["project_id"] = struct_pb2.Value(string_value=f"{prefix}project_id")
+            fields["workload_name"] = struct_pb2.Value(string_value=workload_name_value)
+            fields["location"] = struct_pb2.Value(string_value=location_value)
+            fields["project_id"] = struct_pb2.Value(string_value=project_id_value)
 
         serialized_struct = struct_pb2.Struct(fields=fields)
         serialized_str = serialized_struct.SerializeToString()
 
-        # my_struct = struct_pb2.Struct()
-        # my_struct.ParseFromString(serialized_str)
+        self._exchange_labels = {"XEnvoyPeerMetadata": serialized_str}
+        self._local_labels["csm.workload_canonical_service"] = canonical_service_value
+        self._local_labels["csm.mesh_id"] = self._get_mesh_id()
 
-        self._labels = {"XEnvoyPeerMetadata": serialized_str}
+    def get_exchange_labels(self) -> Dict[str, AnyStr]:
+        return self._exchange_labels
 
-    def add_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, AnyStr]:
-        labels.update(self._labels)
-        return labels
-
-    def get_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, AnyStr]:
+    def add_and_deserialize_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, str]:
         new_labels = {}
         for key, value in labels.items():
             if "XEnvoyPeerMetadata" == key:
                 struct = struct_pb2.Struct()
                 struct.ParseFromString(value)
 
-                remote_type = self._get_value_from_struct(TYPE_KEY, struct)
+                remote_type = self._get_value_from_struct("type", struct)
 
                 for key, remote_key in METADATA_EXCHANGE_KEY_FIXED_MAP.items():
                     new_labels[remote_key] = self._get_value_from_struct(key, struct)
@@ -141,14 +171,54 @@ class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
                         )
             else:
                 new_labels[key] = value
-        # print(f"_Label_injector: {new_labels}")
+
+        new_labels.update(self._local_labels)
         return new_labels
 
     def _get_value_from_struct(self, key: str, struct: struct_pb2.Struct) -> str:
         value = struct.fields.get(key)
         if not value:
-            return "unknown"
+            return UNKNOWN_VALUE
         return value.string_value
+
+    def _get_str_value_from_resource(self, attribute: ResourceAttributes, resource: Resource) -> str:
+        value = resource.attributes.get(attribute, UNKNOWN_VALUE)
+        return str(value)
+
+    # Returns the mesh ID by reading and parsing the bootstrap file. Returns "unknown"
+    # if for some reason, mesh ID could not be figured out.
+    def _get_mesh_id(self) -> str:
+        config_contents = self._get_bootstrap_config_contents()
+
+        try:
+            config_json = json.loads(config_contents)
+            # The expected format of the Node ID is -
+            # projects/[GCP Project number]/networks/mesh:[Mesh ID]/nodes/[UUID]
+            node_id_parts = config_json.get("node", {}).get("id", "").split("/")
+            if len(node_id_parts) == 6 and "mesh:" in node_id_parts[3]:
+                return node_id_parts[3].removeprefix("mesh:")
+        except json.decoder.JSONDecodeError:
+            return UNKNOWN_VALUE
+
+        return UNKNOWN_VALUE
+
+    def _get_bootstrap_config_contents(self) -> str:
+        """Get the contents of the bootstrap config from environment variable or file.
+
+        Returns:
+            The content from environment variable. Or empty str if no config was found.
+        """
+        contents_str = ""
+        for source in ("GRPC_XDS_BOOTSTRAP", "GRPC_XDS_BOOTSTRAP_CONFIG"):
+            config = os.getenv(source)
+            if config:
+                if os.path.isfile(config):  # Prioritize file over raw config
+                    with open(config, "r") as f:
+                        contents_str = f.read()
+                else:
+                    contents_str = config
+
+        return contents_str
 
 
 class CsmOpenTelemetryPluginOption(OpenTelemetryPluginOption):

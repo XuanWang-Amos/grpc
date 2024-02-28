@@ -33,6 +33,7 @@ py_library(
         requirement("opentelemetry-sdk"),
         requirement("opentelemetry-api"),
         requirement("protobuf"),
+        requirement("opentelemetry-resourcedetector-gcp"),
         "//src/python/grpcio/grpc:grpcio",
         "//src/python/grpcio_observability/grpc_observability:pyobservability",
     ],

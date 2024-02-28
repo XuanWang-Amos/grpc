@@ -21,7 +21,7 @@ import grpc
 
 # pytype: disable=pyi-error
 from grpc_observability import _cyobservability
-from grpc_observability._observability import OptionalLabelType
+# from grpc_observability._observability import OptionalLabelType
 
 from grpc_observability._open_telemetry_exporter import (
     _OpenTelemetryExporterDelegator,

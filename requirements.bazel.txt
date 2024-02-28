@@ -30,6 +30,7 @@ greenlet==1.1.3.post0
 zope.interface==6.1
 opentelemetry-sdk==1.21.0
 opentelemetry-api==1.21.0
+opentelemetry-resourcedetector-gcp==1.6.0a0
 importlib-metadata==7.0.1
 Deprecated==1.2.14
 opentelemetry-semantic-conventions==0.43b0
