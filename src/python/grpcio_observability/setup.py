@@ -160,8 +160,8 @@ if "win32" not in sys.platform:
     EXTRA_ENV_COMPILE_ARGS += " -flto"
     # Compile with fail with error: `lto-wrapper failed` when lto flag was enabled in Alpine musl
     # linux. So far the only work around we found is to disable fortify_source.
-    if BUILD_FOR_MUSL_LINUX:
-        EXTRA_ENV_COMPILE_ARGS += " -U_FORTIFY_SOURCE"
+    # if BUILD_FOR_MUSL_LINUX:
+    EXTRA_ENV_COMPILE_ARGS += " -U_FORTIFY_SOURCE"
 
 EXTRA_COMPILE_ARGS = shlex.split(EXTRA_ENV_COMPILE_ARGS)
 EXTRA_LINK_ARGS = shlex.split(EXTRA_ENV_LINK_ARGS)
