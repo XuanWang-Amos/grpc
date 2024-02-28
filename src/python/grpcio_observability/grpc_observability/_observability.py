@@ -55,7 +55,7 @@ class StatsData:
       value_float: The actual metric value if measure_double is True.
       labels: A dictionary that maps label tags associated with this metric to
        corresponding label value.
-      identifiers: A list of strings identifying which stats plugins this StatsData
+      identifiers: A set of strings identifying which stats plugins this StatsData
         belongs to.
     """
 
@@ -64,7 +64,7 @@ class StatsData:
     value_int: int = 0
     value_float: float = 0.0
     labels: Dict[str, AnyStr] = field(default_factory=dict)
-    identifiers: List[str] = field(default_factory=list)
+    identifiers: Set[str] = field(default_factory=set)
 
 
 @dataclass(frozen=True)
@@ -109,6 +109,6 @@ class TracingData:
 
 @enum.unique
 class OptionalLabelType(enum.Enum):
-    """Describes the control flow style of RPC method implementation."""
+    """What kinds of optional labels to add to metrics."""
 
     XDS_SERVICE_LABELS = "kXdsServiceLabels"

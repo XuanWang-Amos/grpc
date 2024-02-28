@@ -119,40 +119,6 @@ class TestLabelInjector(OpenTelemetryLabelInjector):
         return self._labels
 
 
-class TestPluginOption(OpenTelemetryPluginOption):
-    """
-    An interface that allows you to add additional function to OpenTelemetryPlugin.
-
-    Please note that this class is still work in progress and NOT READY to be used.
-    """
-
-    def is_active_on_client_channel(self, target: str) -> bool:
-        """Determines whether this plugin option is active on a channel based on target.
-
-        Args:
-          method: Required. The target for the RPC.
-
-        Returns:
-          True if this this plugin option is active on the channel, false otherwise.
-        """
-        return True
-
-    def is_active_on_server(self, xds: bool) -> bool:
-        """Determines whether this plugin option is active on a given server.
-
-        Args:
-          channel_args: Required. The channel args used for server.
-
-        Returns:
-          True if this this plugin option is active on the server, false otherwise.
-        """
-        return True
-
-    def get_label_injector(self) -> Optional[OpenTelemetryLabelInjector]:
-        # Returns the LabelsInjector used by this plugin option, or None.
-        return TestLabelInjector()
-
-
 @unittest.skipIf(
     os.name == "nt" or "darwin" in sys.platform,
     "Observability is not supported in Windows and MacOS",

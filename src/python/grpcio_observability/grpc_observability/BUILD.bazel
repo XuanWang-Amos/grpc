@@ -67,7 +67,6 @@ py_library(
         "_open_telemetry_plugin.py",
     ],
     deps = [
-        requirement("opentelemetry-sdk"),
         requirement("opentelemetry-api"),
     ],
 )

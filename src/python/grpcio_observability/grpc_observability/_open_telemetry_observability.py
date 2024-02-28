@@ -239,6 +239,3 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
 
     def is_server_traced(self, xds: bool) -> bool:
         return True
-
-    # def get_enabled_optional_labels(self) -> List[OptionalLabelType]:
-    #     return []

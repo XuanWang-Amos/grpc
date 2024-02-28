@@ -59,12 +59,12 @@ class OpenTelemetryLabelInjector(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def get_exchange_labels(self) -> Dict[str, AnyStr]:
+    def get_labels(self) -> Dict[str, AnyStr]:
         """
-        Will be called to get labels for metadata exchange.
+        Get additional labels for this LabelInjector.
 
         Returns:
-          A dict of labels used for metadata exchange.
+          A dict of additional labels.
         """
         raise NotImplementedError()
 
@@ -210,9 +210,9 @@ class _OpenTelemetryPlugin:
             if hasattr(
                 plugin_option, "is_active_on_client_channel"
             ) and plugin_option.is_active_on_client_channel(target_str):
-                if hasattr(plugin_option, "get_client_label_injector"):
-                    additional_labels = (
-                        plugin_option.get_client_label_injector().get_exchange_labels()
+                if hasattr(plugin_option, "get_label_injector"):
+                    additional_labels.update(
+                        plugin_option.get_label_injector().get_labels()
                     )
         return additional_labels
 
@@ -222,9 +222,9 @@ class _OpenTelemetryPlugin:
             if hasattr(
                 plugin_option, "is_active_on_server"
             ) and plugin_option.is_active_on_server(xds):
-                if hasattr(plugin_option, "get_server_label_injector"):
-                    additional_labels = (
-                        plugin_option.get_server_label_injector().get_exchange_labels()
+                if hasattr(plugin_option, "get_label_injector"):
+                    additional_labels.update(
+                        plugin_option.get_label_injector().get_labels()
                     )
         return additional_labels
 

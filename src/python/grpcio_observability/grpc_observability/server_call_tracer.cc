@@ -75,6 +75,18 @@ void GetO11yMetadata(const grpc_metadata_batch* b, ServerO11yMetadata* som) {
   }
 }
 
+bool KeyInLabels(std::string key, const std::vector<Label>& labels) {
+  const auto it = std::find_if(labels.begin(), labels.end(), 
+                       [&key](const Label& l) {
+                           return l.key == key; 
+                       });
+
+  if (it == labels.end()) {
+    return false;
+  }
+  return true;
+}
+
 }  // namespace
 
 //
@@ -83,23 +95,12 @@ void GetO11yMetadata(const grpc_metadata_batch* b, ServerO11yMetadata* som) {
 
 void PythonOpenCensusServerCallTracer::RecordSendInitialMetadata(
       grpc_metadata_batch* send_initial_metadata) {
-    // 1. Check if incoming metadata have x-envoy-peer-metadata label.
-    // 2. If it does, perform metadata exchange.
-    // 3. send_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(), 
-    labels_injector_.ServerAddLabels(send_initial_metadata, injected_labels_);
-    // serialized_labels_to_send_.Ref())
-    // serialized_labels_to_send_
-    // active_plugin_options_view_.ForEach(
-    //     [&](const InternalOpenTelemetryPluginOption& plugin_option,
-    //         size_t index) {
-    //       auto* labels_injector = plugin_option.labels_injector();
-    //       if (labels_injector != nullptr) {
-    //         labels_injector->AddLabels(
-    //             send_initial_metadata,
-    //             injected_labels_from_plugin_options_[index].get());
-    //       }
-    //       return true;
-    //     });
+  // Only add labels if exchange is needed.
+  for (const auto& key : MetadataExchangeKeyNames) {
+    if (KeyInLabels(key, labels_from_peer_)) {
+      labels_injector_.AddToMetadata(send_initial_metadata);
+    }
+  }
 }
 
 void PythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata(
@@ -114,45 +115,10 @@ void PythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata(
       absl::StrCat("Recv.", method_), &context_);
   if (PythonCensusStatsEnabled()) {
     context_.Labels().emplace_back(kServerMethod, std::string(method_));
-    // std::cout << "[CALLTRACER][Server] Adding data with identifier RecordReceivedInitialMetadata: " << identifier_ << std::endl;
     RecordIntMetric(kRpcServerStartedRpcsMeasureName, 1, context_.Labels(), identifier_);
   }
 
-  // C++ GetLabels returns metadata_label + local_label
-  // Python GetLabels returns metadata_label + additional_labels
-  injected_labels_ = labels_injector_.GetLabels(recv_initial_metadata);
-
-  // for (const auto& label : injected_labels_) {
-  //     std::cout << "[SERVER] labels from peer: " << label.key << ": " << label.value << std::endl;
-  //     context_.Labels().emplace_back(label);
-  // }
-
-  // path_ =
-  //     recv_initial_metadata->get_pointer(grpc_core::HttpPathMetadata())->Ref();
-  // active_plugin_options_view_.ForEach(
-  //     [&](const InternalOpenTelemetryPluginOption& plugin_option,
-  //         size_t index) {
-  //       auto* labels_injector = plugin_option.labels_injector();
-  //       if (labels_injector != nullptr) {
-  //         injected_labels_from_plugin_options_[index] =
-  //             labels_injector->GetLabels(recv_initial_metadata);
-  //       }
-  //       return true;
-  //     });
-  // registered_method_ =
-  //     recv_initial_metadata->get(grpc_core::GrpcRegisteredMethod())
-  //         .value_or(nullptr) != nullptr;
-  // std::array<std::pair<absl::string_view, absl::string_view>, 1>
-  //     additional_labels = {{{OpenTelemetryMethodKey(), MethodForStats()}}};
-  // if (OpenTelemetryPluginState().server.call.started != nullptr) {
-  //   // We might not have all the injected labels that we want at this point, so
-  //   // avoid recording a subset of injected labels here.
-  //   OpenTelemetryPluginState().server.call.started->Add(
-  //       1, KeyValueIterable(/*injected_labels_from_plugin_options=*/{},
-  //                           additional_labels,
-  //                           /*active_plugin_options_view=*/nullptr, {},
-  //                           /*is_client=*/false));
-  // }
+  labels_from_peer_ = labels_injector_.GetLabels(recv_initial_metadata);
 }
 
 void PythonOpenCensusServerCallTracer::RecordSendTrailingMetadata(
@@ -210,11 +176,9 @@ void PythonOpenCensusServerCallTracer::RecordEnd(
     context_.Labels().emplace_back(
         kServerStatus,
         std::string(StatusCodeToString(final_info->final_status)));
-    for (const auto& label : injected_labels_) {
-        // std::cout << "[SERVER] labels from peer: " << label.key << ": " << label.value << std::endl;
+    for (const auto& label : labels_from_peer_) {
         context_.Labels().emplace_back(label);
     }
-    // std::cout << "[CALLTRACER][Server] Adding data with identifier RecordEnd: " << identifier_ << std::endl;
     RecordDoubleMetric(kRpcServerSentBytesPerRpcMeasureName,
                        static_cast<double>(response_size), context_.Labels(), identifier_);
     RecordDoubleMetric(kRpcServerReceivedBytesPerRpcMeasureName,
@@ -234,35 +198,6 @@ void PythonOpenCensusServerCallTracer::RecordEnd(
     }
   }
 
-  // std::array<std::pair<absl::string_view, absl::string_view>, 2>
-  //     additional_labels = {
-  //         {{OpenTelemetryMethodKey(), MethodForStats()},
-  //          {OpenTelemetryStatusKey(),
-  //           grpc_status_code_to_string(final_info->final_status)}}};
-  // // Currently we do not have any optional labels on the server side.
-  // KeyValueIterable labels(
-  //     injected_labels_from_plugin_options_, additional_labels,
-  //     /*active_plugin_options_view=*/nullptr, /*optional_labels_span=*/{},
-  //     /*is_client=*/false);
-  // if (OpenTelemetryPluginState().server.call.duration != nullptr) {
-  //   OpenTelemetryPluginState().server.call.duration->Record(
-  //       absl::ToDoubleSeconds(elapsed_time_), labels,
-  //       opentelemetry::context::Context{});
-  // }
-  // if (OpenTelemetryPluginState()
-  //         .server.call.sent_total_compressed_message_size != nullptr) {
-  //   OpenTelemetryPluginState()
-  //       .server.call.sent_total_compressed_message_size->Record(
-  //           final_info->stats.transport_stream_stats.outgoing.data_bytes,
-  //           labels, opentelemetry::context::Context{});
-  // }
-  // if (OpenTelemetryPluginState()
-  //         .server.call.rcvd_total_compressed_message_size != nullptr) {
-  //   OpenTelemetryPluginState()
-  //       .server.call.rcvd_total_compressed_message_size->Record(
-  //           final_info->stats.transport_stream_stats.incoming.data_bytes,
-  //           labels, opentelemetry::context::Context{});
-  // }
   // After RecordEnd, Core will make no further usage of this ServerCallTracer,
   // so we are free it here.
   delete this;

@@ -45,15 +45,13 @@ constexpr uint32_t
 PythonOpenCensusCallTracer::PythonOpenCensusCallTracer(
     const char* method, const char* target, const char* trace_id, const char* parent_span_id,
     const char* identifier, const std::vector<Label>& additional_labels,
-    bool add_csm_optional_labels, bool tracing_enabled)
+    bool tracing_enabled, bool add_csm_optional_labels)
     : method_(GetMethod(method)),
       target_(GetTarget(target)),
       tracing_enabled_(tracing_enabled),
       add_csm_optional_labels_(add_csm_optional_labels),
-      // additional_labels_(additional_labels),
       labels_injector_(additional_labels),
       identifier_(identifier) {
-  // std::cout << "[PythonOpenCensusCallTracer] Created with id: " << identifier_ << std::endl;
   GenerateClientContext(absl::StrCat("Sent.", method_),
                         absl::string_view(trace_id),
                         absl::string_view(parent_span_id), &context_);
@@ -157,25 +155,6 @@ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
   }
   context_.Labels().emplace_back(kClientMethod, std::string(parent_->method_));
   context_.Labels().emplace_back(kClientTarget, std::string(parent_->target_));
-  // std::cout << "parent_->additional_labels_ size: " << (parent_->additional_labels_).size() << std::endl;
-  // for (auto& label : parent_->additional_labels_) {  
-  //     std::cout << "parent_->additional_labels_: " << label.key << ", " << label.value << std::endl;
-  // }
-  // Get additional labels.
-  // Skips here since we don't need any additional labels.
-  // if (OpenTelemetryPluginState().client.attempt.started != nullptr) {
-  //   std::array<std::pair<absl::string_view, absl::string_view>, 2>
-  //       additional_labels = {
-  //           {{OpenTelemetryMethodKey(), parent_->MethodForStats()},
-  //            {OpenTelemetryTargetKey(), parent_->parent_->filtered_target()}}};
-  //   // We might not have all the injected labels that we want at this point, so
-  //   // avoid recording a subset of injected labels here.
-  //   OpenTelemetryPluginState().client.attempt.started->Add(
-  //       1, KeyValueIterable(/*injected_labels_from_plugin_options=*/{},
-  //                           additional_labels,
-  //                           /*active_plugin_options_view=*/nullptr,
-  //                           /*optional_labels_span=*/{}, /*is_client=*/true));
-  // }
   RecordIntMetric(kRpcClientStartedRpcsMeasureName, 1, context_.Labels(), parent_->identifier_);
 }
 
@@ -200,38 +179,12 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     send_initial_metadata->Set(grpc_core::GrpcTagsBinMetadata(),
                                grpc_core::Slice(tags));
   }
-  parent_->labels_injector_.ClientAddLabels(send_initial_metadata);
+  parent_->labels_injector_.AddToMetadata(send_initial_metadata);
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     RecordReceivedInitialMetadata(grpc_metadata_batch* recv_initial_metadata) {
-  // Get labels from recv_initial_metadata and add to injected_labels_from_plugin_options_.
-  // const std::unique_ptr<LabelsIterable>& plugin_option_injected_iterable = parent_->labels_injector_.GetLabels(recv_initial_metadata);
-  // injected_labels_from_plugin_options_.push_back(parent_->labels_injector_.GetLabels(recv_initial_metadata));
-  // for (const auto& plugin_option_injected_iterable : injected_labels_from_plugin_options_) {
-  //   if (plugin_option_injected_iterable != nullptr) {
-  //     plugin_option_injected_iterable->ResetIteratorPosition();
-  //     while (const auto& pair = plugin_option_injected_iterable->Next()) {
-  //       std::cout << "[CLIENT] labels from peer: " << pair->first << ": " << pair->second << std::endl;
-  //     }
-  //   }
-  // }
-
-  // injected_labels_ = parent_->labels_injector_.GetLabels(recv_initial_metadata);
-  // auto peer_metadata = recv_initial_metadata->Take(grpc_core::XEnvoyPeerMetadata());
-  // grpc_core::Slice remote_metadata = peer_metadata.has_value() ? *std::move(peer_metadata) : grpc_core::Slice();
-  // if (remote_metadata.empty()) {
-  //   std::cout << "[CLIENT] remote_metadata->empty() TRUE" << std::endl;
-  // } else {
-  //   std::string decoded_metadata;
-  //   bool metadata_decoded =
-  //       absl::Base64Unescape(remote_metadata.as_string_view(), &decoded_metadata);
-  injected_labels_ = parent_->labels_injector_.GetLabels(recv_initial_metadata);
-
-  // for (const auto& label : injected_labels_) {
-  //     std::cout << "[CLIENT] labels from peer: " << label.key << ": " << label.value << std::endl;
-  //     context_.Labels().emplace_back(label);
-  // }
+  labels_from_peer_ = parent_->labels_injector_.GetLabels(recv_initial_metadata);
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
@@ -302,18 +255,7 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
                                                    optional_labels_array_,
                                                    context_.Labels());
   }
-  // for (const auto& plugin_option_injected_iterable : injected_labels_from_plugin_options_) {
-  //   if (plugin_option_injected_iterable != nullptr) {
-  //     plugin_option_injected_iterable->ResetIteratorPosition();
-  //     while (const auto& pair = plugin_option_injected_iterable->Next()) {
-  //       // std::cout << "injected_labels_from_plugin_options_: " << pair->first << ": " << pair->second << std::endl;
-  //       context_.Labels().emplace_back(std::string(pair->first), std::string(pair->second));
-  //     }
-  //   }
-  // }
-  // std::cout << "[CALLTRACER] Adding data with identifier RecordReceivedTrailingMetadata: " << parent_->identifier_ << std::endl;
-  for (const auto& label : injected_labels_) {
-      // std::cout << "[SERVER] labels from peer: " << label.key << ": " << label.value << std::endl;
+  for (const auto& label : labels_from_peer_) {
       context_.Labels().emplace_back(label);
   }
   RecordDoubleMetric(
@@ -335,40 +277,6 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
                      absl::ToDoubleSeconds(absl::Now() - start_time_),
                      context_.Labels(), parent_->identifier_);
   RecordIntMetric(kRpcClientCompletedRpcMeasureName, 1, context_.Labels(), parent_->identifier_);
-  // std::array<std::pair<absl::string_view, absl::string_view>, 3>
-  //     additional_labels = {
-  //         {{OpenTelemetryMethodKey(), parent_->MethodForStats()},
-  //          {OpenTelemetryTargetKey(), parent_->parent_->filtered_target()},
-  //          {OpenTelemetryStatusKey(),
-  //           grpc_status_code_to_string(
-  //               static_cast<grpc_status_code>(status.code()))}}};
-  // KeyValueIterable labels(injected_labels_from_plugin_options_,
-  //                         additional_labels,
-  //                         &parent_->parent_->active_plugin_options_view(),
-  //                         optional_labels_array_, /*is_client=*/true);
-  // if (OpenTelemetryPluginState().client.attempt.duration != nullptr) {
-  //   OpenTelemetryPluginState().client.attempt.duration->Record(
-  //       absl::ToDoubleSeconds(absl::Now() - start_time_), labels,
-  //       opentelemetry::context::Context{});
-  // }
-  // if (OpenTelemetryPluginState()
-  //         .client.attempt.sent_total_compressed_message_size != nullptr) {
-  //   OpenTelemetryPluginState()
-  //       .client.attempt.sent_total_compressed_message_size->Record(
-  //           transport_stream_stats != nullptr
-  //               ? transport_stream_stats->outgoing.data_bytes
-  //               : 0,
-  //           labels, opentelemetry::context::Context{});
-  // }
-  // if (OpenTelemetryPluginState()
-  //         .client.attempt.rcvd_total_compressed_message_size != nullptr) {
-  //   OpenTelemetryPluginState()
-  //       .client.attempt.rcvd_total_compressed_message_size->Record(
-  //           transport_stream_stats != nullptr
-  //               ? transport_stream_stats->incoming.data_bytes
-  //               : 0,
-  //           labels, opentelemetry::context::Context{});
-  // }
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
@@ -381,7 +289,6 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordEnd(
                                    std::string(parent_->method_));
     context_.Labels().emplace_back(kClientStatus,
                                    StatusCodeToString(status_code_));
-    // std::cout << "[CALLTRACER] Adding data with identifier RecordEnd: " << parent_->identifier_ << std::endl;
     RecordIntMetric(kRpcClientSentMessagesPerRpcMeasureName,
                     sent_message_count_, context_.Labels(), parent_->identifier_);
     RecordIntMetric(kRpcClientReceivedMessagesPerRpcMeasureName,

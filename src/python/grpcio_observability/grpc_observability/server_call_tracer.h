@@ -129,9 +129,7 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
   // response.
   char stats_buf_[kMaxServerStatsLen];
   PythonLabelsInjector labels_injector_;
-  std::unique_ptr<LabelsIterable> injected_labels_from_plugin_options_;
-  std::vector<Label> injected_labels_;
-  // absl::string_view identifier_;
+  std::vector<Label> labels_from_peer_;
   std::string identifier_;
 };
 

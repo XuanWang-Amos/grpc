@@ -72,22 +72,20 @@ class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
     _exchange_labels: Dict[str, AnyStr]
     _local_labels: Dict[str, str]
 
-    def __init__(self, is_client=False):
-        # Calls Python OTel API to detect resource and get labels, save
-        # those lables to OpenTelemetryLabelInjector.labels.
+    def __init__(self):
         fields = {}
         self._exchange_labels = {}
         self._local_labels = {}
 
-        prefix = ""
-        _type = ""
+        # prefix = ""
+        # _type = ""
         # print(f"is_client={is_client}")
-        if is_client:
-            prefix = "[Client]"
-            _type = "GCE"
-        else:
-            prefix = "[Server]"
-            _type = "GKE"
+        # if is_client:
+        #     prefix = "[Client]"
+        #     _type = "GCE"
+        # else:
+        #     prefix = "[Server]"
+        #     _type = "GKE"
         # print(f"prefix={prefix}")
 
         # fields["type"] = struct_pb2.Value(string_value=f"{prefix}{_type}")
@@ -144,7 +142,8 @@ class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
         self._local_labels["csm.workload_canonical_service"] = canonical_service_value
         self._local_labels["csm.mesh_id"] = self._get_mesh_id()
 
-    def get_exchange_labels(self) -> Dict[str, AnyStr]:
+
+    def get_labels(self) -> Dict[str, AnyStr]:
         return self._exchange_labels
 
     def add_and_deserialize_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, str]:
@@ -227,6 +226,10 @@ class CsmOpenTelemetryPluginOption(OpenTelemetryPluginOption):
 
     Please note that this class is still work in progress and NOT READY to be used.
     """
+    _label_injector: CSMOpenTelemetryLabelInjector
+
+    def __init__(self):
+        self._label_injector = CSMOpenTelemetryLabelInjector()
 
     def is_active_on_client_channel(self, target: str) -> bool:
         """Determines whether this plugin option is active on a channel based on target.
@@ -250,17 +253,8 @@ class CsmOpenTelemetryPluginOption(OpenTelemetryPluginOption):
         """
         return True
 
-    def get_label_injector(self) -> Optional[OpenTelemetryLabelInjector]:
-        # Returns the LabelsInjector used by this plugin option, or None.
-        return CSMOpenTelemetryLabelInjector()
-
-    def get_server_label_injector(self) -> Optional[OpenTelemetryLabelInjector]:
-        # Returns the LabelsInjector used by this plugin option, or None.
-        return CSMOpenTelemetryLabelInjector(is_client=False)
-
-    def get_client_label_injector(self) -> Optional[OpenTelemetryLabelInjector]:
-        # Returns the LabelsInjector used by this plugin option, or None.
-        return CSMOpenTelemetryLabelInjector(is_client=True)
+    def get_label_injector(self) -> OpenTelemetryLabelInjector:
+        return self._label_injector
 
 
 # pylint: disable=no-self-use
@@ -278,6 +272,13 @@ class CsmOpenTelemetryPlugin(OpenTelemetryPlugin):
     def _get_enabled_optional_labels(self) -> List[OptionalLabelType]:
         return [OptionalLabelType.XDS_SERVICE_LABELS]
 
+
+class BaseTestCSMPlugin(CsmOpenTelemetryPlugin):
+    def __init__(self, provider: MeterProvider):
+        self.provider = provider
+
+    def get_meter_provider(self) -> Optional[MeterProvider]:
+        return self.provider
 
 # pylint: disable=no-self-use
 class _CsmOpenTelemetryPlugin(CsmOpenTelemetryPlugin):

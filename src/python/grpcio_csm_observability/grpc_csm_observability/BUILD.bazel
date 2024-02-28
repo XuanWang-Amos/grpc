@@ -23,15 +23,13 @@ py_library(
     srcs = glob(["*.py"]),
     imports = [
         ".",
-        "../"
+        "../",
     ],
     srcs_version = "PY3ONLY",
     visibility = [
         "//:__subpackages__",
     ],
     deps = [
-        requirement("opentelemetry-sdk"),
-        requirement("opentelemetry-api"),
         requirement("protobuf"),
         requirement("opentelemetry-resourcedetector-gcp"),
         "//src/python/grpcio/grpc:grpcio",

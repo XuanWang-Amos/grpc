@@ -97,17 +97,15 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
     std::array<std::shared_ptr<std::map<std::string, std::string>>,
                static_cast<size_t>(OptionalLabelComponent::kSize)>
         optional_labels_array_;
-    std::vector<std::unique_ptr<LabelsIterable>>
-        injected_labels_from_plugin_options_;
-    std::vector<Label> injected_labels_;
+    std::vector<Label> labels_from_peer_;
   };
 
   explicit PythonOpenCensusCallTracer(const char* method, const char* target,
                                       const char* trace_id, const char* parent_span_id,
                                       const char* identifier,
                                       const std::vector<Label>& additional_labels,
-                                      bool add_csm_optional_labels,
-                                      bool tracing_enabled);
+                                      bool tracing_enabled,
+                                      bool add_csm_optional_labels);
   ~PythonOpenCensusCallTracer() override;
 
   std::string TraceId() override {
@@ -140,7 +138,6 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
   bool tracing_enabled_;
   bool add_csm_optional_labels_;
   mutable grpc_core::Mutex mu_;
-//   const std::vector<Label> additional_labels_;
   PythonLabelsInjector labels_injector_;
   std::string identifier_;
   // Non-transparent attempts per call

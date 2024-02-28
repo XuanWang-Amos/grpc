@@ -54,7 +54,7 @@ typedef enum {
   kRpcServerStartedRpcsMeasureName
 } MetricsName;
 
-const std::set<std::string> MetadataKeyNames = {kXEnvoyPeerMetadata};
+const std::set<std::string> MetadataExchangeKeyNames = {kXEnvoyPeerMetadata};
 
 }  // namespace grpc_observability
 
