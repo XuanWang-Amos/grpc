@@ -143,7 +143,7 @@ class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
     def get_labels_for_exchange(self) -> Dict[str, AnyStr]:
         return self._exchange_labels
 
-    def get_additional_label(self) -> Dict[str, str]:
+    def get_additional_labels(self) -> Dict[str, str]:
         return self._local_labels
 
     def maybe_deserialize_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, str]:

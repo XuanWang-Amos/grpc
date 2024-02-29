@@ -38,11 +38,11 @@ py_test(
 )
 
 py_test(
-    name = "_csm_observability_test",
+    name = "_observability_plugin_test",
     size = "small",
-    srcs = ["_csm_observability_test.py"],
+    srcs = ["_observability_plugin_test.py"],
     imports = ["../../"],
-    main = "_csm_observability_test.py",
+    main = "_observability_plugin_test.py",
     deps = [
         ":test_server",
         "//src/python/grpcio/grpc:grpcio",

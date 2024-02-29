@@ -47,7 +47,7 @@ class PythonLabelsInjector {
   // Add metadata_to_exchange_ to the outgoing initial metadata.
   void AddToMetadata(grpc_metadata_batch* outgoing_initial_metadata) const;
 
-  // Add optional xds labels to labels.
+  // Add optional xds labels from optional_labels_span to labels.
   void AddXdsOptionalLabels(
       bool is_client,
       absl::Span<const std::shared_ptr<std::map<std::string, std::string>>>
