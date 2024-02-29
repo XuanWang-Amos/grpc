@@ -161,7 +161,7 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
         self, method_name: bytes, target: bytes
     ) -> ClientCallTracerCapsule:
         trace_id = b"TRACE_ID"
-        additional_labels = self._get_additional_client_labels(target)
+        exchange_labels = self._get_client_exchange_labels(target)
         enabled_optional_labels = set()
         for plugin in self._plugins:
             enabled_optional_labels.update(plugin.get_enabled_optional_labels())
@@ -171,7 +171,7 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
             target,
             trace_id,
             self._get_identifier(),
-            additional_labels,
+            exchange_labels,
             enabled_optional_labels,
         )
         return capsule
@@ -182,11 +182,11 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
         xds: bool,
     ) -> Optional[ServerCallTracerFactoryCapsule]:
         capsule = None
-        additional_labels = self._get_additional_server_labels(xds)
+        exchange_labels = self._get_server_exchange_labels(xds)
         print(f"server identifier: {self._get_identifier()}")
         if self.is_server_traced(xds):
             capsule = _cyobservability.create_server_call_tracer_factory_capsule(
-                additional_labels, self._get_identifier()
+                exchange_labels, self._get_identifier()
             )
         return capsule
 
@@ -215,21 +215,21 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
             self._get_identifier(),
         )
 
-    def _get_additional_client_labels(self, target: bytes) -> Dict[str, AnyStr]:
-        additional_client_labels = {}
+    def _get_client_exchange_labels(self, target: bytes) -> Dict[str, AnyStr]:
+        client_exchange_labels = {}
         for _plugin in self._plugins:
-            additional_client_labels.update(
-                _plugin.get_additional_client_labels(target)
+            client_exchange_labels.update(
+                _plugin.get_client_exchange_labels(target)
             )
-        print(f"additional_client_labels: {additional_client_labels}")
-        return additional_client_labels
+        print(f"client_exchange_labels: {client_exchange_labels}")
+        return client_exchange_labels
 
-    def _get_additional_server_labels(self, xds: bool) -> Dict[str, str]:
-        additional_server_labels = {}
+    def _get_server_exchange_labels(self, xds: bool) -> Dict[str, str]:
+        server_exchange_labels = {}
         for _plugin in self._plugins:
-            additional_server_labels.update(_plugin.get_additional_server_labels(xds))
-        print(f"additional_server_labels: {additional_server_labels}")
-        return additional_server_labels
+            server_exchange_labels.update(_plugin.get_server_exchange_labels(xds))
+        print(f"server_exchange_labels: {server_exchange_labels}")
+        return server_exchange_labels
 
     def _get_identifier(self) -> str:
         plugin_identifiers = []

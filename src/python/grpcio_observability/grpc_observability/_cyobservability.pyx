@@ -119,7 +119,7 @@ def activate_stats() -> None:
 
 
 def create_client_call_tracer(bytes method_name, bytes target, bytes trace_id, str identifier,
-                              dict additional_labels, object enabled_optional_labels,
+                              dict exchange_labels, object enabled_optional_labels,
                               bytes parent_span_id=b'') -> cpython.PyObject:
   """Create a ClientCallTracer and save to PyCapsule.
 
@@ -131,7 +131,7 @@ def create_client_call_tracer(bytes method_name, bytes target, bytes trace_id, s
   cdef char* c_parent_span_id = cpython.PyBytes_AsString(parent_span_id)
   identifier_bytes = _encode(identifier)
   cdef char* c_identifier = cpython.PyBytes_AsString(identifier_bytes)
-  cdef vector[Label] c_labels = _labels_to_c_labels(additional_labels)
+  cdef vector[Label] c_labels = _labels_to_c_labels(exchange_labels)
   cdef bint add_csm_optional_labels = False
 
   for label_type in enabled_optional_labels:
@@ -146,12 +146,12 @@ def create_client_call_tracer(bytes method_name, bytes target, bytes trace_id, s
 cdef bint test_bool():
   return True
 
-def create_server_call_tracer_factory_capsule(dict additional_labels, str identifier) -> cpython.PyObject:
+def create_server_call_tracer_factory_capsule(dict exchange_labels, str identifier) -> cpython.PyObject:
   """Create a ServerCallTracerFactory and save to PyCapsule.
 
   Returns: A grpc_observability._observability.ServerCallTracerFactoryCapsule object.
   """
-  cdef vector[Label] c_labels = _labels_to_c_labels(additional_labels)
+  cdef vector[Label] c_labels = _labels_to_c_labels(exchange_labels)
   cdef char* c_identifier = cpython.PyBytes_AsString(_encode(identifier))
   cdef void* call_tracer_factory = CreateServerCallTracerFactory(c_labels, c_identifier)
   capsule = cpython.PyCapsule_New(call_tracer_factory, SERVER_CALL_TRACER_FACTORY, NULL)

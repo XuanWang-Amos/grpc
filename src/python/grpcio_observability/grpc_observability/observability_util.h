@@ -54,10 +54,10 @@ extern std::condition_variable g_census_data_buffer_cv;
 void* CreateClientCallTracer(const char* method, const char* target,
                              const char* trace_id, const char* parent_span_id,
                              const char* identifier,
-                             const std::vector<Label> additional_labels,
+                             const std::vector<Label> exchange_labels,
                              bool add_csm_optional_labels);
 
-void* CreateServerCallTracerFactory(const std::vector<Label> additional_labels, const char* identifier);
+void* CreateServerCallTracerFactory(const std::vector<Label> exchange_labels, const char* identifier);
 
 void NativeObservabilityInit();
 

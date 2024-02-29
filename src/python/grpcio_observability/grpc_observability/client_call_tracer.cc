@@ -44,13 +44,13 @@ constexpr uint32_t
 
 PythonOpenCensusCallTracer::PythonOpenCensusCallTracer(
     const char* method, const char* target, const char* trace_id, const char* parent_span_id,
-    const char* identifier, const std::vector<Label>& additional_labels,
+    const char* identifier, const std::vector<Label>& exchange_labels,
     bool tracing_enabled, bool add_csm_optional_labels)
     : method_(GetMethod(method)),
       target_(GetTarget(target)),
       tracing_enabled_(tracing_enabled),
       add_csm_optional_labels_(add_csm_optional_labels),
-      labels_injector_(additional_labels),
+      labels_injector_(exchange_labels),
       identifier_(identifier) {
   GenerateClientContext(absl::StrCat("Sent.", method_),
                         absl::string_view(trace_id),

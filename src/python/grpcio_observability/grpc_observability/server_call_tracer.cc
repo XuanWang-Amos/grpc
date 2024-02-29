@@ -237,7 +237,7 @@ PythonOpenCensusServerCallTracerFactory::CreateNewServerCallTracer(
   // the same DLL in Windows.
   (void)arena;
   (void)channel_args;
-  return new PythonOpenCensusServerCallTracer(additional_labels_, identifier_);
+  return new PythonOpenCensusServerCallTracer(exchange_labels_, identifier_);
 }
 
 bool PythonOpenCensusServerCallTracerFactory::IsServerTraced(
@@ -248,7 +248,7 @@ bool PythonOpenCensusServerCallTracerFactory::IsServerTraced(
 }
 
 PythonOpenCensusServerCallTracerFactory::PythonOpenCensusServerCallTracerFactory(
-  const std::vector<Label>& additional_labels, const char* identifier)
-    : additional_labels_(additional_labels), identifier_(identifier) {}
+  const std::vector<Label>& exchange_labels, const char* identifier)
+    : exchange_labels_(exchange_labels), identifier_(identifier) {}
 
 }  // namespace grpc_observability

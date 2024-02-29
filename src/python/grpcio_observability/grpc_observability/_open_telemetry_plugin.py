@@ -38,33 +38,33 @@ class OpenTelemetryLabelInjector(abc.ABC):
     Please note that this class is still work in progress and NOT READY to be used.
     """
 
-    _labels: List[Dict[str, str]]
-
-    def __init__(self):
-        # Calls Python OTel API to detect resource and get labels, save
-        # those lables to OpenTelemetryLabelInjector.labels.
-        pass
-
     @abc.abstractmethod
-    def add_and_deserialize_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, str]:
+    def get_labels_for_exchange(self) -> Dict[str, AnyStr]:
         """
-        Given a dict of labels, maybe deserialize the label and add local labels from this injector.
-
-        Args:
-          labels: Original labels dict, new labels will be added to this dict.
+        Get labels used for metadata exchange.
 
         Returns:
-          A new dict of labels with labels deserialized.
+          A dict of labels.
         """
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def get_labels(self) -> Dict[str, AnyStr]:
+    def get_additional_label(self) -> Dict[str, str]:
         """
-        Get additional labels for this LabelInjector.
+        Get additional labels added by this injector.
 
         Returns:
-          A dict of additional labels.
+          A dict of labels.
+        """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def maybe_deserialize_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, str]:
+        """
+        Deserialize the labels if the label is serialized and added by this injector.
+
+        Returns:
+          A dict of deserialized labels.
         """
         raise NotImplementedError()
 
@@ -174,7 +174,8 @@ class _OpenTelemetryPlugin:
 
     def _record_stats_data(self, stats_data: StatsData) -> None:
         recorder = self._metric_to_recorder[stats_data.name]
-        labels = self._maybe_add_and_deserialize_labels(stats_data.labels)
+        deserialized_labels = self._maybe_deserialize_labels(stats_data.labels)
+        labels = self._maybe_add_labels(deserialized_labels)
         decoded_labels = self.decode_labels(labels)
 
         target = decoded_labels.get(GRPC_TARGET_LABEL, "")
@@ -203,35 +204,51 @@ class _OpenTelemetryPlugin:
         if self._should_record(stats_data):
             self._record_stats_data(stats_data)
 
-    def get_additional_client_labels(self, target: bytes) -> Dict[str, AnyStr]:
-        additional_labels = {}
+    def get_client_exchange_labels(self, target: bytes) -> Dict[str, AnyStr]:
+        labels_for_exchange = {}
         target_str = target.decode("utf-8", "replace")
         for plugin_option in self._plugin._get_plugin_options():
-            if hasattr(
-                plugin_option, "is_active_on_client_channel"
-            ) and plugin_option.is_active_on_client_channel(target_str):
-                if hasattr(plugin_option, "get_label_injector"):
-                    additional_labels.update(
-                        plugin_option.get_label_injector().get_labels()
-                    )
-        return additional_labels
+            if all([
+                hasattr(plugin_option, "is_active_on_client_channel"),
+                plugin_option.is_active_on_client_channel(target_str),
+                hasattr(plugin_option, "get_label_injector"),
+                hasattr(plugin_option.get_label_injector(), "get_labels_for_exchange"),
+            ]):
+                labels_for_exchange.update(
+                    plugin_option.get_label_injector().get_labels_for_exchange()
+                )
+        return labels_for_exchange
 
-    def get_additional_server_labels(self, xds: bool) -> Dict[str, str]:
-        additional_labels = {}
+    def get_server_exchange_labels(self, xds: bool) -> Dict[str, str]:
+        labels_for_exchange = {}
         for plugin_option in self._plugin._get_plugin_options():
-            if hasattr(
-                plugin_option, "is_active_on_server"
-            ) and plugin_option.is_active_on_server(xds):
-                if hasattr(plugin_option, "get_label_injector"):
-                    additional_labels.update(
-                        plugin_option.get_label_injector().get_labels()
-                    )
-        return additional_labels
+            if all([
+                hasattr(plugin_option, "is_active_on_server"),
+                plugin_option.is_active_on_server(xds),
+                hasattr(plugin_option, "get_label_injector"),
+                hasattr(plugin_option.get_label_injector(), "get_labels_for_exchange"),
+            ]):
+                labels_for_exchange.update(
+                    plugin_option.get_label_injector().get_labels_for_exchange()
+                )
+        return labels_for_exchange
 
-    def _maybe_add_and_deserialize_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, AnyStr]:
+    def _maybe_deserialize_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, AnyStr]:
         for plugin_option in self._plugin._get_plugin_options():
-            if hasattr(plugin_option, "get_label_injector"):
-                labels = plugin_option.get_label_injector().add_and_deserialize_labels(labels)
+            if all([
+                hasattr(plugin_option, "get_label_injector"),
+                hasattr(plugin_option.get_label_injector(), "maybe_deserialize_labels"),
+            ]):
+                labels = plugin_option.get_label_injector().maybe_deserialize_labels(labels)
+        return labels
+
+    def _maybe_add_labels(self, labels: Dict[str, str]) -> Dict[str, str]:
+        for plugin_option in self._plugin._get_plugin_options():
+            if all([
+                hasattr(plugin_option, "get_label_injector"),
+                hasattr(plugin_option.get_label_injector(), "get_additional_label"),
+            ]):
+                labels.update(plugin_option.get_label_injector().get_additional_label())
         return labels
 
     def get_enabled_optional_labels(self) -> List[OptionalLabelType]:

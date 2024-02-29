@@ -36,13 +36,13 @@ class PythonOpenCensusServerCallTracerFactory
       grpc_core::Arena* arena,
       const grpc_core::ChannelArgs& channel_args) override;
   explicit PythonOpenCensusServerCallTracerFactory(
-                                      const std::vector<Label>& additional_labels,
+                                      const std::vector<Label>& exchange_labels,
                                       const char* identifier);
   
   bool IsServerTraced(const grpc_core::ChannelArgs& args) override;
 
   private:
-   const std::vector<Label> additional_labels_;
+   const std::vector<Label> exchange_labels_;
    std::string identifier_;
 };
 
@@ -59,11 +59,11 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
   // Maximum size of server stats that are sent on the wire.
   static constexpr uint32_t kMaxServerStatsLen = 16;
 
-  PythonOpenCensusServerCallTracer(const std::vector<Label>& additional_labels, std::string identifier)
+  PythonOpenCensusServerCallTracer(const std::vector<Label>& exchange_labels, std::string identifier)
       : start_time_(absl::Now()),
         recv_message_count_(0),
         sent_message_count_(0),
-        labels_injector_(additional_labels),
+        labels_injector_(exchange_labels),
         identifier_(identifier) {}
 
   std::string TraceId() override {

@@ -64,9 +64,7 @@ METADATA_EXCHANGE_KEY_GCE_MAP = {
 
 class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
     """
-    An interface that allows you to add additional labels on the calls traced.
-
-    Please note that this class is still work in progress and NOT READY to be used.
+    An implementation of OpenTelemetryLabelInjector for CSM.
     """
 
     _exchange_labels: Dict[str, AnyStr]
@@ -142,12 +140,14 @@ class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
         self._local_labels["csm.workload_canonical_service"] = canonical_service_value
         self._local_labels["csm.mesh_id"] = self._get_mesh_id()
 
-
-    def get_labels(self) -> Dict[str, AnyStr]:
+    def get_labels_for_exchange(self) -> Dict[str, AnyStr]:
         return self._exchange_labels
 
-    def add_and_deserialize_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, str]:
-        new_labels = {}
+    def get_additional_label(self) -> Dict[str, str]:
+        return self._local_labels
+
+    def maybe_deserialize_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, str]:
+        deserialized_labels = {}
         for key, value in labels.items():
             if "XEnvoyPeerMetadata" == key:
                 struct = struct_pb2.Struct()
@@ -156,23 +156,22 @@ class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
                 remote_type = self._get_value_from_struct("type", struct)
 
                 for key, remote_key in METADATA_EXCHANGE_KEY_FIXED_MAP.items():
-                    new_labels[remote_key] = self._get_value_from_struct(key, struct)
+                    deserialized_labels[remote_key] = self._get_value_from_struct(key, struct)
 
                 if TYPE_GCE in remote_type:
                     for key, remote_key in METADATA_EXCHANGE_KEY_GKE_MAP.items():
-                        new_labels[remote_key] = self._get_value_from_struct(
+                        deserialized_labels[remote_key] = self._get_value_from_struct(
                             key, struct
                         )
                 else:
                     for key, remote_key in METADATA_EXCHANGE_KEY_GCE_MAP.items():
-                        new_labels[remote_key] = self._get_value_from_struct(
+                        deserialized_labels[remote_key] = self._get_value_from_struct(
                             key, struct
                         )
             else:
-                new_labels[key] = value
+                deserialized_labels[key] = value
 
-        new_labels.update(self._local_labels)
-        return new_labels
+        return deserialized_labels
 
     def _get_value_from_struct(self, key: str, struct: struct_pb2.Struct) -> str:
         value = struct.fields.get(key)

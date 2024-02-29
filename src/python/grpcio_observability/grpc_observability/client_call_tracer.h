@@ -103,7 +103,7 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
   explicit PythonOpenCensusCallTracer(const char* method, const char* target,
                                       const char* trace_id, const char* parent_span_id,
                                       const char* identifier,
-                                      const std::vector<Label>& additional_labels,
+                                      const std::vector<Label>& exchange_labels,
                                       bool tracing_enabled,
                                       bool add_csm_optional_labels);
   ~PythonOpenCensusCallTracer() override;
