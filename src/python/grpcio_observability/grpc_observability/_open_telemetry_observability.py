@@ -183,7 +183,6 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
     ) -> Optional[ServerCallTracerFactoryCapsule]:
         capsule = None
         exchange_labels = self._get_server_exchange_labels(xds)
-        print(f"server identifier: {self._get_identifier()}")
         if self.is_server_traced(xds):
             capsule = _cyobservability.create_server_call_tracer_factory_capsule(
                 exchange_labels, self._get_identifier()
@@ -221,14 +220,12 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
             client_exchange_labels.update(
                 _plugin.get_client_exchange_labels(target)
             )
-        print(f"client_exchange_labels: {client_exchange_labels}")
         return client_exchange_labels
 
     def _get_server_exchange_labels(self, xds: bool) -> Dict[str, str]:
         server_exchange_labels = {}
         for _plugin in self._plugins:
             server_exchange_labels.update(_plugin.get_server_exchange_labels(xds))
-        print(f"server_exchange_labels: {server_exchange_labels}")
         return server_exchange_labels
 
     def _get_identifier(self) -> str:

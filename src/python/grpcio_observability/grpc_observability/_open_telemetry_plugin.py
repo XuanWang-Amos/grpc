@@ -60,7 +60,7 @@ class OpenTelemetryLabelInjector(abc.ABC):
         raise NotImplementedError()
 
 
-    def maybe_deserialize_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, str]:
+    def deserialize_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, AnyStr]:
         """
         Deserialize the labels if the label is serialized by this injector.
 
@@ -184,7 +184,7 @@ class _OpenTelemetryPlugin:
             plugin_options = self._enabled_client_plugin_options
         else:
             plugin_options = self._enabled_server_plugin_options
-        deserialized_labels = self._maybe_deserialize_labels(stats_data.labels, plugin_options)
+        deserialized_labels = self._deserialize_labels(stats_data.labels, plugin_options)
         labels = self._maybe_add_labels(deserialized_labels, plugin_options)
         decoded_labels = self.decode_labels(labels)
 
@@ -247,14 +247,14 @@ class _OpenTelemetryPlugin:
                 )
         return labels_for_exchange
 
-    def _maybe_deserialize_labels(self, labels: Dict[str, AnyStr],
+    def _deserialize_labels(self, labels: Dict[str, AnyStr],
                                   enabled_plugin_options: List[OpenTelemetryPluginOption]) -> Dict[str, AnyStr]:
         for plugin_option in enabled_plugin_options:
             if all([
                 hasattr(plugin_option, "get_label_injector"),
-                hasattr(plugin_option.get_label_injector(), "maybe_deserialize_labels"),
+                hasattr(plugin_option.get_label_injector(), "deserialize_labels"),
             ]):
-                labels = plugin_option.get_label_injector().maybe_deserialize_labels(labels)
+                labels = plugin_option.get_label_injector().deserialize_labels(labels)
         return labels
 
     def _maybe_add_labels(self, labels: Dict[str, str],

@@ -146,7 +146,7 @@ class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
     def get_additional_labels(self) -> Dict[str, str]:
         return self._local_labels
 
-    def maybe_deserialize_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, str]:
+    def deserialize_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, AnyStr]:
         deserialized_labels = {}
         for key, value in labels.items():
             if "XEnvoyPeerMetadata" == key:
