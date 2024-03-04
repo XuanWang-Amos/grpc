@@ -19,8 +19,8 @@ from typing import AnyStr, Dict, Iterable, List, Optional, Union
 import grpc
 from grpc_observability import _open_telemetry_measures
 from grpc_observability._cyobservability import MetricsName
-from grpc_observability._observability import StatsData
 from grpc_observability._observability import OptionalLabelType
+from grpc_observability._observability import StatsData
 from opentelemetry.metrics import Counter
 from opentelemetry.metrics import Histogram
 from opentelemetry.metrics import Meter
@@ -59,8 +59,9 @@ class OpenTelemetryLabelInjector(abc.ABC):
         """
         raise NotImplementedError()
 
-
-    def deserialize_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, AnyStr]:
+    def deserialize_labels(
+        self, labels: Dict[str, AnyStr]
+    ) -> Dict[str, AnyStr]:
         """
         Deserialize the labels if the label is serialized by this injector.
 
@@ -171,7 +172,9 @@ class _OpenTelemetryPlugin:
         if meter_provider:
             meter = meter_provider.get_meter("grpc-python", grpc.__version__)
             enabled_metrics = _open_telemetry_measures.base_metrics()
-            self._metric_to_recorder = self._register_metrics(meter, enabled_metrics)
+            self._metric_to_recorder = self._register_metrics(
+                meter, enabled_metrics
+            )
 
     def _should_record(self, stats_data: StatsData) -> bool:
         # Decide if this plugin should record the stats_data.
@@ -184,7 +187,9 @@ class _OpenTelemetryPlugin:
             plugin_options = self._enabled_client_plugin_options
         else:
             plugin_options = self._enabled_server_plugin_options
-        deserialized_labels = self._deserialize_labels(stats_data.labels, plugin_options)
+        deserialized_labels = self._deserialize_labels(
+            stats_data.labels, plugin_options
+        )
         labels = self._maybe_add_labels(deserialized_labels, plugin_options)
         decoded_labels = self.decode_labels(labels)
 
@@ -220,12 +225,16 @@ class _OpenTelemetryPlugin:
         if self._enabled_client_plugin_options is None:
             self._enabled_client_plugin_options = []
             for plugin_option in self._plugin._get_plugin_options():
-                if hasattr(plugin_option, "is_active_on_client_channel") and plugin_option.is_active_on_client_channel(target_str):
+                if hasattr(
+                    plugin_option, "is_active_on_client_channel"
+                ) and plugin_option.is_active_on_client_channel(target_str):
                     self._enabled_client_plugin_options.append(plugin_option)
 
         labels_for_exchange = {}
         for plugin_option in self._enabled_client_plugin_options:
-            if hasattr(plugin_option, "get_label_injector") and hasattr(plugin_option.get_label_injector(), "get_labels_for_exchange"):
+            if hasattr(plugin_option, "get_label_injector") and hasattr(
+                plugin_option.get_label_injector(), "get_labels_for_exchange"
+            ):
                 labels_for_exchange.update(
                     plugin_option.get_label_injector().get_labels_for_exchange()
                 )
@@ -236,35 +245,58 @@ class _OpenTelemetryPlugin:
         if self._enabled_server_plugin_options is None:
             self._enabled_server_plugin_options = []
             for plugin_option in self._plugin._get_plugin_options():
-                if hasattr(plugin_option, "is_active_on_server") and plugin_option.is_active_on_server(xds):
+                if hasattr(
+                    plugin_option, "is_active_on_server"
+                ) and plugin_option.is_active_on_server(xds):
                     self._enabled_server_plugin_options.append(plugin_option)
 
         labels_for_exchange = {}
         for plugin_option in self._enabled_server_plugin_options:
-            if hasattr(plugin_option, "get_label_injector") and hasattr(plugin_option.get_label_injector(), "get_labels_for_exchange"):
+            if hasattr(plugin_option, "get_label_injector") and hasattr(
+                plugin_option.get_label_injector(), "get_labels_for_exchange"
+            ):
                 labels_for_exchange.update(
                     plugin_option.get_label_injector().get_labels_for_exchange()
                 )
         return labels_for_exchange
 
-    def _deserialize_labels(self, labels: Dict[str, AnyStr],
-                                  enabled_plugin_options: List[OpenTelemetryPluginOption]) -> Dict[str, AnyStr]:
+    def _deserialize_labels(
+        self,
+        labels: Dict[str, AnyStr],
+        enabled_plugin_options: List[OpenTelemetryPluginOption],
+    ) -> Dict[str, AnyStr]:
         for plugin_option in enabled_plugin_options:
-            if all([
-                hasattr(plugin_option, "get_label_injector"),
-                hasattr(plugin_option.get_label_injector(), "deserialize_labels"),
-            ]):
-                labels = plugin_option.get_label_injector().deserialize_labels(labels)
+            if all(
+                [
+                    hasattr(plugin_option, "get_label_injector"),
+                    hasattr(
+                        plugin_option.get_label_injector(), "deserialize_labels"
+                    ),
+                ]
+            ):
+                labels = plugin_option.get_label_injector().deserialize_labels(
+                    labels
+                )
         return labels
 
-    def _maybe_add_labels(self, labels: Dict[str, str],
-                        enabled_plugin_options: List[OpenTelemetryPluginOption]) -> Dict[str, AnyStr]:
+    def _maybe_add_labels(
+        self,
+        labels: Dict[str, str],
+        enabled_plugin_options: List[OpenTelemetryPluginOption],
+    ) -> Dict[str, AnyStr]:
         for plugin_option in enabled_plugin_options:
-            if all([
-                hasattr(plugin_option, "get_label_injector"),
-                hasattr(plugin_option.get_label_injector(), "get_additional_labels"),
-            ]):
-                labels.update(plugin_option.get_label_injector().get_additional_labels())
+            if all(
+                [
+                    hasattr(plugin_option, "get_label_injector"),
+                    hasattr(
+                        plugin_option.get_label_injector(),
+                        "get_additional_labels",
+                    ),
+                ]
+            ):
+                labels.update(
+                    plugin_option.get_label_injector().get_additional_labels()
+                )
         return labels
 
     def get_enabled_optional_labels(self) -> List[OptionalLabelType]:
@@ -300,7 +332,9 @@ class _OpenTelemetryPlugin:
                     unit=metric.unit,
                     description=metric.description,
                 )
-            elif metric == _open_telemetry_measures.CLIENT_ATTEMPT_RECEIVED_BYTES:
+            elif (
+                metric == _open_telemetry_measures.CLIENT_ATTEMPT_RECEIVED_BYTES
+            ):
                 recorder = meter.create_histogram(
                     name=metric.name,
                     unit=metric.unit,

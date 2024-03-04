@@ -16,9 +16,7 @@
 //
 //
 
-
 #include "metadata_exchange.h"
-#include "constants.h"
 
 #include <stddef.h>
 
@@ -28,15 +26,16 @@
 #include <unordered_map>
 
 #include "absl/strings/string_view.h"
+#include "constants.h"
 
 #include <grpc/slice.h>
+
 #include "src/core/lib/channel/call_tracer.h"
 
 namespace grpc_observability {
 
 using OptionalLabelComponent =
     grpc_core::ClientCallTracer::CallAttemptTracer::OptionalLabelComponent;
-
 
 PythonLabelsInjector::PythonLabelsInjector(
     const std::vector<Label>& exchange_labels) {
@@ -53,12 +52,15 @@ std::vector<Label> PythonLabelsInjector::GetLabels(
   std::vector<Label> labels;
   for (const auto& key : MetadataExchangeKeyNames) {
     if (key == kXEnvoyPeerMetadata) {
-      auto xds_peer_metadata = incoming_initial_metadata->Take(grpc_core::XEnvoyPeerMetadata());
-      grpc_core::Slice xds_remote_metadata = xds_peer_metadata.has_value() ? *std::move(xds_peer_metadata) : grpc_core::Slice();
+      auto xds_peer_metadata =
+          incoming_initial_metadata->Take(grpc_core::XEnvoyPeerMetadata());
+      grpc_core::Slice xds_remote_metadata = xds_peer_metadata.has_value()
+                                                 ? *std::move(xds_peer_metadata)
+                                                 : grpc_core::Slice();
       if (!xds_remote_metadata.empty()) {
         std::string xds_decoded_metadata;
-        bool metadata_decoded =
-            absl::Base64Unescape(xds_remote_metadata.as_string_view(), &xds_decoded_metadata);
+        bool metadata_decoded = absl::Base64Unescape(
+            xds_remote_metadata.as_string_view(), &xds_decoded_metadata);
         if (metadata_decoded) {
           labels.emplace_back(kXEnvoyPeerMetadata, xds_decoded_metadata);
         }
@@ -72,7 +74,8 @@ void PythonLabelsInjector::AddToMetadata(
     grpc_metadata_batch* outgoing_initial_metadata) const {
   for (const auto& metadata : metadata_to_exchange_) {
     if (metadata.first == kXEnvoyPeerMetadata) {
-      grpc_core::Slice metadata_slice = grpc_core::Slice::FromCopiedString(absl::Base64Escape(absl::string_view(metadata.second)));
+      grpc_core::Slice metadata_slice = grpc_core::Slice::FromCopiedString(
+          absl::Base64Escape(absl::string_view(metadata.second)));
       outgoing_initial_metadata->Set(grpc_core::XEnvoyPeerMetadata(),
                                      metadata_slice.Ref());
     }
@@ -108,7 +111,8 @@ void PythonLabelsInjector::AddXdsOptionalLabels(
   }
 
   labels.emplace_back("csm.service_name", std::string(service_name));
-  labels.emplace_back("csm.service_namespace_name", std::string(service_namespace));
+  labels.emplace_back("csm.service_namespace_name",
+                      std::string(service_namespace));
 }
 
 }  // namespace grpc_observability

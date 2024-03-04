@@ -12,13 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from grpc_csm_observability._csm_observability import CsmObservability
+from grpc_csm_observability._csm_observability import end_csm_observability
+from grpc_csm_observability._csm_observability import start_csm_observability
 from grpc_csm_observability._csm_observability_plugin import (
     CsmOpenTelemetryPlugin,
-)
-from grpc_csm_observability._csm_observability import (
-    CsmObservability,
-    start_csm_observability,
-    end_csm_observability,
 )
 
 __all__ = (

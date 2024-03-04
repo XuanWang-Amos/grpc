@@ -21,21 +21,22 @@ import grpc
 
 # pytype: disable=pyi-error
 from grpc_observability import _cyobservability
-# from grpc_observability._observability import OptionalLabelType
-
+from grpc_observability._cyobservability import PLUGIN_IDENTIFIER_SEP
 from grpc_observability._open_telemetry_exporter import (
     _OpenTelemetryExporterDelegator,
 )
 from grpc_observability._open_telemetry_plugin import OpenTelemetryPlugin
 from grpc_observability._open_telemetry_plugin import _OpenTelemetryPlugin
-from grpc_observability._cyobservability import (
-    PLUGIN_IDENTIFIER_SEP,
-)
+
+# from grpc_observability._observability import OptionalLabelType
+
 
 _LOGGER = logging.getLogger(__name__)
 
 ClientCallTracerCapsule = Any  # it appears only once in the function signature
-ServerCallTracerFactoryCapsule = Any  # it appears only once in the function signature
+ServerCallTracerFactoryCapsule = (
+    Any  # it appears only once in the function signature
+)
 grpc_observability = Any  # grpc_observability.py imports this module.
 
 GRPC_STATUS_CODE_TO_STRING = {
@@ -69,10 +70,14 @@ def start_open_telemetry_observability(
     global _OPEN_TELEMETRY_OBSERVABILITY  # pylint: disable=global-statement
     with _observability_lock:
         if _OPEN_TELEMETRY_OBSERVABILITY is None:
-            _OPEN_TELEMETRY_OBSERVABILITY = OpenTelemetryObservability(plugins=plugins)
+            _OPEN_TELEMETRY_OBSERVABILITY = OpenTelemetryObservability(
+                plugins=plugins
+            )
             _OPEN_TELEMETRY_OBSERVABILITY.observability_init()
         else:
-            raise RuntimeError("gPRC Python observability was already initiated!")
+            raise RuntimeError(
+                "gPRC Python observability was already initiated!"
+            )
 
 
 def end_open_telemetry_observability() -> None:
@@ -116,7 +121,9 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
         global _OPEN_TELEMETRY_OBSERVABILITY  # pylint: disable=global-statement
         with _observability_lock:
             if _OPEN_TELEMETRY_OBSERVABILITY:
-                raise RuntimeError("gPRC Python observability was already initiated!")
+                raise RuntimeError(
+                    "gPRC Python observability was already initiated!"
+                )
             self.observability_init()
             _OPEN_TELEMETRY_OBSERVABILITY = self
         return self
@@ -184,8 +191,10 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
         capsule = None
         exchange_labels = self._get_server_exchange_labels(xds)
         if self.is_server_traced(xds):
-            capsule = _cyobservability.create_server_call_tracer_factory_capsule(
-                exchange_labels, self._get_identifier()
+            capsule = (
+                _cyobservability.create_server_call_tracer_factory_capsule(
+                    exchange_labels, self._get_identifier()
+                )
             )
         return capsule
 
@@ -194,7 +203,9 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
     ) -> None:
         _cyobservability.delete_client_call_tracer(client_call_tracer)
 
-    def save_trace_context(self, trace_id: str, span_id: str, is_sampled: bool) -> None:
+    def save_trace_context(
+        self, trace_id: str, span_id: str, is_sampled: bool
+    ) -> None:
         pass
 
     def record_rpc_latency(
@@ -225,7 +236,9 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
     def _get_server_exchange_labels(self, xds: bool) -> Dict[str, str]:
         server_exchange_labels = {}
         for _plugin in self._plugins:
-            server_exchange_labels.update(_plugin.get_server_exchange_labels(xds))
+            server_exchange_labels.update(
+                _plugin.get_server_exchange_labels(xds)
+            )
         return server_exchange_labels
 
     def _get_identifier(self) -> str:

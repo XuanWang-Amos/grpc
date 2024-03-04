@@ -89,7 +89,9 @@ class OTelMetricExporter(MetricExporter):
             for scope_metric in resource_metric.scope_metrics:
                 for metric in scope_metric.metrics:
                     for data_point in metric.data.data_points:
-                        self.all_metrics[metric.name].append(data_point.attributes)
+                        self.all_metrics[metric.name].append(
+                            data_point.attributes
+                        )
 
 
 class BaseTestOpenTelemetryPlugin(grpc_observability.OpenTelemetryPlugin):
@@ -135,7 +137,9 @@ class OpenTelemetryObservabilityTest(unittest.TestCase):
 
     def testRecordUnaryUnaryUseContextManager(self):
         otel_plugin = BaseTestOpenTelemetryPlugin(self._provider)
-        with grpc_observability.OpenTelemetryObservability(plugins=[otel_plugin]):
+        with grpc_observability.OpenTelemetryObservability(
+            plugins=[otel_plugin]
+        ):
             server, port = _test_server.start_server()
             self._server = server
             _test_server.unary_unary_call(port=port)
@@ -146,7 +150,9 @@ class OpenTelemetryObservabilityTest(unittest.TestCase):
     def testRecordUnaryUnaryUseGlobalInit(self):
         otel_plugin = BaseTestOpenTelemetryPlugin(self._provider)
 
-        grpc_observability.start_open_telemetry_observability(plugins=[otel_plugin])
+        grpc_observability.start_open_telemetry_observability(
+            plugins=[otel_plugin]
+        )
         server, port = _test_server.start_server()
         self._server = server
         _test_server.unary_unary_call(port=port)
@@ -167,7 +173,9 @@ class OpenTelemetryObservabilityTest(unittest.TestCase):
     def testCallGlobalInitThrowErrorWhenContextManagerCalled(self):
         with grpc_observability.OpenTelemetryObservability(plugins=[]):
             try:
-                grpc_observability.start_open_telemetry_observability(plugins=[])
+                grpc_observability.start_open_telemetry_observability(
+                    plugins=[]
+                )
             except RuntimeError as exp:
                 self.assertIn("observability was already initiated", str(exp))
 
@@ -191,7 +199,9 @@ class OpenTelemetryObservabilityTest(unittest.TestCase):
     def testRecordUnaryUnaryWithClientInterceptor(self):
         interceptor = _ClientUnaryUnaryInterceptor()
         otel_plugin = BaseTestOpenTelemetryPlugin(self._provider)
-        with grpc_observability.OpenTelemetryObservability(plugins=[otel_plugin]):
+        with grpc_observability.OpenTelemetryObservability(
+            plugins=[otel_plugin]
+        ):
             server, port = _test_server.start_server()
             self._server = server
             _test_server.intercepted_unary_unary_call(
@@ -204,7 +214,9 @@ class OpenTelemetryObservabilityTest(unittest.TestCase):
     def testRecordUnaryUnaryWithServerInterceptor(self):
         interceptor = _ServerInterceptor()
         otel_plugin = BaseTestOpenTelemetryPlugin(self._provider)
-        with grpc_observability.OpenTelemetryObservability(plugins=[otel_plugin]):
+        with grpc_observability.OpenTelemetryObservability(
+            plugins=[otel_plugin]
+        ):
             server, port = _test_server.start_server(interceptors=[interceptor])
             self._server = server
             _test_server.unary_unary_call(port=port)
@@ -225,7 +237,9 @@ class OpenTelemetryObservabilityTest(unittest.TestCase):
         self._server = server
 
         otel_plugin = BaseTestOpenTelemetryPlugin(self._provider)
-        with grpc_observability.OpenTelemetryObservability(plugins=[otel_plugin]):
+        with grpc_observability.OpenTelemetryObservability(
+            plugins=[otel_plugin]
+        ):
             _test_server.unary_unary_call(port=port)
 
         self._validate_metrics_exist(self.all_metrics)
@@ -238,7 +252,9 @@ class OpenTelemetryObservabilityTest(unittest.TestCase):
         server.stop(0)
 
         otel_plugin = BaseTestOpenTelemetryPlugin(self._provider)
-        with grpc_observability.OpenTelemetryObservability(plugins=[otel_plugin]):
+        with grpc_observability.OpenTelemetryObservability(
+            plugins=[otel_plugin]
+        ):
             server, port = _test_server.start_server()
             self._server = server
             _test_server.unary_unary_call(port=port)
@@ -248,7 +264,9 @@ class OpenTelemetryObservabilityTest(unittest.TestCase):
 
     def testNoRecordAfterExitUseContextManager(self):
         otel_plugin = BaseTestOpenTelemetryPlugin(self._provider)
-        with grpc_observability.OpenTelemetryObservability(plugins=[otel_plugin]):
+        with grpc_observability.OpenTelemetryObservability(
+            plugins=[otel_plugin]
+        ):
             server, port = _test_server.start_server()
             self._server = server
             self._port = port
@@ -265,7 +283,9 @@ class OpenTelemetryObservabilityTest(unittest.TestCase):
     def testNoRecordAfterExitUseGlobal(self):
         otel_plugin = BaseTestOpenTelemetryPlugin(self._provider)
 
-        grpc_observability.start_open_telemetry_observability(plugins=[otel_plugin])
+        grpc_observability.start_open_telemetry_observability(
+            plugins=[otel_plugin]
+        )
         server, port = _test_server.start_server()
         self._server = server
         self._port = port
@@ -283,7 +303,9 @@ class OpenTelemetryObservabilityTest(unittest.TestCase):
     def testRecordUnaryStream(self):
         otel_plugin = BaseTestOpenTelemetryPlugin(self._provider)
 
-        with grpc_observability.OpenTelemetryObservability(plugins=[otel_plugin]):
+        with grpc_observability.OpenTelemetryObservability(
+            plugins=[otel_plugin]
+        ):
             server, port = _test_server.start_server()
             self._server = server
             _test_server.unary_stream_call(port=port)
@@ -294,7 +316,9 @@ class OpenTelemetryObservabilityTest(unittest.TestCase):
     def testRecordStreamUnary(self):
         otel_plugin = BaseTestOpenTelemetryPlugin(self._provider)
 
-        with grpc_observability.OpenTelemetryObservability(plugins=[otel_plugin]):
+        with grpc_observability.OpenTelemetryObservability(
+            plugins=[otel_plugin]
+        ):
             server, port = _test_server.start_server()
             self._server = server
             _test_server.stream_unary_call(port=port)
@@ -305,7 +329,9 @@ class OpenTelemetryObservabilityTest(unittest.TestCase):
     def testRecordStreamStream(self):
         otel_plugin = BaseTestOpenTelemetryPlugin(self._provider)
 
-        with grpc_observability.OpenTelemetryObservability(plugins=[otel_plugin]):
+        with grpc_observability.OpenTelemetryObservability(
+            plugins=[otel_plugin]
+        ):
             server, port = _test_server.start_server()
             self._server = server
             _test_server.stream_stream_call(port=port)
@@ -328,7 +354,9 @@ class OpenTelemetryObservabilityTest(unittest.TestCase):
         otel_plugin = BaseTestOpenTelemetryPlugin(self._provider)
         otel_plugin.target_attribute_filter = target_filter
 
-        with grpc_observability.OpenTelemetryObservability(plugins=[otel_plugin]):
+        with grpc_observability.OpenTelemetryObservability(
+            plugins=[otel_plugin]
+        ):
             _test_server.unary_unary_call(port=main_port)
             _test_server.unary_unary_call(port=backup_port)
 
@@ -358,7 +386,9 @@ class OpenTelemetryObservabilityTest(unittest.TestCase):
         otel_plugin = BaseTestOpenTelemetryPlugin(self._provider)
         otel_plugin.generic_method_attribute_filter = method_filter
 
-        with grpc_observability.OpenTelemetryObservability(plugins=[otel_plugin]):
+        with grpc_observability.OpenTelemetryObservability(
+            plugins=[otel_plugin]
+        ):
             server, port = _test_server.start_server()
             self._server = server
             _test_server.unary_unary_call(port=port)

@@ -24,8 +24,8 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "python_census_context.h"
 #include "metadata_exchange.h"
+#include "python_census_context.h"
 
 #include <grpc/support/time.h>
 
@@ -76,8 +76,7 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
     std::shared_ptr<grpc_core::TcpTracerInterface> StartNewTcpTrace() override;
     void AddOptionalLabels(
         OptionalLabelComponent component,
-        std::shared_ptr<std::map<std::string, std::string>> labels)
-        override;
+        std::shared_ptr<std::map<std::string, std::string>> labels) override;
 
    private:
     // Maximum size of trace context is sent on the wire.
@@ -101,7 +100,8 @@ class PythonOpenCensusCallTracer : public grpc_core::ClientCallTracer {
   };
 
   explicit PythonOpenCensusCallTracer(const char* method, const char* target,
-                                      const char* trace_id, const char* parent_span_id,
+                                      const char* trace_id,
+                                      const char* parent_span_id,
                                       const char* identifier,
                                       const std::vector<Label>& exchange_labels,
                                       bool tracing_enabled,

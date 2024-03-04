@@ -28,9 +28,9 @@
 #include <utility>
 
 #include "absl/strings/string_view.h"
-
-#include "python_census_context.h"
 #include "constants.h"
+#include "python_census_context.h"
+
 #include "src/core/lib/transport/metadata_batch.h"
 
 namespace grpc_observability {

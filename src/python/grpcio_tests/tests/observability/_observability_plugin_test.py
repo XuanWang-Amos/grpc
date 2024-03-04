@@ -21,6 +21,7 @@ import time
 from typing import Any, AnyStr, Callable, Dict, Iterable, List, Optional, Set
 import unittest
 
+from google.protobuf import struct_pb2
 import grpc_observability
 from grpc_observability import _open_telemetry_measures
 from grpc_observability._observability import OptionalLabelType
@@ -34,8 +35,6 @@ from opentelemetry.sdk.metrics.export import MetricsData
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 
 from tests.observability import _test_server
-
-from google.protobuf import struct_pb2
 
 logger = logging.getLogger(__name__)
 
@@ -57,10 +56,8 @@ METRIC_NAME_WITH_EXCHANGE_LABEL = [
     "grpc.server.call.rcvd_total_compressed_message_size",
 ]
 
-CSM_OPTIONAL_LABEL_KEYS = [
-    "csm.service_name",
-    "csm.service_namespace_name"
-]
+CSM_OPTIONAL_LABEL_KEYS = ["csm.service_name", "csm.service_namespace_name"]
+
 
 class OTelMetricExporter(MetricExporter):
     """Implementation of :class:`MetricExporter` that export metrics to the
@@ -108,14 +105,18 @@ class OTelMetricExporter(MetricExporter):
             for scope_metric in resource_metric.scope_metrics:
                 for metric in scope_metric.metrics:
                     for data_point in metric.data.data_points:
-                        self.all_metrics[metric.name].append(data_point.attributes)
+                        self.all_metrics[metric.name].append(
+                            data_point.attributes
+                        )
 
 
 class TestLabelInjector(OpenTelemetryLabelInjector):
     _exchange_labels: Dict[str, AnyStr]
     _local_labels: Dict[str, str]
 
-    def __init__(self, local_labels: Dict[str, str], exchange_labels: Dict[str, str]):
+    def __init__(
+        self, local_labels: Dict[str, str], exchange_labels: Dict[str, str]
+    ):
         self._exchange_labels = exchange_labels
         self._local_labels = local_labels
 
@@ -125,21 +126,29 @@ class TestLabelInjector(OpenTelemetryLabelInjector):
     def get_additional_labels(self) -> Dict[str, str]:
         return self._local_labels
 
-    def deserialize_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, AnyStr]:
+    def deserialize_labels(
+        self, labels: Dict[str, AnyStr]
+    ) -> Dict[str, AnyStr]:
         deserialized_labels = {}
         for key, value in labels.items():
             if "XEnvoyPeerMetadata" == key:
                 struct = struct_pb2.Struct()
                 struct.ParseFromString(value)
 
-                exchange_labels_value = self._get_value_from_struct(CSM_METADATA_EXCHANGE_LABEL_KEY, struct)
-                deserialized_labels[CSM_METADATA_EXCHANGE_LABEL_KEY] = exchange_labels_value
+                exchange_labels_value = self._get_value_from_struct(
+                    CSM_METADATA_EXCHANGE_LABEL_KEY, struct
+                )
+                deserialized_labels[
+                    CSM_METADATA_EXCHANGE_LABEL_KEY
+                ] = exchange_labels_value
             else:
                 deserialized_labels[key] = value
 
         return deserialized_labels
 
-    def _get_value_from_struct(self, key: str, struct: struct_pb2.Struct) -> str:
+    def _get_value_from_struct(
+        self, key: str, struct: struct_pb2.Struct
+    ) -> str:
         value = struct.fields.get(key)
         if not value:
             return "unknown"
@@ -151,10 +160,12 @@ class TestOpenTelemetryPluginOption(OpenTelemetryPluginOption):
     _active_on_client: bool
     _active_on_server: bool
 
-    def __init__(self,
-                 label_injector: OpenTelemetryLabelInjector,
-                 active_on_client: Optional[bool] = True,
-                 active_on_server: Optional[bool] = True):
+    def __init__(
+        self,
+        label_injector: OpenTelemetryLabelInjector,
+        active_on_client: Optional[bool] = True,
+        active_on_server: Optional[bool] = True,
+    ):
         self._label_injector = label_injector
         self._active_on_client = active_on_client
         self._active_on_server = active_on_server
@@ -174,10 +185,12 @@ class TestOpenTelemetryPlugin(grpc_observability.OpenTelemetryPlugin):
     _plugin_options: List[OpenTelemetryPluginOption]
     _enabled_optional_labels: List[OptionalLabelType]
 
-    def __init__(self,
-                 provider: MeterProvider,
-                 plugin_options: Optional[List[OpenTelemetryPluginOption]] = None,
-                 enabled_optional_labels: Optional[List[OptionalLabelType]] = None):
+    def __init__(
+        self,
+        provider: MeterProvider,
+        plugin_options: Optional[List[OpenTelemetryPluginOption]] = None,
+        enabled_optional_labels: Optional[List[OptionalLabelType]] = None,
+    ):
         self._provider = provider
         self._enabled_optional_labels = []
         self._plugin_options = []
@@ -196,7 +209,6 @@ class TestOpenTelemetryPlugin(grpc_observability.OpenTelemetryPlugin):
 
     def _get_enabled_optional_labels(self) -> List[OptionalLabelType]:
         return self._enabled_optional_labels
-
 
 
 @unittest.skipIf(
@@ -222,9 +234,12 @@ class CSMObservabilityTest(unittest.TestCase):
     def testEnableOptionalXdsServiceLabel(self):
         otel_plugin = TestOpenTelemetryPlugin(
             provider=self._provider,
-            enabled_optional_labels=[OptionalLabelType.XDS_SERVICE_LABELS])
+            enabled_optional_labels=[OptionalLabelType.XDS_SERVICE_LABELS],
+        )
 
-        grpc_observability.start_open_telemetry_observability(plugins=[otel_plugin])
+        grpc_observability.start_open_telemetry_observability(
+            plugins=[otel_plugin]
+        )
         server, port = _test_server.start_server()
         self._server = server
         _test_server.unary_unary_call(port=port)
@@ -237,17 +252,25 @@ class CSMObservabilityTest(unittest.TestCase):
         # time.sleep(1)
         for name, label_list in self.all_metrics.items():
             if name in METRIC_NAME_WITH_OPTIONAL_LABEL:
-                self._validate_label_exist(name, label_list, CSM_OPTIONAL_LABEL_KEYS)
+                self._validate_label_exist(
+                    name, label_list, CSM_OPTIONAL_LABEL_KEYS
+                )
 
     def testLabelInjectorWithLocalLabels(self):
-        label_injector = TestLabelInjector(local_labels={"local_labels_key" : "local_labels_value"},
-                                           exchange_labels={})
-        plugin_option = TestOpenTelemetryPluginOption(label_injector=label_injector)
+        label_injector = TestLabelInjector(
+            local_labels={"local_labels_key": "local_labels_value"},
+            exchange_labels={},
+        )
+        plugin_option = TestOpenTelemetryPluginOption(
+            label_injector=label_injector
+        )
         otel_plugin = TestOpenTelemetryPlugin(
-            provider=self._provider,
-            plugin_options=[plugin_option])
+            provider=self._provider, plugin_options=[plugin_option]
+        )
 
-        grpc_observability.start_open_telemetry_observability(plugins=[otel_plugin])
+        grpc_observability.start_open_telemetry_observability(
+            plugins=[otel_plugin]
+        )
         server, port = _test_server.start_server()
         self._server = server
         _test_server.unary_unary_call(port=port)
@@ -255,18 +278,23 @@ class CSMObservabilityTest(unittest.TestCase):
 
         self._validate_metrics_exist(self.all_metrics)
         for name, label_list in self.all_metrics.items():
-                self._validate_label_exist(name, label_list, ["local_labels_key"])
+            self._validate_label_exist(name, label_list, ["local_labels_key"])
 
     def testClientSidePluginOption(self):
-        label_injector = TestLabelInjector(local_labels={"local_labels_key" : "local_labels_value"},
-                                           exchange_labels={})
-        plugin_option = TestOpenTelemetryPluginOption(label_injector=label_injector,
-                                                      active_on_server=False)
+        label_injector = TestLabelInjector(
+            local_labels={"local_labels_key": "local_labels_value"},
+            exchange_labels={},
+        )
+        plugin_option = TestOpenTelemetryPluginOption(
+            label_injector=label_injector, active_on_server=False
+        )
         otel_plugin = TestOpenTelemetryPlugin(
-            provider=self._provider,
-            plugin_options=[plugin_option])
+            provider=self._provider, plugin_options=[plugin_option]
+        )
 
-        grpc_observability.start_open_telemetry_observability(plugins=[otel_plugin])
+        grpc_observability.start_open_telemetry_observability(
+            plugins=[otel_plugin]
+        )
         server, port = _test_server.start_server()
         self._server = server
         _test_server.unary_unary_call(port=port)
@@ -275,21 +303,30 @@ class CSMObservabilityTest(unittest.TestCase):
         self._validate_metrics_exist(self.all_metrics)
         for name, label_list in self.all_metrics.items():
             if "grpc.client" in name:
-                self._validate_label_exist(name, label_list, ["local_labels_key"])
+                self._validate_label_exist(
+                    name, label_list, ["local_labels_key"]
+                )
         for name, label_list in self.all_metrics.items():
             if "grpc.server" in name:
-                self._validate_label_not_exist(name, label_list, ["local_labels_key"])
+                self._validate_label_not_exist(
+                    name, label_list, ["local_labels_key"]
+                )
 
     def testServerSidePluginOption(self):
-        label_injector = TestLabelInjector(local_labels={"local_labels_key" : "local_labels_value"},
-                                           exchange_labels={})
-        plugin_option = TestOpenTelemetryPluginOption(label_injector=label_injector,
-                                                      active_on_client=False)
+        label_injector = TestLabelInjector(
+            local_labels={"local_labels_key": "local_labels_value"},
+            exchange_labels={},
+        )
+        plugin_option = TestOpenTelemetryPluginOption(
+            label_injector=label_injector, active_on_client=False
+        )
         otel_plugin = TestOpenTelemetryPlugin(
-            provider=self._provider,
-            plugin_options=[plugin_option])
+            provider=self._provider, plugin_options=[plugin_option]
+        )
 
-        grpc_observability.start_open_telemetry_observability(plugins=[otel_plugin])
+        grpc_observability.start_open_telemetry_observability(
+            plugins=[otel_plugin]
+        )
         server, port = _test_server.start_server()
         self._server = server
         _test_server.unary_unary_call(port=port)
@@ -298,25 +335,37 @@ class CSMObservabilityTest(unittest.TestCase):
         self._validate_metrics_exist(self.all_metrics)
         for name, label_list in self.all_metrics.items():
             if "grpc.client" in name:
-                self._validate_label_not_exist(name, label_list, ["local_labels_key"])
+                self._validate_label_not_exist(
+                    name, label_list, ["local_labels_key"]
+                )
         for name, label_list in self.all_metrics.items():
             if "grpc.server" in name:
-                self._validate_label_exist(name, label_list, ["local_labels_key"])
+                self._validate_label_exist(
+                    name, label_list, ["local_labels_key"]
+                )
 
     def testMetadataExchange(self):
         fields = {}
-        fields["exchange_labels_key"] = struct_pb2.Value(string_value="exchange_labels_value")
+        fields["exchange_labels_key"] = struct_pb2.Value(
+            string_value="exchange_labels_value"
+        )
         serialized_struct = struct_pb2.Struct(fields=fields)
         serialized_str = serialized_struct.SerializeToString()
 
-        label_injector = TestLabelInjector(local_labels={},
-                                           exchange_labels={"XEnvoyPeerMetadata" : serialized_str})
-        plugin_option = TestOpenTelemetryPluginOption(label_injector=label_injector)
+        label_injector = TestLabelInjector(
+            local_labels={},
+            exchange_labels={"XEnvoyPeerMetadata": serialized_str},
+        )
+        plugin_option = TestOpenTelemetryPluginOption(
+            label_injector=label_injector
+        )
         otel_plugin = TestOpenTelemetryPlugin(
-            provider=self._provider,
-            plugin_options=[plugin_option])
+            provider=self._provider, plugin_options=[plugin_option]
+        )
 
-        grpc_observability.start_open_telemetry_observability(plugins=[otel_plugin])
+        grpc_observability.start_open_telemetry_observability(
+            plugins=[otel_plugin]
+        )
         server, port = _test_server.start_server()
         self._server = server
         _test_server.unary_unary_call(port=port)
@@ -325,9 +374,12 @@ class CSMObservabilityTest(unittest.TestCase):
         self._validate_metrics_exist(self.all_metrics)
         for name, label_list in self.all_metrics.items():
             if name in METRIC_NAME_WITH_EXCHANGE_LABEL:
-                self._validate_label_exist(name, label_list, [CSM_METADATA_EXCHANGE_LABEL_KEY])
-                self._validate_label_not_exist(name, label_list, ["XEnvoyPeerMetadata"])
-
+                self._validate_label_exist(
+                    name, label_list, [CSM_METADATA_EXCHANGE_LABEL_KEY]
+                )
+                self._validate_label_not_exist(
+                    name, label_list, ["XEnvoyPeerMetadata"]
+                )
 
     def assert_eventually(
         self,
@@ -373,19 +425,32 @@ class CSMObservabilityTest(unittest.TestCase):
                     msg=f"metric {base_metric.name} not found in exported metrics: {metric_names}!",
                 )
 
-    def _validate_label_exist(self, metric_name: str,
-                              metric_label_list: List[str], labels_to_check: List[str]) -> None:
+    def _validate_label_exist(
+        self,
+        metric_name: str,
+        metric_label_list: List[str],
+        labels_to_check: List[str],
+    ) -> None:
         for metric_label in metric_label_list:
             for label in labels_to_check:
-                self.assertTrue(label in metric_label,
-                                msg=f"label with key {label} not found for metric {metric_name}, found label list: {metric_label}")
+                self.assertTrue(
+                    label in metric_label,
+                    msg=f"label with key {label} not found for metric {metric_name}, found label list: {metric_label}",
+                )
 
-    def _validate_label_not_exist(self, metric_name: str,
-                              metric_label_list: List[str], labels_to_check: List[str]) -> None:
+    def _validate_label_not_exist(
+        self,
+        metric_name: str,
+        metric_label_list: List[str],
+        labels_to_check: List[str],
+    ) -> None:
         for metric_label in metric_label_list:
             for label in labels_to_check:
-                self.assertFalse(label in metric_label,
-                                msg=f"label with key {label} found for metric {metric_name}, found label list: {metric_label}")
+                self.assertFalse(
+                    label in metric_label,
+                    msg=f"label with key {label} found for metric {metric_name}, found label list: {metric_label}",
+                )
+
 
 if __name__ == "__main__":
     logging.basicConfig()

@@ -26,7 +26,9 @@ class _OpenTelemetryExporterDelegator(_observability.Exporter):
         for plugin in plugins:
             self._plugin_map[plugin.identifier] = plugin
 
-    def export_stats_data(self, stats_data: List[_observability.StatsData]) -> None:
+    def export_stats_data(
+        self, stats_data: List[_observability.StatsData]
+    ) -> None:
         for data in stats_data:
             for identifier in data.identifiers:
                 if identifier in self._plugin_map.keys():

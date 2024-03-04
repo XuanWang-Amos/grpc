@@ -17,25 +17,29 @@ import json
 import os
 from typing import AnyStr, Dict, Iterable, List, Optional, Union
 
+from google.protobuf import struct_pb2
+
 # pytype: disable=pyi-error
 from grpc_observability import _open_telemetry_measures
 from grpc_observability._cyobservability import MetricsName
-from grpc_observability._observability import StatsData
 from grpc_observability._observability import OptionalLabelType
-from grpc_observability._open_telemetry_plugin import OpenTelemetryPlugin
-from grpc_observability._open_telemetry_plugin import _OpenTelemetryPlugin
+from grpc_observability._observability import StatsData
 from grpc_observability._open_telemetry_plugin import OpenTelemetryLabelInjector
+from grpc_observability._open_telemetry_plugin import OpenTelemetryPlugin
 from grpc_observability._open_telemetry_plugin import OpenTelemetryPluginOption
+from grpc_observability._open_telemetry_plugin import _OpenTelemetryPlugin
 from opentelemetry.metrics import Counter
 from opentelemetry.metrics import Histogram
 from opentelemetry.metrics import Meter
 from opentelemetry.metrics import MeterProvider
 
-from opentelemetry.sdk.resources import Resource, get_aggregated_resources
 # from opentelemetry.tools.resource_detector import GoogleCloudResourceDetector
-from opentelemetry.resourcedetector.gcp_resource_detector import GoogleCloudResourceDetector
+from opentelemetry.resourcedetector.gcp_resource_detector import (
+    GoogleCloudResourceDetector,
+)
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.resources import get_aggregated_resources
 from opentelemetry.semconv.resource import ResourceAttributes
-from google.protobuf import struct_pb2
 
 GRPC_METHOD_LABEL = "grpc.method"
 GRPC_TARGET_LABEL = "grpc.target"
@@ -110,34 +114,64 @@ class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
         #     fields["project_id"] = struct_pb2.Value(string_value=f"{prefix}project_id")
 
         resource = get_aggregated_resources([GoogleCloudResourceDetector()])
-        type_value = self._get_str_value_from_resource(ResourceAttributes.CLOUD_PLATFORM, resource)
-        canonical_service_value = os.getenv("CSM_CANONICAL_SERVICE_NAME", UNKNOWN_VALUE)
+        type_value = self._get_str_value_from_resource(
+            ResourceAttributes.CLOUD_PLATFORM, resource
+        )
+        canonical_service_value = os.getenv(
+            "CSM_CANONICAL_SERVICE_NAME", UNKNOWN_VALUE
+        )
         workload_name_value = os.getenv("CSM_WORKLOAD_NAME", UNKNOWN_VALUE)
-        namespace_value = self._get_str_value_from_resource(ResourceAttributes.K8S_NAMESPACE_NAME, resource)
-        cluster_name_value = self._get_str_value_from_resource(ResourceAttributes.K8S_CLUSTER_NAME, resource)
-        location_value = self._get_str_value_from_resource(ResourceAttributes.CLOUD_AVAILABILITY_ZONE, resource)
-        if (UNKNOWN_VALUE == location_value):
-            location_value = self._get_str_value_from_resource(ResourceAttributes.CLOUD_REGION, resource)
-        project_id_value = self._get_str_value_from_resource(ResourceAttributes.CLOUD_ACCOUNT_ID, resource)
+        namespace_value = self._get_str_value_from_resource(
+            ResourceAttributes.K8S_NAMESPACE_NAME, resource
+        )
+        cluster_name_value = self._get_str_value_from_resource(
+            ResourceAttributes.K8S_CLUSTER_NAME, resource
+        )
+        location_value = self._get_str_value_from_resource(
+            ResourceAttributes.CLOUD_AVAILABILITY_ZONE, resource
+        )
+        if UNKNOWN_VALUE == location_value:
+            location_value = self._get_str_value_from_resource(
+                ResourceAttributes.CLOUD_REGION, resource
+            )
+        project_id_value = self._get_str_value_from_resource(
+            ResourceAttributes.CLOUD_ACCOUNT_ID, resource
+        )
 
         fields["type"] = struct_pb2.Value(string_value=type_value)
-        fields["canonical_service"] = struct_pb2.Value(string_value=canonical_service_value)
+        fields["canonical_service"] = struct_pb2.Value(
+            string_value=canonical_service_value
+        )
         if type_value == "GKE":
-            fields["workload_name"] = struct_pb2.Value(string_value=workload_name_value)
-            fields["namespace_name"] = struct_pb2.Value(string_value=namespace_value)
-            fields["cluster_name"] = struct_pb2.Value(string_value=cluster_name_value)
+            fields["workload_name"] = struct_pb2.Value(
+                string_value=workload_name_value
+            )
+            fields["namespace_name"] = struct_pb2.Value(
+                string_value=namespace_value
+            )
+            fields["cluster_name"] = struct_pb2.Value(
+                string_value=cluster_name_value
+            )
             fields["location"] = struct_pb2.Value(string_value=location_value)
-            fields["project_id"] = struct_pb2.Value(string_value=project_id_value)
+            fields["project_id"] = struct_pb2.Value(
+                string_value=project_id_value
+            )
         else:
-            fields["workload_name"] = struct_pb2.Value(string_value=workload_name_value)
+            fields["workload_name"] = struct_pb2.Value(
+                string_value=workload_name_value
+            )
             fields["location"] = struct_pb2.Value(string_value=location_value)
-            fields["project_id"] = struct_pb2.Value(string_value=project_id_value)
+            fields["project_id"] = struct_pb2.Value(
+                string_value=project_id_value
+            )
 
         serialized_struct = struct_pb2.Struct(fields=fields)
         serialized_str = serialized_struct.SerializeToString()
 
         self._exchange_labels = {"XEnvoyPeerMetadata": serialized_str}
-        self._local_labels["csm.workload_canonical_service"] = canonical_service_value
+        self._local_labels[
+            "csm.workload_canonical_service"
+        ] = canonical_service_value
         self._local_labels["csm.mesh_id"] = self._get_mesh_id()
 
     def get_labels_for_exchange(self) -> Dict[str, AnyStr]:
@@ -146,7 +180,9 @@ class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
     def get_additional_labels(self) -> Dict[str, str]:
         return self._local_labels
 
-    def deserialize_labels(self, labels: Dict[str, AnyStr]) -> Dict[str, AnyStr]:
+    def deserialize_labels(
+        self, labels: Dict[str, AnyStr]
+    ) -> Dict[str, AnyStr]:
         deserialized_labels = {}
         for key, value in labels.items():
             if "XEnvoyPeerMetadata" == key:
@@ -156,30 +192,42 @@ class CSMOpenTelemetryLabelInjector(OpenTelemetryLabelInjector):
                 remote_type = self._get_value_from_struct("type", struct)
 
                 for key, remote_key in METADATA_EXCHANGE_KEY_FIXED_MAP.items():
-                    deserialized_labels[remote_key] = self._get_value_from_struct(key, struct)
+                    deserialized_labels[
+                        remote_key
+                    ] = self._get_value_from_struct(key, struct)
 
                 if TYPE_GCE in remote_type:
-                    for key, remote_key in METADATA_EXCHANGE_KEY_GKE_MAP.items():
-                        deserialized_labels[remote_key] = self._get_value_from_struct(
-                            key, struct
-                        )
+                    for (
+                        key,
+                        remote_key,
+                    ) in METADATA_EXCHANGE_KEY_GKE_MAP.items():
+                        deserialized_labels[
+                            remote_key
+                        ] = self._get_value_from_struct(key, struct)
                 else:
-                    for key, remote_key in METADATA_EXCHANGE_KEY_GCE_MAP.items():
-                        deserialized_labels[remote_key] = self._get_value_from_struct(
-                            key, struct
-                        )
+                    for (
+                        key,
+                        remote_key,
+                    ) in METADATA_EXCHANGE_KEY_GCE_MAP.items():
+                        deserialized_labels[
+                            remote_key
+                        ] = self._get_value_from_struct(key, struct)
             else:
                 deserialized_labels[key] = value
 
         return deserialized_labels
 
-    def _get_value_from_struct(self, key: str, struct: struct_pb2.Struct) -> str:
+    def _get_value_from_struct(
+        self, key: str, struct: struct_pb2.Struct
+    ) -> str:
         value = struct.fields.get(key)
         if not value:
             return UNKNOWN_VALUE
         return value.string_value
 
-    def _get_str_value_from_resource(self, attribute: ResourceAttributes, resource: Resource) -> str:
+    def _get_str_value_from_resource(
+        self, attribute: ResourceAttributes, resource: Resource
+    ) -> str:
         value = resource.attributes.get(attribute, UNKNOWN_VALUE)
         return str(value)
 
@@ -225,6 +273,7 @@ class CsmOpenTelemetryPluginOption(OpenTelemetryPluginOption):
 
     Please note that this class is still work in progress and NOT READY to be used.
     """
+
     _label_injector: CSMOpenTelemetryLabelInjector
 
     def __init__(self):
@@ -278,6 +327,7 @@ class BaseTestCSMPlugin(CsmOpenTelemetryPlugin):
 
     def get_meter_provider(self) -> Optional[MeterProvider]:
         return self.provider
+
 
 # pylint: disable=no-self-use
 class _CsmOpenTelemetryPlugin(CsmOpenTelemetryPlugin):

@@ -72,7 +72,8 @@ void RecordIntMetric(MetricsName name, int64_t value,
 }
 
 void RecordDoubleMetric(MetricsName name, double value,
-                        const std::vector<Label>& labels, std::string identifier) {
+                        const std::vector<Label>& labels,
+                        std::string identifier) {
   Measurement measurement_data;
   measurement_data.type = kMeasurementDouble;
   measurement_data.name = name;
@@ -91,16 +92,19 @@ void NativeObservabilityInit() {
   g_census_data_buffer = new std::queue<CensusData>;
 }
 
-void* CreateClientCallTracer(const char* method, const char* target, const char* trace_id,
-                             const char* parent_span_id, const char* identifier,
+void* CreateClientCallTracer(const char* method, const char* target,
+                             const char* trace_id, const char* parent_span_id,
+                             const char* identifier,
                              const std::vector<Label> exchange_labels,
                              bool add_csm_optional_labels) {
   void* client_call_tracer = new PythonOpenCensusCallTracer(
-      method, target, trace_id, parent_span_id, identifier, exchange_labels, PythonCensusTracingEnabled(), add_csm_optional_labels);
+      method, target, trace_id, parent_span_id, identifier, exchange_labels,
+      PythonCensusTracingEnabled(), add_csm_optional_labels);
   return client_call_tracer;
 }
 
-void* CreateServerCallTracerFactory(const std::vector<Label> exchange_labels, const char* identifier) {
+void* CreateServerCallTracerFactory(const std::vector<Label> exchange_labels,
+                                    const char* identifier) {
   void* server_call_tracer_factory =
       new PythonOpenCensusServerCallTracerFactory(exchange_labels, identifier);
   return server_call_tracer_factory;

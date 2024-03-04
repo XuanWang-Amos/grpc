@@ -41,8 +41,12 @@ struct CensusData {
   SpanCensusData span_data;
   Measurement measurement_data;
   CensusData() {}
-  CensusData(const Measurement& mm, const std::vector<Label>& labels, std::string id)
-      : type(kMetricData), labels(std::move(labels)), identifier(id), measurement_data(mm) {}
+  CensusData(const Measurement& mm, const std::vector<Label>& labels,
+             std::string id)
+      : type(kMetricData),
+        labels(std::move(labels)),
+        identifier(id),
+        measurement_data(mm) {}
   CensusData(const SpanCensusData& sd) : type(kSpanData), span_data(sd) {}
 };
 
@@ -57,7 +61,8 @@ void* CreateClientCallTracer(const char* method, const char* target,
                              const std::vector<Label> exchange_labels,
                              bool add_csm_optional_labels);
 
-void* CreateServerCallTracerFactory(const std::vector<Label> exchange_labels, const char* identifier);
+void* CreateServerCallTracerFactory(const std::vector<Label> exchange_labels,
+                                    const char* identifier);
 
 void NativeObservabilityInit();
 
@@ -69,7 +74,8 @@ void RecordIntMetric(MetricsName name, int64_t value,
                      const std::vector<Label>& labels, std::string identifier);
 
 void RecordDoubleMetric(MetricsName name, double value,
-                        const std::vector<Label>& labels, std::string identifier);
+                        const std::vector<Label>& labels,
+                        std::string identifier);
 
 void RecordSpan(const SpanCensusData& span_census_data);
 

@@ -18,22 +18,24 @@ import time
 from typing import Any, Iterable, List, Optional
 
 import grpc
+from grpc_csm_observability._csm_observability_plugin import (
+    CsmOpenTelemetryPlugin,
+)
+from grpc_csm_observability._csm_observability_plugin import (
+    _CsmOpenTelemetryPlugin,
+)
+from grpc_observability import OpenTelemetryObservability
+from grpc_observability._observability import OptionalLabelType
 
 # pytype: disable=pyi-error
 from grpc_observability._open_telemetry_exporter import (
     _OpenTelemetryExporterDelegator,
 )
-from grpc_observability._open_telemetry_plugin import _OpenTelemetryPlugin
-from grpc_observability._observability import OptionalLabelType
-from grpc_observability import OpenTelemetryObservability
-from grpc_csm_observability._csm_observability_plugin import (
-    CsmOpenTelemetryPlugin,
-    _CsmOpenTelemetryPlugin,
-)
 from grpc_observability._open_telemetry_observability import (
     _OPEN_TELEMETRY_OBSERVABILITY,
-    _observability_lock,
 )
+from grpc_observability._open_telemetry_observability import _observability_lock
+from grpc_observability._open_telemetry_plugin import _OpenTelemetryPlugin
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,10 +50,13 @@ def start_csm_observability(
         if _OPEN_TELEMETRY_OBSERVABILITY is None:
             _OPEN_TELEMETRY_OBSERVABILITY = CsmObservability(
                 plugins=plugins,
-                csm_diagnostic_reporting_enabled=csm_diagnostic_reporting_enabled)
+                csm_diagnostic_reporting_enabled=csm_diagnostic_reporting_enabled,
+            )
             _OPEN_TELEMETRY_OBSERVABILITY.observability_init()
         else:
-            raise RuntimeError("gPRC Python observability was already initiated!")
+            raise RuntimeError(
+                "gPRC Python observability was already initiated!"
+            )
 
 
 def end_csm_observability() -> None:
