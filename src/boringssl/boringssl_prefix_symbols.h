@@ -34,7 +34,6 @@
 #define DTLSv1_method BORINGSSL_ADD_PREFIX(BORINGSSL_PREFIX, DTLSv1_method)
 #define DTLSv1_server_method BORINGSSL_ADD_PREFIX(BORINGSSL_PREFIX, DTLSv1_server_method)
 #define DTLSv1_set_initial_timeout_duration BORINGSSL_ADD_PREFIX(BORINGSSL_PREFIX, DTLSv1_set_initial_timeout_duration)
-#define DW.ref.__gxx_personality_v0 BORINGSSL_ADD_PREFIX(BORINGSSL_PREFIX, DW.ref.__gxx_personality_v0)
 #define ERR_GET_LIB BORINGSSL_ADD_PREFIX(BORINGSSL_PREFIX, ERR_GET_LIB)
 #define ERR_GET_REASON BORINGSSL_ADD_PREFIX(BORINGSSL_PREFIX, ERR_GET_REASON)
 #define ERR_load_SSL_strings BORINGSSL_ADD_PREFIX(BORINGSSL_PREFIX, ERR_load_SSL_strings)
