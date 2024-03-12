@@ -13,12 +13,21 @@
 # limitations under the License.
 
 import abc
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Union,
+)
 
 # pytype: disable=pyi-error
 import grpc
-from grpc_observability import _open_telemetry_observability
 from grpc_observability import _open_telemetry_measures
+from grpc_observability import _open_telemetry_observability
 from grpc_observability._cyobservability import MetricsName
 from grpc_observability._observability import StatsData
 from opentelemetry.metrics import Counter
@@ -31,7 +40,7 @@ GRPC_TARGET_LABEL = "grpc.target"
 GRPC_OTHER_LABEL_VALUE = "other"
 
 if TYPE_CHECKING:
-    _OpenTelemetryPlugin = Any # Forward declaration
+    _OpenTelemetryPlugin = Any  # Forward declaration
 
 
 class OpenTelemetryLabelInjector(abc.ABC):
