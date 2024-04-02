@@ -329,7 +329,7 @@ setuptools.setup(
     packages=setuptools.find_packages("."),
     python_requires=">=3.7",
     install_requires=[
-        "protobuf>=4.21.6,<6.0dev",
+        "protobuf>=5.26.0,<6.0dev",
         "grpcio>={version}".format(version=grpc_version.VERSION),
         "setuptools",
     ],
