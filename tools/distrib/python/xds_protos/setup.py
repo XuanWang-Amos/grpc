@@ -38,8 +38,9 @@ CLASSIFIERS = [
     "License :: OSI Approved :: Apache Software License",
 ]
 INSTALL_REQUIRES = [
-    "grpcio>=1.49.0",
-    "protobuf>=5.26.0,<6.0dev",
+    'grpcio>=1.49.0',
+    'protobuf>=5.26.0, <6.0dev; python_version>"3.7"',
+    'protobuf>=4.21.6, <5.0dev; python_version<="3.7"',
 ]
 
 SETUP_REQUIRES = INSTALL_REQUIRES + ["grpcio-tools>=1.49.0"]
