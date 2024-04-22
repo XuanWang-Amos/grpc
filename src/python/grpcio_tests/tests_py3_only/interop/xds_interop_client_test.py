@@ -158,7 +158,11 @@ class XdsInteropClientTest(unittest.TestCase):
 
         with _start_python_with_args(
             _SERVER_PATH,
-            [f"--port={server_port}", f"--maintenance_port={server_port}", f"--verbose=True"],
+            [
+                f"--port={server_port}",
+                f"--maintenance_port={server_port}",
+                f"--verbose=True",
+            ],
         ) as (server, server_stdout, server_stderr):
             # Send RPC to server to make sure it's running.
             logging.info("Sending RPC to server.")
