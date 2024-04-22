@@ -1261,7 +1261,10 @@ def _process_event_and_continue(
         event.tag is _REQUEST_CALL_TAG
         or event.tag in state.registered_method_handlers.keys()
     ):
-        import sys; sys.stderr.write(f"  ======= [Py] handle event with tag: {event.tag}\n"); sys.stderr.flush()
+        import sys
+
+        sys.stderr.write(f"  ======= [Py] handle event with tag: {event.tag}\n")
+        sys.stderr.flush()
         registered_method_name = None
         if event.tag in state.registered_method_handlers.keys():
             registered_method_name = event.tag
@@ -1449,7 +1452,12 @@ class _Server(grpc.Server):
             for method, method_handler in method_handlers.items()
         }
         for fully_qualified_method in method_to_handlers.keys():
-            import sys; sys.stderr.write(f"  ======= [Py] Calling register_method for {fully_qualified_method}\n"); sys.stderr.flush()
+            import sys
+
+            sys.stderr.write(
+                f"  ======= [Py] Calling register_method for {fully_qualified_method}\n"
+            )
+            sys.stderr.flush()
             self._cy_server.register_method(fully_qualified_method)
         _add_registered_method_handlers(self._state, method_to_handlers)
 
