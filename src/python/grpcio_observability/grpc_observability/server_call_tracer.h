@@ -17,15 +17,15 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/strings/strip.h"
+#include "constants.h"
+#include "metadata_exchange.h"
+#include "python_observability_context.h"
 
 #include <grpc/support/port_platform.h>
 
 #include "src/core/lib/channel/call_tracer.h"
 #include "src/core/lib/resource_quota/arena.h"
 #include "src/core/lib/slice/slice.h"
-#include "python_census_context.h"
-#include "metadata_exchange.h"
-#include "constants.h"
 
 namespace grpc_observability {
 
@@ -36,14 +36,13 @@ class PythonOpenCensusServerCallTracerFactory
       grpc_core::Arena* arena,
       const grpc_core::ChannelArgs& channel_args) override;
   explicit PythonOpenCensusServerCallTracerFactory(
-                                      const std::vector<Label>& exchange_labels,
-                                      const char* identifier);
-  
+      const std::vector<Label>& exchange_labels, const char* identifier);
+
   bool IsServerTraced(const grpc_core::ChannelArgs& args) override;
 
-  private:
-   const std::vector<Label> exchange_labels_;
-   std::string identifier_;
+ private:
+  const std::vector<Label> exchange_labels_;
+  std::string identifier_;
 };
 
 inline absl::string_view GetMethod(const grpc_core::Slice& path) {
@@ -59,12 +58,14 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
   // Maximum size of server stats that are sent on the wire.
   static constexpr uint32_t kMaxServerStatsLen = 16;
 
-  PythonOpenCensusServerCallTracer(const std::vector<Label>& exchange_labels, std::string identifier)
+  PythonOpenCensusServerCallTracer(const std::vector<Label>& exchange_labels,
+                                   std::string identifier)
       : start_time_(absl::Now()),
         recv_message_count_(0),
         sent_message_count_(0),
         labels_injector_(exchange_labels),
-        identifier_(identifier) {}
+        identifier_(identifier),
+        registered_method_(false) {}
 
   std::string TraceId() override {
     return absl::BytesToHexString(
@@ -112,9 +113,7 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
 
   void RecordAnnotation(const Annotation& annotation) override;
 
-  std::shared_ptr<grpc_core::TcpTracerInterface> StartNewTcpTrace() override {
-    return nullptr;
-  }
+  std::shared_ptr<grpc_core::TcpTracerInterface> StartNewTcpTrace() override;
 
  private:
   PythonCensusContext context_;
@@ -131,6 +130,7 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
   PythonLabelsInjector labels_injector_;
   std::vector<Label> labels_from_peer_;
   std::string identifier_;
+  bool registered_method_;
 };
 
 }  // namespace grpc_observability
