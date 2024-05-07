@@ -64,8 +64,7 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
         recv_message_count_(0),
         sent_message_count_(0),
         labels_injector_(exchange_labels),
-        identifier_(identifier),
-        registered_method_(false) {}
+        identifier_(identifier) {}
 
   std::string TraceId() override {
     return absl::BytesToHexString(
@@ -130,7 +129,7 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
   PythonLabelsInjector labels_injector_;
   std::vector<Label> labels_from_peer_;
   std::string identifier_;
-  bool registered_method_;
+  bool registered_method_ = false;
 };
 
 }  // namespace grpc_observability
