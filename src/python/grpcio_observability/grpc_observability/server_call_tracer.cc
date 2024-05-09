@@ -93,7 +93,7 @@ bool KeyInLabels(std::string key, const std::vector<Label>& labels) {
 
 void PythonOpenCensusServerCallTracer::RecordSendInitialMetadata(
     grpc_metadata_batch* send_initial_metadata) {
-  // Only add labels if exchange is needed (Client send metadata with keys in 
+  // Only add labels if exchange is needed (Client send metadata with keys in
   // MetadataExchangeKeyNames).
   for (const auto& key : MetadataExchangeKeyNames) {
     if (KeyInLabels(key, labels_from_peer_)) {
