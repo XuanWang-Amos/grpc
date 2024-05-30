@@ -23,6 +23,8 @@ PYTHON="$(pwd)/${1:-py38/bin/python}"
 
 ROOT=$(pwd)
 
+$PYTHON -m pip list
+$PYTHON -m pip install --upgrade protobuf
 $PYTHON "$ROOT/src/python/grpcio_tests/setup.py" "$2"
 
 mkdir -p "$ROOT/reports"
