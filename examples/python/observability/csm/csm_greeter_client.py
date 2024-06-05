@@ -15,6 +15,7 @@
 import argparse
 import logging
 import time
+
 import grpc
 from grpc_csm_observability import CsmOpenTelemetryPlugin
 from opentelemetry.exporter.prometheus import PrometheusMetricReader
@@ -29,6 +30,7 @@ console_handler = logging.StreamHandler()
 formatter = logging.Formatter(fmt="%(asctime)s: %(levelname)-8s %(message)s")
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
+
 
 def _run(target: int, secure_mode: bool, prometheus_endpoint: int):
     csm_plugin = _prepare_csm_observability_plugin(prometheus_endpoint)
@@ -49,7 +51,9 @@ def _run(target: int, secure_mode: bool, prometheus_endpoint: int):
     csm_plugin.deregister_global()
 
 
-def _prepare_csm_observability_plugin(prometheus_endpoint: int) -> CsmOpenTelemetryPlugin:
+def _prepare_csm_observability_plugin(
+    prometheus_endpoint: int,
+) -> CsmOpenTelemetryPlugin:
     # Start Prometheus client
     start_http_server(port=prometheus_endpoint, addr="0.0.0.0")
     reader = PrometheusMetricReader()
@@ -59,6 +63,7 @@ def _prepare_csm_observability_plugin(prometheus_endpoint: int) -> CsmOpenTeleme
     )
     return csm_plugin
 
+
 def bool_arg(arg: str) -> bool:
     if arg.lower() in ("true", "yes", "y"):
         return True
@@ -67,10 +72,15 @@ def bool_arg(arg: str) -> bool:
     else:
         raise argparse.ArgumentTypeError(f"Could not parse '{arg}' as a bool.")
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run Python CSM Observability Test client.")
+    parser = argparse.ArgumentParser(
+        description="Run Python CSM Observability Test client."
+    )
     parser.add_argument(
-        "--target", default="xds:///helloworld:50051", help="The address of the server."
+        "--target",
+        default="xds:///helloworld:50051",
+        help="The address of the server.",
     )
     parser.add_argument(
         "--secure_mode",
