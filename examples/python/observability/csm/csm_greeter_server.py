@@ -55,6 +55,7 @@ class TestService(test_pb2_grpc.TestServiceServicer):
         response.hostname = self._hostname
         return response
 
+
 def _run(
     port: int,
     secure_mode: bool,
@@ -72,7 +73,10 @@ def _run(
     server.wait_for_termination()
     csm_plugin.deregister_global()
 
-def _prepare_csm_observability_plugin(prometheus_endpoint: int) -> CsmOpenTelemetryPlugin:
+
+def _prepare_csm_observability_plugin(
+    prometheus_endpoint: int,
+) -> CsmOpenTelemetryPlugin:
     # Start Prometheus client
     start_http_server(port=prometheus_endpoint, addr="0.0.0.0")
     reader = PrometheusMetricReader()
@@ -81,6 +85,7 @@ def _prepare_csm_observability_plugin(prometheus_endpoint: int) -> CsmOpenTeleme
         meter_provider=meter_provider,
     )
     return csm_plugin
+
 
 def _configure_test_server(
     server: grpc.Server, port: int, secure_mode: bool, server_id: str
@@ -97,6 +102,7 @@ def _configure_test_server(
         server_creds = grpc.xds_server_credentials(server_fallback_creds)
         server.add_secure_port(listen_address, server_creds)
 
+
 def bool_arg(arg: str) -> bool:
     if arg.lower() in ("true", "yes", "y"):
         return True
@@ -104,6 +110,7 @@ def bool_arg(arg: str) -> bool:
         return False
     else:
         raise argparse.ArgumentTypeError(f"Could not parse '{arg}' as a bool.")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -137,4 +144,3 @@ if __name__ == "__main__":
         args.server_id,
         args.prometheus_endpoint,
     )
- 
