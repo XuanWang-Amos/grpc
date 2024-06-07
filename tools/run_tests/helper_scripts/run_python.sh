@@ -23,7 +23,6 @@ PYTHON="$(pwd)/${1:-py38/bin/python}"
 
 ROOT=$(pwd)
 
-$PYTHON pip list
 $PYTHON -c "import google.protobuf; print(google.protobuf.__version__)"
 echo protoc --version
 
