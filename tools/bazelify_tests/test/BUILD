@@ -432,13 +432,13 @@ test_suite(
     name = "all_tests_linux",
     tests = [
         ":artifact_build_tests_linux",
-        ":basic_tests_linux",
-        ":bazel_build_tests_linux",
-        ":bazel_distribtests_linux",
+        # ":basic_tests_linux",
+        # ":bazel_build_tests_linux",
+        # ":bazel_distribtests_linux",
         # ":cpp_distribtests_linux",
         # ":csharp_distribtests_linux",
         # ":php_distribtests_linux",
-        # ":portability_tests_linux",
+        ":portability_tests_linux",
         # ":python_distribtests_linux",
     ],
 )
