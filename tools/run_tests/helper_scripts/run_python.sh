@@ -24,7 +24,7 @@ PYTHON="$(pwd)/${1:-py38/bin/python}"
 ROOT=$(pwd)
 
 $PYTHON -c "import google.protobuf; print(google.protobuf.__version__)"
-echo protoc --version
+protoc --version
 
 $PYTHON "$ROOT/src/python/grpcio_tests/setup.py" "$2"
 
