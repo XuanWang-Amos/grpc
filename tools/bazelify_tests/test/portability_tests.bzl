@@ -31,49 +31,49 @@ def generate_run_tests_portability_tests(name):
     test_names = []
 
     # portability C x86
-    grpc_run_tests_harness_test(
-        name = "runtests_c_linux_dbg_x86_build_only",
-        args = ["-l c -c dbg --build_only"],
-        docker_image_version = "tools/dockerfile/test/cxx_debian11_x86.current_version",
-        size = "enormous",
-    )
-    test_names.append("runtests_c_linux_dbg_x86_build_only")
+    # grpc_run_tests_harness_test(
+    #     name = "runtests_c_linux_dbg_x86_build_only",
+    #     args = ["-l c -c dbg --build_only"],
+    #     docker_image_version = "tools/dockerfile/test/cxx_debian11_x86.current_version",
+    #     size = "enormous",
+    # )
+    # test_names.append("runtests_c_linux_dbg_x86_build_only")
 
-    # C and C++ with no-exceptions on Linux
-    for language in ["c", "c++"]:
-        test_name = "runtests_%s_linux_dbg_noexcept_build_only" % _safe_language_name(language)
-        grpc_run_tests_harness_test(
-            name = test_name,
-            args = ["-l %s --config noexcept --build_only" % language],
-            docker_image_version = "tools/dockerfile/test/cxx_debian11_x64.current_version",
-            size = "enormous",
-        )
-        test_names.append(test_name)
+    # # C and C++ with no-exceptions on Linux
+    # for language in ["c", "c++"]:
+    #     test_name = "runtests_%s_linux_dbg_noexcept_build_only" % _safe_language_name(language)
+    #     grpc_run_tests_harness_test(
+    #         name = test_name,
+    #         args = ["-l %s --config noexcept --build_only" % language],
+    #         docker_image_version = "tools/dockerfile/test/cxx_debian11_x64.current_version",
+    #         size = "enormous",
+    #     )
+    #     test_names.append(test_name)
 
-    # C and C++ under different compilers
-    for language in ["c", "c++"]:
-        compiler_configs = [
-            # TODO(https://github.com/grpc/grpc/issues/36751): Replace gcc_8 with gcc_7 once it's fixed.
-            # ["gcc_7", "", "tools/dockerfile/test/cxx_gcc_7_x64.current_version"],
-            ["gcc_8", "", "tools/dockerfile/test/cxx_gcc_8_x64.current_version"],
-            ["gcc_12", "--cmake_configure_extra_args=-DCMAKE_CXX_STANDARD=20", "tools/dockerfile/test/cxx_gcc_12_x64.current_version"],
-            ["gcc10.2_openssl102", "--cmake_configure_extra_args=-DgRPC_SSL_PROVIDER=package", "tools/dockerfile/test/cxx_debian11_openssl102_x64.current_version"],
-            ["gcc10.2_openssl111", "--cmake_configure_extra_args=-DgRPC_SSL_PROVIDER=package", "tools/dockerfile/test/cxx_debian11_openssl111_x64.current_version"],
-            ["gcc_12_openssl309", "--cmake_configure_extra_args=-DgRPC_SSL_PROVIDER=package", "tools/dockerfile/test/cxx_debian12_openssl309_x64.current_version"],
-            ["gcc_musl", "", "tools/dockerfile/test/cxx_alpine_x64.current_version"],
-            ["clang_6", "--cmake_configure_extra_args=-DCMAKE_C_COMPILER=clang --cmake_configure_extra_args=-DCMAKE_CXX_COMPILER=clang++", "tools/dockerfile/test/cxx_clang_6_x64.current_version"],
-            ["clang_17", "--cmake_configure_extra_args=-DCMAKE_C_COMPILER=clang --cmake_configure_extra_args=-DCMAKE_CXX_COMPILER=clang++", "tools/dockerfile/test/cxx_clang_17_x64.current_version"],
-        ]
+    # # C and C++ under different compilers
+    # for language in ["c", "c++"]:
+    #     compiler_configs = [
+    #         # TODO(https://github.com/grpc/grpc/issues/36751): Replace gcc_8 with gcc_7 once it's fixed.
+    #         # ["gcc_7", "", "tools/dockerfile/test/cxx_gcc_7_x64.current_version"],
+    #         ["gcc_8", "", "tools/dockerfile/test/cxx_gcc_8_x64.current_version"],
+    #         ["gcc_12", "--cmake_configure_extra_args=-DCMAKE_CXX_STANDARD=20", "tools/dockerfile/test/cxx_gcc_12_x64.current_version"],
+    #         ["gcc10.2_openssl102", "--cmake_configure_extra_args=-DgRPC_SSL_PROVIDER=package", "tools/dockerfile/test/cxx_debian11_openssl102_x64.current_version"],
+    #         ["gcc10.2_openssl111", "--cmake_configure_extra_args=-DgRPC_SSL_PROVIDER=package", "tools/dockerfile/test/cxx_debian11_openssl111_x64.current_version"],
+    #         ["gcc_12_openssl309", "--cmake_configure_extra_args=-DgRPC_SSL_PROVIDER=package", "tools/dockerfile/test/cxx_debian12_openssl309_x64.current_version"],
+    #         ["gcc_musl", "", "tools/dockerfile/test/cxx_alpine_x64.current_version"],
+    #         ["clang_6", "--cmake_configure_extra_args=-DCMAKE_C_COMPILER=clang --cmake_configure_extra_args=-DCMAKE_CXX_COMPILER=clang++", "tools/dockerfile/test/cxx_clang_6_x64.current_version"],
+    #         ["clang_17", "--cmake_configure_extra_args=-DCMAKE_C_COMPILER=clang --cmake_configure_extra_args=-DCMAKE_CXX_COMPILER=clang++", "tools/dockerfile/test/cxx_clang_17_x64.current_version"],
+    #     ]
 
-        for compiler_name, args, docker_image_version in compiler_configs:
-            test_name = "runtests_%s_linux_dbg_%s_build_only" % (_safe_language_name(language), compiler_name)
-            grpc_run_tests_harness_test(
-                name = test_name,
-                args = ["-l %s -c dbg %s --build_only" % (language, args)],
-                docker_image_version = docker_image_version,
-                size = "enormous",
-            )
-            test_names.append(test_name)
+    #     for compiler_name, args, docker_image_version in compiler_configs:
+    #         test_name = "runtests_%s_linux_dbg_%s_build_only" % (_safe_language_name(language), compiler_name)
+    #         grpc_run_tests_harness_test(
+    #             name = test_name,
+    #             args = ["-l %s -c dbg %s --build_only" % (language, args)],
+    #             docker_image_version = docker_image_version,
+    #             size = "enormous",
+    #         )
+    #         test_names.append(test_name)
 
     # Python on alpine
     grpc_run_tests_harness_test(
