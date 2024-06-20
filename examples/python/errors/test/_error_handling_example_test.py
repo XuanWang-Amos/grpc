@@ -25,11 +25,12 @@ except ImportError:
 import logging
 import unittest
 
+import google
 import grpc
 
-import google
 print(f">>>google.__file__: {google.__file__}")
 import google.protobuf
+
 print(f">>>google.protobuf: {google.protobuf.__file__}")
 
 from examples.protos import helloworld_pb2_grpc
