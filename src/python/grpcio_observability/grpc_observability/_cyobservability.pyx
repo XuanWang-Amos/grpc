@@ -87,8 +87,9 @@ _CY_METRICS_NAME_TO_PY_METRICS_NAME_MAPPING = {x.value: x for x in MetricsName}
 
 def cyobservability_init(object exporter) -> None:
   exporter: _observability.Exporter
-
+  import sys; sys.stderr.write(f"[xuanwn_testing] NativeObservabilityInit\n"); sys.stderr.flush()
   NativeObservabilityInit()
+  import sys; sys.stderr.write(f"[xuanwn_testing] after_NativeObservabilityInit\n"); sys.stderr.flush()
   _start_exporting_thread(exporter)
 
 

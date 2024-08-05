@@ -127,6 +127,7 @@ class OpenTelemetryPlugin:
         Return True means the original method name will be used, False means method name will
         be replaced with "other".
         """
+        import sys; sys.stderr.write(f"[xuanwn_testing] init_OpenTelemetryPlugin\n"); sys.stderr.flush()
         self.plugin_options = plugin_options
         self.meter_provider = meter_provider
         self.target_attribute_filter = target_attribute_filter or (
@@ -146,6 +147,7 @@ class OpenTelemetryPlugin:
         Raises:
             RuntimeError: If a global plugin was already registered.
         """
+        import sys; sys.stderr.write(f"[xuanwn_testing] OpenTelemetryPlugin.register_global\n"); sys.stderr.flush()
         _open_telemetry_observability.start_open_telemetry_observability(
             plugins=self._plugins
         )

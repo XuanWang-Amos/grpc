@@ -79,6 +79,7 @@ class _OpenTelemetryPlugin:
     identifier: str
 
     def __init__(self, plugin: OpenTelemetryPlugin):
+        import sys; sys.stderr.write(f"[xuanwn_testing] init__OpenTelemetryPlugin\n"); sys.stderr.flush()
         self._plugin = plugin
         self._metric_to_recorder = dict()
         self.identifier = str(id(self))
@@ -92,6 +93,7 @@ class _OpenTelemetryPlugin:
             self._metric_to_recorder = self._register_metrics(
                 meter, enabled_metrics
             )
+        import sys; sys.stderr.write(f"[xuanwn_testing] after_init__OpenTelemetryPlugin\n"); sys.stderr.flush()
 
     def _should_record(self, stats_data: StatsData) -> bool:
         # Decide if this plugin should record the stats_data.
@@ -375,19 +377,22 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
         self._server_option_activated = False
 
     def observability_init(self):
+        import sys; sys.stderr.write(f"[xuanwn_testing] observability_init\n"); sys.stderr.flush()
         try:
             _cyobservability.activate_stats()
             self.set_stats(True)
         except Exception as e:  # pylint: disable=broad-except
             raise ValueError(f"Activate observability metrics failed with: {e}")
-
+        import sys; sys.stderr.write(f"[xuanwn_testing] after_activate_stats\n"); sys.stderr.flush()
         try:
             _cyobservability.cyobservability_init(self._exporter)
         # TODO(xuanwn): Use specific exceptons
         except Exception as e:  # pylint: disable=broad-except
             _LOGGER.exception("Initiate observability failed with: %s", e)
+        import sys; sys.stderr.write(f"[xuanwn_testing] after_cyobservability_init\n"); sys.stderr.flush()
 
         grpc._observability.observability_init(self)
+        import sys; sys.stderr.write(f"[xuanwn_testing] after_observability_init\n"); sys.stderr.flush()
 
     def observability_deinit(self) -> None:
         # Sleep so we don't loss any data. If we shutdown export thread
@@ -507,6 +512,7 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
 def _start_open_telemetry_observability(
     otel_o11y: OpenTelemetryObservability,
 ) -> None:
+    import sys; sys.stderr.write(f"[xuanwn_testing] _start_open_telemetry_observability\n"); sys.stderr.flush()
     global _OPEN_TELEMETRY_OBSERVABILITY  # pylint: disable=global-statement
     with _observability_lock:
         if _OPEN_TELEMETRY_OBSERVABILITY is None:
@@ -516,7 +522,7 @@ def _start_open_telemetry_observability(
             raise RuntimeError(
                 "gPRC Python observability was already initialized!"
             )
-
+    import sys; sys.stderr.write(f"[xuanwn_testing] after_start_open_telemetry_observability\n"); sys.stderr.flush()
 
 def _end_open_telemetry_observability() -> None:
     global _OPEN_TELEMETRY_OBSERVABILITY  # pylint: disable=global-statement

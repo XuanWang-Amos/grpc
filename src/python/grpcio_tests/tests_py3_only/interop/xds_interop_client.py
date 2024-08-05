@@ -533,8 +533,11 @@ def _run(
     logger.info("Starting python xDS Interop Client.")
     csm_plugin = None
     if args.enable_csm_observability:
+        import sys; sys.stderr.write(f"[xuanwn_testing] calling__prepare_csm_observability_plugin\n"); sys.stderr.flush()
         csm_plugin = _prepare_csm_observability_plugin()
+        import sys; sys.stderr.write(f"[xuanwn_testing] register_global\n"); sys.stderr.flush()
         csm_plugin.register_global()
+    import sys; sys.stderr.write(f"[xuanwn_testing] register_global\n"); sys.stderr.flush()
     global _global_server  # pylint: disable=global-statement
     method_handles = []
     channel_configs = {}
@@ -556,6 +559,7 @@ def _run(
         )
         channel_configs[method] = channel_config
         method_handles.append(_MethodHandle(args.num_channels, channel_config))
+    import sys; sys.stderr.write(f"[xuanwn_testing] create_global_server\n"); sys.stderr.flush()
     _global_server = grpc.server(concurrent.futures.ThreadPoolExecutor())
     _global_server.add_insecure_port(f"0.0.0.0:{args.stats_port}")
     test_pb2_grpc.add_LoadBalancerStatsServiceServicer_to_server(
@@ -566,6 +570,7 @@ def _run(
         _global_server,
     )
     grpc_admin.add_admin_servicers(_global_server)
+    import sys; sys.stderr.write(f"[xuanwn_testing] start_global_server\n"); sys.stderr.flush()
     _global_server.start()
     _global_server.wait_for_termination()
     for method_handle in method_handles:
