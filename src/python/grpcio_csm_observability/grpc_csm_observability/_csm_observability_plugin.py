@@ -264,7 +264,10 @@ class CsmOpenTelemetryPlugin(OpenTelemetryPlugin):
         generic_method_attribute_filter: Optional[Callable[[str], bool]] = None,
     ):
         new_options = list(plugin_options) + [CsmOpenTelemetryPluginOption()]
-        import sys; sys.stderr.write(f"[xuanwn_testing] init_CsmOpenTelemetryPlugin\n"); sys.stderr.flush()
+        import sys
+
+        sys.stderr.write(f"[xuanwn_testing] init_CsmOpenTelemetryPlugin\n")
+        sys.stderr.flush()
         super().__init__(
             plugin_options=new_options,
             meter_provider=meter_provider,
