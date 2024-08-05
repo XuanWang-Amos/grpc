@@ -36,6 +36,7 @@ namespace grpc_observability {
 
 PythonLabelsInjector::PythonLabelsInjector(
     const std::vector<Label>& exchange_labels) {
+  LOG(INFO) << "[xuanwn_testing] calling PythonLabelsInjector";
   for (const auto& label : exchange_labels) {
     auto it = MetadataExchangeKeyNames.find(label.key);
     if (it != MetadataExchangeKeyNames.end()) {
@@ -46,6 +47,7 @@ PythonLabelsInjector::PythonLabelsInjector(
 
 std::vector<Label> PythonLabelsInjector::GetExchangeLabels(
     grpc_metadata_batch* incoming_initial_metadata) const {
+  LOG(INFO) << "[xuanwn_testing] calling GetExchangeLabels";
   std::vector<Label> labels;
   for (const auto& key : MetadataExchangeKeyNames) {
     if (key == kXEnvoyPeerMetadata) {
@@ -64,11 +66,13 @@ std::vector<Label> PythonLabelsInjector::GetExchangeLabels(
       }
     }
   }
+  LOG(INFO) << "[xuanwn_testing] calling end";
   return labels;
 }
 
 void PythonLabelsInjector::AddExchangeLabelsToMetadata(
     grpc_metadata_batch* outgoing_initial_metadata) const {
+  LOG(INFO) << "[xuanwn_testing] calling AddExchangeLabelsToMetadata";
   for (const auto& metadata : metadata_to_exchange_) {
     if (metadata.first == kXEnvoyPeerMetadata) {
       grpc_core::Slice metadata_slice = grpc_core::Slice::FromCopiedString(
@@ -77,12 +81,14 @@ void PythonLabelsInjector::AddExchangeLabelsToMetadata(
                                      metadata_slice.Ref());
     }
   }
+  LOG(INFO) << "[xuanwn_testing] calling end";
 }
 
 void PythonLabelsInjector::AddXdsOptionalLabels(
     bool is_client,
     absl::Span<const grpc_core::RefCountedStringValue> optional_labels_span,
     std::vector<Label>& labels) {
+  LOG(INFO) << "[xuanwn_testing] calling AddXdsOptionalLabels";
   if (!is_client) {
     // Currently the CSM optional labels are only set on client.
     return;
@@ -110,6 +116,7 @@ void PythonLabelsInjector::AddXdsOptionalLabels(
   labels.emplace_back("csm.service_name", std::string(service_name));
   labels.emplace_back("csm.service_namespace_name",
                       std::string(service_namespace));
+  LOG(INFO) << "[xuanwn_testing] calling end";
 }
 
 }  // namespace grpc_observability
