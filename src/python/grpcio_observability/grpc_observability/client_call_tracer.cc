@@ -356,12 +356,14 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordEnd(
     LOG(INFO) << "[xuanwn_testing] calling StatusCodeToString";
     context_.Labels().emplace_back(kClientStatus,
                                    StatusCodeToString(status_code_));
-    LOG(INFO) << "[xuanwn_testing] calling kRpcClientSentMessagesPerRpcMeasureName";
+    LOG(INFO)
+        << "[xuanwn_testing] calling kRpcClientSentMessagesPerRpcMeasureName";
     RecordIntMetric(kRpcClientSentMessagesPerRpcMeasureName,
                     sent_message_count_, context_.Labels(),
                     parent_->identifier_, parent_->registered_method_,
                     /*include_exchange_labels=*/true);
-    LOG(INFO) << "[xuanwn_testing] calling kRpcClientReceivedMessagesPerRpcMeasureName";
+    LOG(INFO) << "[xuanwn_testing] calling "
+                 "kRpcClientReceivedMessagesPerRpcMeasureName";
     RecordIntMetric(kRpcClientReceivedMessagesPerRpcMeasureName,
                     recv_message_count_, context_.Labels(),
                     parent_->identifier_, parent_->registered_method_,
@@ -370,7 +372,8 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordEnd(
     grpc_core::MutexLock lock(&parent_->mu_);
     LOG(INFO) << "[xuanwn_testing] calling --parent_";
     if (--parent_->num_active_rpcs_ == 0) {
-      LOG(INFO) << "[xuanwn_testing] calling parent_->time_at_last_attempt_end_";
+      LOG(INFO)
+          << "[xuanwn_testing] calling parent_->time_at_last_attempt_end_";
       parent_->time_at_last_attempt_end_ = absl::Now();
     }
   }
