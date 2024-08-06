@@ -58,7 +58,7 @@ PythonOpenCensusCallTracer::PythonOpenCensusCallTracer(
   GenerateClientContext(absl::StrCat("Sent.", method_),
                         absl::string_view(trace_id),
                         absl::string_view(parent_span_id), &context_);
-  LOG(INFO) << "[xuanwn_testing] [Server] calling end";
+  LOG(INFO) << "[xuanwn_testing] Create PythonOpenCensusCallTracer end";
 }
 
 void PythonOpenCensusCallTracer::GenerateContext() {}
@@ -89,7 +89,7 @@ void PythonOpenCensusCallTracer::RecordAnnotation(
 }
 
 PythonOpenCensusCallTracer::~PythonOpenCensusCallTracer() {
-  LOG(INFO) << "[xuanwn_testing] calling ~PythonOpenCensusCallTracer";
+  LOG(INFO) << "[xuanwn_testing] calling ~PythonOpenCensusCallTracer for " << this;
   if (PythonCensusStatsEnabled()) {
     context_.Labels().emplace_back(kClientMethod, method_);
     RecordIntMetric(kRpcClientRetriesPerCallMeasureName, retries_ - 1,
@@ -110,7 +110,7 @@ PythonOpenCensusCallTracer::~PythonOpenCensusCallTracer() {
       RecordSpan(context_.GetSpan().ToCensusData());
     }
   }
-  LOG(INFO) << "[xuanwn_testing] [Server] calling end";
+  LOG(INFO) << "[xuanwn_testing] ~PythonOpenCensusCallTracer calling end";
 }
 
 PythonCensusContext
@@ -171,7 +171,7 @@ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
   RecordIntMetric(kRpcClientStartedRpcsMeasureName, 1, context_.Labels(),
                   parent_->identifier_, parent_->registered_method_,
                   /*include_exchange_labels=*/false);
-  LOG(INFO) << "[xuanwn_testing] [Server] calling end";
+  LOG(INFO) << "[xuanwn_testing] PythonOpenCensusCallAttemptTracer end";
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
@@ -198,7 +198,7 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
   }
   LOG(INFO) << "[xuanwn_testing] calling AddExchangeLabelsToMetadata";
   parent_->labels_injector_.AddExchangeLabelsToMetadata(send_initial_metadata);
-  LOG(INFO) << "[xuanwn_testing] [Server] calling end";
+  LOG(INFO) << "[xuanwn_testing] AddExchangeLabelsToMetadata end";
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
@@ -349,7 +349,7 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordEnd(
     const gpr_timespec& /*latency*/) {
-  LOG(INFO) << "[xuanwn_testing] calling RecordEnd";
+  LOG(INFO) << "[xuanwn_testing] calling RecordEnd with parent: " << parent_;
   if (PythonCensusStatsEnabled()) {
     LOG(INFO) << "[xuanwn_testing] calling parent_->method_";
     context_.Labels().emplace_back(kClientMethod, parent_->method_);
