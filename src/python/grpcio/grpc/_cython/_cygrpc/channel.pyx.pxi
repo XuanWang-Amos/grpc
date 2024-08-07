@@ -81,7 +81,10 @@ cdef class _CallState:
   cdef void maybe_delete_call_tracer(self) except *:
     if not self.call_tracer_capsule:
       return
-    _observability.delete_call_tracer(self.call_tracer_capsule)
+    # Only delete call_trace if no dues are left, otherwise, we might delete call_tracer before
+    # RecordEnd was called on call attempt tracer.
+    if not self.due:
+      _observability.delete_call_tracer(self.call_tracer_capsule)
 
   cdef void maybe_save_registered_method(self, bytes method_name) except *:
     with _observability.get_plugin() as plugin:
