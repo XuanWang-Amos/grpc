@@ -28,6 +28,7 @@ _LOGGER = logging.getLogger(__name__)
 _channel = Any  # _channel.py imports this module.
 ClientCallTracerCapsule = TypeVar("ClientCallTracerCapsule")
 ServerCallTracerFactoryCapsule = TypeVar("ServerCallTracerFactoryCapsule")
+CallArenaCapsule = TypeVar("CallArenaCapsule")
 
 _plugin_lock: threading.RLock = threading.RLock()
 _OBSERVABILITY_PLUGIN: Optional["ObservabilityPlugin"] = None
@@ -79,7 +80,7 @@ class ObservabilityPlugin(
 
     @abc.abstractmethod
     def create_client_call_tracer(
-        self, method_name: bytes, target: bytes
+        self, method_name: bytes, target: bytes, arena_capsule: CallArenaCapsule,
     ) -> ClientCallTracerCapsule:
         """Creates a ClientCallTracerCapsule.
 

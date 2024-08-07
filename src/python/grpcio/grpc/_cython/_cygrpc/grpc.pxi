@@ -75,10 +75,16 @@ cdef extern from "src/core/telemetry/call_tracer.h" namespace "grpc_core":
         @staticmethod
         void RegisterGlobal(ServerCallTracerFactory* factory) nogil
 
+cdef extern from "src/core/lib/resource_quota/arena.h" namespace "grpc_core":
+    cdef cppclass Arena:
+        pass
+
 cdef extern from "src/core/lib/surface/call.h":
   void grpc_call_tracer_set(grpc_call* call, void* value) nogil
 
   void* grpc_call_tracer_get(grpc_call* call) nogil
+
+  Arena* grpc_call_get_arena(grpc_call* call) nogil
 
 cdef extern from "grpc/support/alloc.h":
 

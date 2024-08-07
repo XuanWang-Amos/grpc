@@ -30,6 +30,7 @@ CENSUS_EXPORT_BATCH_INTERVAL_SECS = float(os.environ.get('GRPC_PYTHON_CENSUS_EXP
 GRPC_PYTHON_CENSUS_EXPORT_THREAD_TIMEOUT = float(os.environ.get('GRPC_PYTHON_CENSUS_EXPORT_THREAD_TIMEOUT', 10))
 cdef const char* CLIENT_CALL_TRACER = "client_call_tracer"
 cdef const char* SERVER_CALL_TRACER_FACTORY = "server_call_tracer_factory"
+cdef const char* CALL_ARENA = "call_arena"
 cdef bint GLOBAL_SHUTDOWN_EXPORT_THREAD = False
 cdef object GLOBAL_EXPORT_THREAD
 
@@ -119,7 +120,7 @@ def activate_stats() -> None:
 
 def create_client_call_tracer(bytes method_name, bytes target, bytes trace_id, str identifier,
                               dict exchange_labels, object enabled_optional_labels,
-                              bint registered_method, bytes parent_span_id=b'') -> cpython.PyObject:
+                              bint registered_method, object arena_capsule, bytes parent_span_id=b'') -> cpython.PyObject:
   """Create a ClientCallTracer and save to PyCapsule.
 
   Returns: A grpc_observability._observability.ClientCallTracerCapsule object.
@@ -137,9 +138,11 @@ def create_client_call_tracer(bytes method_name, bytes target, bytes trace_id, s
     if label_type == _observability.OptionalLabelType.XDS_SERVICE_LABELS:
       add_csm_optional_labels = True
 
+
+  capsule_ptr = cpython.PyCapsule_GetPointer(arena_capsule, CALL_ARENA)
   cdef void* call_tracer = CreateClientCallTracer(c_method, c_target, c_trace_id, c_parent_span_id,
                                                   c_identifier, c_labels, add_csm_optional_labels,
-                                                  registered_method)
+                                                  registered_method, <Arena*>capsule_ptr)
   capsule = cpython.PyCapsule_New(call_tracer, CLIENT_CALL_TRACER, NULL)
   return capsule
 

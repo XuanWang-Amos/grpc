@@ -83,22 +83,26 @@ cdef class _CallState:
       return
     # Only delete call_trace if no dues are left, otherwise, we might delete call_tracer before
     # RecordEnd was called on call attempt tracer.
-    if not self.due:
-      _observability.delete_call_tracer(self.call_tracer_capsule)
+    import sys; sys.stderr.write(f"[xuanwn_testing] >> Pretends to delete call_tracer_capsule\n"); sys.stderr.flush()
+      # _observability.delete_call_tracer(self.call_tracer_capsule)
 
   cdef void maybe_save_registered_method(self, bytes method_name) except *:
     with _observability.get_plugin() as plugin:
       if plugin and plugin.observability_enabled:
         plugin.save_registered_method(method_name)
 
-  cdef void maybe_set_client_call_tracer_on_call(self, bytes method_name, bytes target) except *:
+  cdef void maybe_set_client_call_tracer_on_call(self, bytes method_name, bytes target, grpc_call* c_call) except *:
+    cdef void* call_arena
     # TODO(xuanwn): use channel args to exclude those metrics.
     for exclude_prefix in _observability._SERVICES_TO_EXCLUDE:
       if exclude_prefix in method_name:
         return
     with _observability.get_plugin() as plugin:
       if plugin and plugin.observability_enabled:
-        capsule = plugin.create_client_call_tracer(method_name, target)
+        call_arena = grpc_call_get_arena(c_call)
+        arena_capsule = cpython.PyCapsule_New(call_arena, CALL_ARENA, NULL)
+
+        capsule = plugin.create_client_call_tracer(method_name, target, arena_capsule)
         capsule_ptr = cpython.PyCapsule_GetPointer(capsule, CLIENT_CALL_TRACER)
         _set_call_tracer(self.c_call, capsule_ptr)
         self.call_tracer_capsule = capsule
@@ -290,7 +294,7 @@ cdef void _call(
       grpc_slice_unref(method_slice)
       if host_slice_ptr:
         grpc_slice_unref(host_slice)
-      call_state.maybe_set_client_call_tracer_on_call(method, channel_state.target)
+      call_state.maybe_set_client_call_tracer_on_call(method, channel_state.target, call_state.c_call)
       if context is not None:
         set_census_context_on_call(call_state, context)
       if credentials is not None:

@@ -38,6 +38,10 @@ cdef extern from "src/core/telemetry/call_tracer.h" namespace "grpc_core":
   cdef cppclass ClientCallTracer:
     pass
 
+cdef extern from "src/core/lib/resource_quota/arena.h" namespace "grpc_core":
+  cdef cppclass Arena:
+    pass
+
 cdef extern from "python_observability_context.h" namespace "grpc_observability":
   cdef void EnablePythonCensusStats(bint enable) nogil
   cdef void EnablePythonCensusTracing(bint enable) nogil
@@ -84,7 +88,8 @@ cdef extern from "observability_util.h" namespace "grpc_observability":
                                     const char* identifier,
                                     const vector[Label] exchange_labels,
                                     bint add_csm_optional_labels,
-                                    bint registered_method) except +
+                                    bint registered_method,
+                                    Arena* arena) except +
   cdef void* CreateServerCallTracerFactory(const vector[Label] exchange_labels, const char* identifier) except +
   cdef queue[NativeCensusData]* g_census_data_buffer
   cdef void AwaitNextBatchLocked(unique_lock[mutex]&, int) nogil

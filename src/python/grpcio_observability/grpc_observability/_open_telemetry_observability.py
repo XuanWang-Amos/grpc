@@ -37,6 +37,7 @@ ClientCallTracerCapsule = Any  # it appears only once in the function signature
 ServerCallTracerFactoryCapsule = (
     Any  # it appears only once in the function signature
 )
+CallArenaCapsule = Any # it appears only once in the function signature
 grpc_observability = Any  # grpc_observability.py imports this module.
 OpenTelemetryPlugin = Any  # _open_telemetry_plugin.py imports this module.
 OpenTelemetryPluginOption = (
@@ -410,7 +411,7 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
         grpc._observability.observability_deinit()
 
     def create_client_call_tracer(
-        self, method_name: bytes, target: bytes
+        self, method_name: bytes, target: bytes, arena_capsule: CallArenaCapsule,
     ) -> ClientCallTracerCapsule:
         trace_id = b"TRACE_ID"
         self._maybe_activate_client_plugin_options(target)
@@ -427,6 +428,7 @@ class OpenTelemetryObservability(grpc._observability.ObservabilityPlugin):
             exchange_labels,
             enabled_optional_labels,
             method_name in self._registered_methods,
+            arena_capsule,
         )
         return capsule
 

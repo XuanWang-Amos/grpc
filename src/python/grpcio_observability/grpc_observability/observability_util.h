@@ -60,7 +60,8 @@ void* CreateClientCallTracer(const char* method, const char* target,
                              const char* identifier,
                              const std::vector<Label> exchange_labels,
                              bool add_csm_optional_labels,
-                             bool registered_method);
+                             bool registered_method,
+                             grpc_core::Arena* arena);
 
 void* CreateServerCallTracerFactory(const std::vector<Label> exchange_labels,
                                     const char* identifier);

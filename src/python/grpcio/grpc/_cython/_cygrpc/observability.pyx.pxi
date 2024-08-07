@@ -21,6 +21,7 @@ from grpc import _observability
 
 cdef const char* CLIENT_CALL_TRACER = "client_call_tracer"
 cdef const char* SERVER_CALL_TRACER_FACTORY = "server_call_tracer_factory"
+cdef const char* CALL_ARENA = "call_arena"
 
 
 def get_server_call_tracer_factory_address(object observability_plugin, bint xds) -> Optional[int]:
