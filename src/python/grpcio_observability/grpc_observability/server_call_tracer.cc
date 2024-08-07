@@ -110,7 +110,8 @@ void PythonOpenCensusServerCallTracer::RecordSendInitialMetadata(
 
 void PythonOpenCensusServerCallTracer::RecordReceivedInitialMetadata(
     grpc_metadata_batch* recv_initial_metadata) {
-  LOG(INFO) << "[xuanwn_testing] [Server] calling RecordReceivedInitialMetadata";
+  LOG(INFO)
+      << "[xuanwn_testing] [Server] calling RecordReceivedInitialMetadata";
   ServerO11yMetadata som;
   GetO11yMetadata(recv_initial_metadata, &som);
   path_ = std::move(som.path);
@@ -182,7 +183,8 @@ void PythonOpenCensusServerCallTracer::RecordReceivedMessage(
 
 void PythonOpenCensusServerCallTracer::RecordReceivedDecompressedMessage(
     const grpc_core::SliceBuffer& recv_decompressed_message) {
-  LOG(INFO) << "[xuanwn_testing] [Server] calling RecordReceivedDecompressedMessage";
+  LOG(INFO)
+      << "[xuanwn_testing] [Server] calling RecordReceivedDecompressedMessage";
   RecordAnnotation(absl::StrFormat("Received decompressed message: %ld bytes",
                                    recv_decompressed_message.Length()));
   LOG(INFO) << "[xuanwn_testing] [Server] calling end";
