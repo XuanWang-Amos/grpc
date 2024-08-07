@@ -300,6 +300,7 @@ cdef void _call(
         grpc_call_credentials_release(c_call_credentials)
         if c_call_error != GRPC_CALL_OK:
           #TODO(xuanwn): Expand the scope of nogil
+          import sys; sys.stderr.write(f"[xuanwn_testing] delete after grpc_call_credentials_release\n"); sys.stderr.flush()
           call_state.delete_call()
           _raise_call_error_no_metadata(c_call_error)
       started_tags = set()
@@ -310,6 +311,7 @@ cdef void _call(
         else:
           grpc_call_cancel(call_state.c_call, NULL)
           #TODO(xuanwn): Expand the scope of nogil
+          import sys; sys.stderr.write(f"[xuanwn_testing] delete after grpc_call_cancel\n"); sys.stderr.flush()
           call_state.delete_call()
           _raise_call_error(c_call_error, metadata)
       else:
@@ -324,6 +326,7 @@ cdef void _process_integrated_call_tag(
   cdef _CallState call_state = state.integrated_call_states.pop(tag)
   call_state.due.remove(tag)
   if not call_state.due:
+    import sys; sys.stderr.write(f"[xuanwn_testing] delete in _process_integrated_call_tag\n"); sys.stderr.flush()
     call_state.delete_call()
 
 cdef class IntegratedCall:
@@ -364,6 +367,7 @@ cdef object _process_segregated_call_tag(
   call_state.due.remove(tag)
   if not call_state.due:
     #TODO(xuanwn): Expand the scope of nogil
+    import sys; sys.stderr.write(f"[xuanwn_testing] delete in _process_segregated_call_tag\n"); sys.stderr.flush()
     call_state.delete_call()
     state.segregated_call_states.remove(call_state)
     _destroy_c_completion_queue(c_completion_queue)
@@ -391,6 +395,7 @@ cdef class SegregatedCall:
         self._channel_state, self._call_state, self._c_completion_queue, tag)
     def on_failure():
       self._call_state.due.clear()
+      import sys; sys.stderr.write(f"[xuanwn_testing] delete in on_failure\n"); sys.stderr.flush()
       self._call_state.delete_call()
       self._channel_state.segregated_call_states.remove(self._call_state)
       _destroy_c_completion_queue(self._c_completion_queue)
