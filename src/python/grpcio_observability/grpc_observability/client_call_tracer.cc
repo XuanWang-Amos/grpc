@@ -87,7 +87,8 @@ void PythonOpenCensusCallTracer::RecordAnnotation(
 }
 
 PythonOpenCensusCallTracer::~PythonOpenCensusCallTracer() {
-  LOG(INFO) << "[xuanwn_testing] calling ~PythonOpenCensusCallTracer for " << this;
+  LOG(INFO) << "[xuanwn_testing] calling ~PythonOpenCensusCallTracer for "
+            << this;
   if (PythonCensusStatsEnabled()) {
     context_.Labels().emplace_back(kClientMethod, method_);
     RecordIntMetric(kRpcClientRetriesPerCallMeasureName, retries_ - 1,

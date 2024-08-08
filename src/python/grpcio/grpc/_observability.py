@@ -80,7 +80,10 @@ class ObservabilityPlugin(
 
     @abc.abstractmethod
     def create_client_call_tracer(
-        self, method_name: bytes, target: bytes, arena_capsule: CallArenaCapsule,
+        self,
+        method_name: bytes,
+        target: bytes,
+        arena_capsule: CallArenaCapsule,
     ) -> ClientCallTracerCapsule:
         """Creates a ClientCallTracerCapsule.
 
