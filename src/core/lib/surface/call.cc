@@ -494,7 +494,8 @@ grpc_call_error grpc_call_start_batch_and_execute(grpc_call* call,
 void grpc_call_tracer_set(grpc_call* call,
                           grpc_core::ClientCallTracer* tracer) {
   grpc_core::Arena* arena = grpc_call_get_arena(call);
-  // LOG(INFO) << "[xuanwn_testing] calling arena->ManagedNew<TracerWrapper>(tracer)";
+  // LOG(INFO) << "[xuanwn_testing] calling
+  // arena->ManagedNew<TracerWrapper>(tracer)";
   // arena->ManagedNew<TracerWrapper>(tracer);
   return arena->SetContext<grpc_core::CallTracerAnnotationInterface>(tracer);
 }
