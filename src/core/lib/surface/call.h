@@ -274,6 +274,14 @@ void* grpc_call_tracer_get(grpc_call* call);
     }                                                     \
   } while (0)
 
+class TracerWrapper {
+  public:
+      TracerWrapper(grpc_core::ClientCallTracer* tracer) : a_ptr_(tracer) {} // Take ownership of the raw pointer
+
+  private:
+      std::unique_ptr<grpc_core::ClientCallTracer> a_ptr_; 
+};
+
 uint8_t grpc_call_is_client(grpc_call* call);
 
 // Return an appropriate compression algorithm for the requested compression \a

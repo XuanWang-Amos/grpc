@@ -51,6 +51,10 @@ def maybe_save_server_trace_context(RequestCallEvent event) -> None:
 
 cdef void _set_call_tracer(grpc_call* call, void* capsule_ptr):
   cdef ClientCallTracer* call_tracer = <ClientCallTracer*>capsule_ptr
+  # cdef Arena* call_arena = grpc_call_get_arena(call)
+  # import sys; sys.stderr.write(f"[xuanwn_testing] create _TracerWrapper\n"); sys.stderr.flush()
+  # cdef _TracerWrapper wrapper = _TracerWrapper(call_tracer)
+  # call_arena.ManagedNew[_TracerWrapper](wrapper)
   grpc_call_tracer_set(call, call_tracer)
 
 

@@ -54,11 +54,9 @@ PythonOpenCensusCallTracer::PythonOpenCensusCallTracer(
       labels_injector_(exchange_labels),
       identifier_(identifier),
       registered_method_(registered_method) {
-  LOG(INFO) << "[xuanwn_testing] Create PythonOpenCensusCallTracer";
   GenerateClientContext(absl::StrCat("Sent.", method_),
                         absl::string_view(trace_id),
                         absl::string_view(parent_span_id), &context_);
-  LOG(INFO) << "[xuanwn_testing] Create PythonOpenCensusCallTracer end";
 }
 
 void PythonOpenCensusCallTracer::GenerateContext() {}
@@ -115,7 +113,6 @@ PythonOpenCensusCallTracer::~PythonOpenCensusCallTracer() {
 
 PythonCensusContext
 PythonOpenCensusCallTracer::CreateCensusContextForCallAttempt() {
-  LOG(INFO) << "[xuanwn_testing] calling CreateCensusContextForCallAttempt";
   auto context = PythonCensusContext(absl::StrCat("Attempt.", method_),
                                      &(context_.GetSpan()), context_.Labels());
   return context;
@@ -123,7 +120,6 @@ PythonOpenCensusCallTracer::CreateCensusContextForCallAttempt() {
 
 PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer*
 PythonOpenCensusCallTracer::StartNewAttempt(bool is_transparent_retry) {
-  LOG(INFO) << "[xuanwn_testing] calling StartNewAttempt";
   uint64_t attempt_num;
   {
     grpc_core::MutexLock lock(&mu_);
@@ -156,7 +152,6 @@ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     : parent_(parent),
       context_(parent_->CreateCensusContextForCallAttempt()),
       start_time_(absl::Now()) {
-  LOG(INFO) << "[xuanwn_testing] calling PythonOpenCensusCallAttemptTracer";
   if (parent_->tracing_enabled_) {
     context_.AddSpanAttribute("previous-rpc-attempts",
                               absl::StrCat(attempt_num));
@@ -171,12 +166,10 @@ PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
   RecordIntMetric(kRpcClientStartedRpcsMeasureName, 1, context_.Labels(),
                   parent_->identifier_, parent_->registered_method_,
                   /*include_exchange_labels=*/false);
-  LOG(INFO) << "[xuanwn_testing] PythonOpenCensusCallAttemptTracer end";
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     RecordSendInitialMetadata(grpc_metadata_batch* send_initial_metadata) {
-  LOG(INFO) << "[xuanwn_testing] calling RecordSendInitialMetadata";
   if (parent_->tracing_enabled_) {
     char tracing_buf[kMaxTraceContextLen];
     size_t tracing_len =
@@ -196,52 +189,40 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     send_initial_metadata->Set(grpc_core::GrpcTagsBinMetadata(),
                                grpc_core::Slice(tags));
   }
-  LOG(INFO) << "[xuanwn_testing] calling AddExchangeLabelsToMetadata";
   parent_->labels_injector_.AddExchangeLabelsToMetadata(send_initial_metadata);
-  LOG(INFO) << "[xuanwn_testing] AddExchangeLabelsToMetadata end";
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     RecordReceivedInitialMetadata(grpc_metadata_batch* recv_initial_metadata) {
-  LOG(INFO) << "[xuanwn_testing] calling RecordReceivedInitialMetadata";
   if (recv_initial_metadata != nullptr &&
       recv_initial_metadata->get(grpc_core::GrpcTrailersOnly())
           .value_or(false)) {
     is_trailers_only_ = true;
     return;
   }
-  LOG(INFO) << "[xuanwn_testing] calling GetExchangeLabels";
   labels_from_peer_ =
       parent_->labels_injector_.GetExchangeLabels(recv_initial_metadata);
-  LOG(INFO) << "[xuanwn_testing] calling end";
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     RecordSendMessage(const grpc_core::SliceBuffer& /*send_message*/) {
-  LOG(INFO) << "[xuanwn_testing] calling RecordSendMessage";
   ++sent_message_count_;
-  LOG(INFO) << "[xuanwn_testing] calling end";
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     RecordReceivedMessage(const grpc_core::SliceBuffer& /*recv_message*/) {
-  LOG(INFO) << "[xuanwn_testing] calling RecordReceivedMessage";
   ++recv_message_count_;
-  LOG(INFO) << "[xuanwn_testing] calling end";
 }
 
 std::shared_ptr<grpc_core::TcpTracerInterface> PythonOpenCensusCallTracer::
     PythonOpenCensusCallAttemptTracer::StartNewTcpTrace() {
-  LOG(INFO) << "[xuanwn_testing] calling StartNewTcpTrace";
   return nullptr;
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     SetOptionalLabel(OptionalLabelKey key,
                      grpc_core::RefCountedStringValue value) {
-  LOG(INFO) << "[xuanwn_testing] calling SetOptionalLabel";
   optional_labels_array_[static_cast<size_t>(key)] = std::move(value);
-  LOG(INFO) << "[xuanwn_testing] calling end";
 }
 
 namespace {
@@ -271,7 +252,6 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     RecordReceivedTrailingMetadata(
         absl::Status status, grpc_metadata_batch* recv_trailing_metadata,
         const grpc_transport_stream_stats* transport_stream_stats) {
-  LOG(INFO) << "[xuanwn_testing] calling RecordReceivedTrailingMetadata";
   if (!PythonCensusStatsEnabled()) {
     return;
   }
@@ -305,7 +285,6 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     incoming_bytes = transport_stream_stats->incoming.data_bytes;
     outgoing_bytes = transport_stream_stats->outgoing.data_bytes;
   }
-  LOG(INFO) << "[xuanwn_testing] calling RecordDoubleMetric";
   RecordDoubleMetric(kRpcClientSentBytesPerRpcMeasureName,
                      static_cast<double>(outgoing_bytes), context_.Labels(),
                      parent_->identifier_, parent_->registered_method_,
@@ -327,21 +306,16 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
   RecordIntMetric(kRpcClientCompletedRpcMeasureName, 1, context_.Labels(),
                   parent_->identifier_, parent_->registered_method_,
                   /*include_exchange_labels=*/true);
-  LOG(INFO) << "[xuanwn_testing] calling end";
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     RecordIncomingBytes(const TransportByteSize& transport_byte_size) {
-  LOG(INFO) << "[xuanwn_testing] calling RecordIncomingBytes";
   incoming_bytes_.fetch_add(transport_byte_size.data_bytes);
-  LOG(INFO) << "[xuanwn_testing] calling end";
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     RecordOutgoingBytes(const TransportByteSize& transport_byte_size) {
-  LOG(INFO) << "[xuanwn_testing] calling RecordOutgoingBytes";
   outgoing_bytes_.fetch_add(transport_byte_size.data_bytes);
-  LOG(INFO) << "[xuanwn_testing] calling end";
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
@@ -351,61 +325,49 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::RecordEnd(
     const gpr_timespec& /*latency*/) {
   LOG(INFO) << "[xuanwn_testing] calling RecordEnd with parent: " << parent_;
   if (PythonCensusStatsEnabled()) {
-    LOG(INFO) << "[xuanwn_testing] calling parent_->method_";
     context_.Labels().emplace_back(kClientMethod, parent_->method_);
-    LOG(INFO) << "[xuanwn_testing] calling StatusCodeToString";
     context_.Labels().emplace_back(kClientStatus,
                                    StatusCodeToString(status_code_));
-    LOG(INFO) << "[xuanwn_testing] calling kRpcClientSentMessagesPerRpcMeasureName";
     RecordIntMetric(kRpcClientSentMessagesPerRpcMeasureName,
                     sent_message_count_, context_.Labels(),
                     parent_->identifier_, parent_->registered_method_,
                     /*include_exchange_labels=*/true);
-    LOG(INFO) << "[xuanwn_testing] calling kRpcClientReceivedMessagesPerRpcMeasureName";
     RecordIntMetric(kRpcClientReceivedMessagesPerRpcMeasureName,
                     recv_message_count_, context_.Labels(),
                     parent_->identifier_, parent_->registered_method_,
                     /*include_exchange_labels=*/true);
-    LOG(INFO) << "[xuanwn_testing] calling lock";
+
     grpc_core::MutexLock lock(&parent_->mu_);
-    LOG(INFO) << "[xuanwn_testing] calling --parent_";
     if (--parent_->num_active_rpcs_ == 0) {
-      LOG(INFO) << "[xuanwn_testing] calling parent_->time_at_last_attempt_end_";
       parent_->time_at_last_attempt_end_ = absl::Now();
     }
   }
-  LOG(INFO) << "[xuanwn_testing] calling parent_->tracing_enabled_";
+
   if (parent_->tracing_enabled_) {
     if (status_code_ != absl::StatusCode::kOk) {
-      LOG(INFO) << "[xuanwn_testing] calling StatusCodeToString(status_code_)";
       context_.GetSpan().SetStatus(StatusCodeToString(status_code_));
     }
-    LOG(INFO) << "[xuanwn_testing] calling context_.EndSpan()";
     context_.EndSpan();
     if (IsSampled()) {
       RecordSpan(context_.GetSpan().ToCensusData());
     }
   }
-  LOG(INFO) << "[xuanwn_testing] calling delete";
+
   // After RecordEnd, Core will make no further usage of this CallAttemptTracer,
   // so we are free it here.
   delete this;
-  LOG(INFO) << "[xuanwn_testing] calling end";
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     RecordAnnotation(absl::string_view annotation) {
-  LOG(INFO) << "[xuanwn_testing] calling RecordAnnotation";
   if (!context_.GetSpanContext().IsSampled()) {
     return;
   }
   context_.AddSpanAnnotation(annotation);
-  LOG(INFO) << "[xuanwn_testing] calling end";
 }
 
 void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
     RecordAnnotation(const Annotation& annotation) {
-  LOG(INFO) << "[xuanwn_testing] calling RecordAnnotation";
   if (!context_.GetSpanContext().IsSampled()) {
     return;
   }
@@ -419,7 +381,6 @@ void PythonOpenCensusCallTracer::PythonOpenCensusCallAttemptTracer::
       }
       break;
   }
-  LOG(INFO) << "[xuanwn_testing] calling end";
 }
 
 }  // namespace grpc_observability

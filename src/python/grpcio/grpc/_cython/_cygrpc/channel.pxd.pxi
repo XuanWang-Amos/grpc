@@ -33,6 +33,8 @@ cdef class _CallState:
   cdef void maybe_delete_call_tracer(self) except *
   cdef void delete_call(self) except *
 
+# cdef class _TracerWrapper:
+#   cdef ClientCallTracer* tracer
 
 cdef class _ChannelState:
 

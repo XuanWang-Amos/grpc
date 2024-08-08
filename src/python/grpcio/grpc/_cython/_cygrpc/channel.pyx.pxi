@@ -101,11 +101,16 @@ cdef class _CallState:
       if plugin and plugin.observability_enabled:
         call_arena = grpc_call_get_arena(c_call)
         arena_capsule = cpython.PyCapsule_New(call_arena, CALL_ARENA, NULL)
-
         capsule = plugin.create_client_call_tracer(method_name, target, arena_capsule)
         capsule_ptr = cpython.PyCapsule_GetPointer(capsule, CLIENT_CALL_TRACER)
         _set_call_tracer(self.c_call, capsule_ptr)
         self.call_tracer_capsule = capsule
+
+# cdef class _TracerWrapper:
+
+#   def __cinit__(self, tracer):
+#     import sys; sys.stderr.write(f"[xuanwn_testing] self.tracer = tracer\n"); sys.stderr.flush()
+#     self.tracer = tracer
 
 cdef class _ChannelState:
 

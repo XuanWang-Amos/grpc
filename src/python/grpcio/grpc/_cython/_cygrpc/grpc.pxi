@@ -77,7 +77,8 @@ cdef extern from "src/core/telemetry/call_tracer.h" namespace "grpc_core":
 
 cdef extern from "src/core/lib/resource_quota/arena.h" namespace "grpc_core":
     cdef cppclass Arena:
-        pass
+      pass
+      # T* ManagedNew[T](Args&&... args)
 
 cdef extern from "src/core/lib/surface/call.h":
   void grpc_call_tracer_set(grpc_call* call, void* value) nogil

@@ -106,7 +106,7 @@ void* CreateClientCallTracer(const char* method, const char* target,
                              bool add_csm_optional_labels,
                              bool registered_method,
                              grpc_core::Arena* arena) {
-                              
+            
   // void* client_call_tracer = new PythonOpenCensusCallTracer(
   //     method, target, trace_id, parent_span_id, identifier, exchange_labels,
   //     PythonCensusTracingEnabled(), add_csm_optional_labels, registered_method);
