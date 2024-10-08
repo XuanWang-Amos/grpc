@@ -17,12 +17,12 @@
 # load("@rules_proto//proto:defs.bzl", "proto_library")
 # load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
 
-# load("@com_google_protobuf//bazel:py_proto_library.bzl", "py_proto_library")
+load("@com_google_protobuf//bazel:py_proto_library.bzl", "py_proto_library")
 
 load(
     "@com_github_grpc_grpc//bazel:python_rules.bzl",
     "py_grpc_library",
-    "py_proto_library",
+    # "py_proto_library",
 )
 load("//:python_rules_test.bzl", "python_rules_test_suite")
 
