@@ -1,17 +1,18 @@
-FROM python:3.9-slim-bookworm
+FROM python:3.11-bullseye
 
 RUN apt-get update -y && apt-get upgrade -y && apt-get install -y build-essential clang curl
 
 WORKDIR /workdir
 
 RUN ln -s /usr/bin/python3 /usr/bin/python
+RUN python3 -m pip install grpcio grpcio-observability grpcio-csm-observability
 RUN mkdir /artifacts
 
 COPY . .
 RUN tools/bazel build -c dbg //examples/python/observability/csm:csm_greeter_server
 RUN cp -rL /workdir/bazel-bin/examples/python/observability/csm/csm_greeter_server* /artifacts/
 
-FROM python:3.9-slim-bookworm
+FROM python:3.11-bullseye
 
 RUN apt-get update -y \
     && apt-get install -y python3 \
