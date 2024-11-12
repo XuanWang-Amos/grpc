@@ -19,6 +19,7 @@ import unittest
 
 import grpc
 import grpc_channelz
+
 print(f"[xuan_testing] grpc_channelz.__file__: {grpc_channelz.__file__}")
 from grpc_channelz.v1 import channelz
 from grpc_channelz.v1 import channelz_pb2
