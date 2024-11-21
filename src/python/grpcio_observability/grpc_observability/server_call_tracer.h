@@ -19,6 +19,7 @@
 #include "absl/strings/strip.h"
 #include "constants.h"
 #include "metadata_exchange.h"
+#include "python_census_context.h"
 #include "python_observability_context.h"
 
 #include <grpc/support/port_platform.h>
