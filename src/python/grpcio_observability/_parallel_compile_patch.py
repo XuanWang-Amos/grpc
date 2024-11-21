@@ -64,6 +64,7 @@ def _parallel_compile(
     )
     return objects
 
+
 def monkeypatch_compile_maybe():
     """Monkeypatching is dumb, but the build speed gain is worth it."""
     if BUILD_EXT_COMPILER_JOBS > 1:
