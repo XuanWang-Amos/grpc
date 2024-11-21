@@ -57,12 +57,15 @@ def _set_union(a: Iterable, b: Iterable) -> Set:
 
 @contextlib.contextmanager
 def _start_python_with_args(
-    file: str, args: List[str], with_debug=False,
+    file: str,
+    args: List[str],
+    with_debug=False,
 ) -> Tuple[subprocess.Popen, tempfile.TemporaryFile, tempfile.TemporaryFile]:
     with tempfile.TemporaryFile(mode="r") as stdout:
         with tempfile.TemporaryFile(mode="r") as stderr:
             if with_debug:
                 import os
+
                 new_env = os.environ.copy()
                 new_env["GRPC_VERBOSITY"] = "debug"
                 new_env["GRPC_TRACE"] = "api"
