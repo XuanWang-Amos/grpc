@@ -20,9 +20,9 @@ from __future__ import print_function
 import argparse
 import logging
 
-import grpc
 import channelz_pb2
 import channelz_pb2_grpc
+import grpc
 
 
 def run(addr):

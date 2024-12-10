@@ -16,8 +16,8 @@
 from typing import AsyncIterable
 
 import grpc
-import reflection_pb2 as _reflection_pb2
 from grpc_reflection.v1alpha._base import BaseReflectionServicer
+import reflection_pb2 as _reflection_pb2
 
 
 class ReflectionServicer(BaseReflectionServicer):
