@@ -23,14 +23,14 @@ import threading
 import time
 from typing import DefaultDict, Dict, List, Mapping, Sequence, Set, Tuple
 
+import channelz_pb2
 import grpc
 from grpc_channelz.v1 import channelz
-import channelz_pb2
 from grpc_csm_observability import CsmOpenTelemetryPlugin
 from grpc_health.v1 import health as grpc_health
+from grpc_reflection.v1alpha import reflection
 import health_pb2
 import health_pb2_grpc
-from grpc_reflection.v1alpha import reflection
 from opentelemetry.exporter.prometheus import PrometheusMetricReader
 from opentelemetry.sdk.metrics import MeterProvider
 from prometheus_client import start_http_server

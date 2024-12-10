@@ -17,9 +17,9 @@ import argparse
 import asyncio
 import logging
 
-import grpc
 import channelz_pb2
 import channelz_pb2_grpc
+import grpc
 
 
 async def run(addr: str) -> None:

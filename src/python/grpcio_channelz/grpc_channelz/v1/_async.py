@@ -13,10 +13,10 @@
 # limitations under the License.
 """AsyncIO version of Channelz servicer."""
 
-from grpc.experimental import aio
-from grpc_channelz.v1._servicer import ChannelzServicer as _SyncChannelzServicer
 import channelz_pb2 as _channelz_pb2
 import channelz_pb2_grpc as _channelz_pb2_grpc
+from grpc.experimental import aio
+from grpc_channelz.v1._servicer import ChannelzServicer as _SyncChannelzServicer
 
 
 class ChannelzServicer(_channelz_pb2_grpc.ChannelzServicer):

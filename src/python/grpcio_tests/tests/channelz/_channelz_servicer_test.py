@@ -17,10 +17,10 @@ from concurrent import futures
 import sys
 import unittest
 
-import grpc
-from grpc_channelz.v1 import channelz
 import channelz_pb2
 import channelz_pb2_grpc
+import grpc
+from grpc_channelz.v1 import channelz
 
 from tests.unit import test_common
 from tests.unit.framework.common import test_constants

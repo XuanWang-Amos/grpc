@@ -16,9 +16,9 @@
 import sys
 
 import grpc
+from grpc_reflection.v1alpha._base import BaseReflectionServicer
 import reflection_pb2 as _reflection_pb2
 import reflection_pb2_grpc as _reflection_pb2_grpc
-from grpc_reflection.v1alpha._base import BaseReflectionServicer
 
 SERVICE_NAME = _reflection_pb2.DESCRIPTOR.services_by_name[
     "ServerReflection"
