@@ -15,13 +15,14 @@
 
 import asyncio
 import logging
+import os
 import unittest
 
 import grpc
 from grpc.experimental import aio
 from grpc_channelz.v1 import channelz
-import os
-if os.environ.get('BUILD_SYSTEM') == 'Bazel':
+
+if os.environ.get("BUILD_SYSTEM") == "Bazel":
     import channelz_pb2
     import channelz_pb2_grpc
 else:

@@ -19,10 +19,11 @@ from __future__ import print_function
 
 import argparse
 import logging
+import os
 
 import grpc
-import os
-if os.environ.get('BUILD_SYSTEM') == 'Bazel':
+
+if os.environ.get("BUILD_SYSTEM") == "Bazel":
     import channelz_pb2
     import channelz_pb2_grpc
 else:

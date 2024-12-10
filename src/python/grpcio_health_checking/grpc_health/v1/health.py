@@ -14,12 +14,13 @@
 """Reference implementation for health checking in gRPC Python."""
 
 import collections
+import os
 import sys
 import threading
 
 import grpc
-import os
-if os.environ.get('BUILD_SYSTEM') == 'Bazel':
+
+if os.environ.get("BUILD_SYSTEM") == "Bazel":
     import health_pb2 as _health_pb2
     import health_pb2_grpc as _health_pb2_grpc
 else:
