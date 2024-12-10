@@ -15,6 +15,7 @@
 
 import asyncio
 import logging
+import os
 import random
 import time
 import unittest
@@ -22,8 +23,8 @@ import unittest
 import grpc
 from grpc.experimental import aio
 from grpc_health.v1 import health
-import os
-if os.environ.get('BUILD_SYSTEM') == 'Bazel':
+
+if os.environ.get("BUILD_SYSTEM") == "Bazel":
     import health_pb2
     import health_pb2_grpc
 else:

@@ -16,6 +16,7 @@ import argparse
 import collections
 from concurrent import futures
 import logging
+import os
 import signal
 import socket
 import sys
@@ -27,15 +28,16 @@ import grpc
 from grpc_channelz.v1 import channelz
 from grpc_csm_observability import CsmOpenTelemetryPlugin
 from grpc_health.v1 import health as grpc_health
-import os
-if os.environ.get('BUILD_SYSTEM') == 'Bazel':
+
+if os.environ.get("BUILD_SYSTEM") == "Bazel":
+    import channelz_pb2
     import health_pb2
     import health_pb2_grpc
-    import channelz_pb2
 else:
     from grpc_health.v1 import health_pb2
     from grpc_health.v1 import health_pb2_grpc
     from grpc_channelz.v1 import channelz_pb2
+
 from grpc_reflection.v1alpha import reflection
 from opentelemetry.exporter.prometheus import PrometheusMetricReader
 from opentelemetry.sdk.metrics import MeterProvider
