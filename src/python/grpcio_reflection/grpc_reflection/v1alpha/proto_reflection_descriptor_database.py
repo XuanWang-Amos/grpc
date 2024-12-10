@@ -18,13 +18,14 @@ For usage instructions, see the Python Reflection documentation at
 """
 
 import logging
+import os
 from typing import Any, Dict, Iterable, List, Set
 
 from google.protobuf.descriptor_database import DescriptorDatabase
 from google.protobuf.descriptor_pb2 import FileDescriptorProto
 import grpc
-import os
-if os.environ.get('BUILD_SYSTEM') == 'Bazel':
+
+if os.environ.get("BUILD_SYSTEM") == "Bazel":
     from reflection_pb2 import ExtensionNumberResponse
     from reflection_pb2 import ExtensionRequest
     from reflection_pb2 import FileDescriptorResponse
@@ -42,7 +43,6 @@ else:
     from grpc_reflection.v1alpha.reflection_pb2 import ServerReflectionResponse
     from grpc_reflection.v1alpha.reflection_pb2 import ServiceResponse
     from grpc_reflection.v1alpha.reflection_pb2_grpc import ServerReflectionStub
-
 
 
 class ProtoReflectionDescriptorDatabase(DescriptorDatabase):
