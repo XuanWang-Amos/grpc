@@ -15,18 +15,20 @@
 
 from concurrent.futures import ThreadPoolExecutor
 import logging
+import os
 import sys
 import unittest
 
 import grpc
 import grpc_admin
-import os
-if os.environ.get('BUILD_SYSTEM') == 'Bazel':
+
+if os.environ.get("BUILD_SYSTEM") == "Bazel":
     import channelz_pb2
     import channelz_pb2_grpc
 else:
     from grpc_channelz.v1 import channelz_pb2
     from grpc_channelz.v1 import channelz_pb2_grpc
+
 from grpc_csds import csds_pb2
 from grpc_csds import csds_pb2_grpc
 
