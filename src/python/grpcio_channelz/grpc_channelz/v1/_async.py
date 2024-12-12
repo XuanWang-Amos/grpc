@@ -13,10 +13,12 @@
 # limitations under the License.
 """AsyncIO version of Channelz servicer."""
 
+import os
+
 from grpc.experimental import aio
 from grpc_channelz.v1._servicer import ChannelzServicer as _SyncChannelzServicer
-import os
-if os.environ.get('BUILD_SYSTEM') == 'Bazel':
+
+if os.environ.get("BUILD_SYSTEM") == "Bazel":
     import channelz_pb2 as _channelz_pb2
     import channelz_pb2_grpc as _channelz_pb2_grpc
 else:

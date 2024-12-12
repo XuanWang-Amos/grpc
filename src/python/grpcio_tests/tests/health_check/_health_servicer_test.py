@@ -14,6 +14,7 @@
 """Tests of grpc_health.v1.health."""
 
 import logging
+import os
 import queue
 import sys
 import threading
@@ -22,8 +23,8 @@ import unittest
 
 import grpc
 from grpc_health.v1 import health
-import os
-if os.environ.get('BUILD_SYSTEM') == 'Bazel':
+
+if os.environ.get("BUILD_SYSTEM") == "Bazel":
     import health_pb2
     import health_pb2_grpc
 else:
