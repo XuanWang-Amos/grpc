@@ -15,11 +15,12 @@
 
 import asyncio
 import collections
+import os
 from typing import MutableMapping
 
 import grpc
-import os
-if os.environ.get('BUILD_SYSTEM') == 'Bazel':
+
+if os.environ.get("BUILD_SYSTEM") == "Bazel":
     import health_pb2 as _health_pb2
     import health_pb2_grpc as _health_pb2_grpc
 else:
