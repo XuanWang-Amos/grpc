@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests of grpc_reflection.v1alpha.reflection."""
 
+import os
 import sys
 import unittest
 
@@ -20,14 +21,13 @@ from google.protobuf import descriptor_pb2
 from google.protobuf import descriptor_pool
 import grpc
 from grpc_reflection.v1alpha import reflection
-import os
-if os.environ.get('BUILD_SYSTEM') == 'Bazel':
+
+if os.environ.get("BUILD_SYSTEM") == "Bazel":
     import reflection_pb2
     import reflection_pb2_grpc
 else:
     from grpc_reflection.v1alpha import reflection_pb2
     from grpc_reflection.v1alpha import reflection_pb2_grpc
-
 
 from src.proto.grpc.testing import empty_pb2
 from src.proto.grpc.testing.proto2 import empty2_extensions_pb2

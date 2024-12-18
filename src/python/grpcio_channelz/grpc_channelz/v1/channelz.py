@@ -13,12 +13,13 @@
 # limitations under the License.
 """Channelz debug service implementation in gRPC Python."""
 
+import os
 import sys
 
 import grpc
 from grpc_channelz.v1._servicer import ChannelzServicer
-import os
-if os.environ.get('BUILD_SYSTEM') == 'Bazel':
+
+if os.environ.get("BUILD_SYSTEM") == "Bazel":
     import channelz_pb2_grpc as _channelz_pb2_grpc
 else:
     from grpc_channelz.v1 import channelz_pb2_grpc as _channelz_pb2_grpc
