@@ -45,7 +45,8 @@ def strip_non_ascii_chars(s):
 def sanitized_environment(env):
     sanitized = {}
     for key, value in list(env.items()):
-        sys.stderr.write(f"strip_non_ascii_chars key: {key}, value: {value}\n"); sys.stderr.flush()
+        sys.stderr.write(f"strip_non_ascii_chars key: {key}, value: {value}\n")
+        sys.stderr.flush()
         sanitized[strip_non_ascii_chars(key)] = strip_non_ascii_chars(value)
     return sanitized
 
