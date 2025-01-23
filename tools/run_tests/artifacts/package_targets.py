@@ -149,8 +149,10 @@ class PythonPackage:
         self.arch = arch
         if self.platform:
             self.labels.append(platform)
+            self.name += "_" + platform
         if self.arch:
             self.labels.append(arch)
+            self.name += "_" + arch
 
 
     def pre_build_jobspecs(self):
