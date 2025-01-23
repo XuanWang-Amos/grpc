@@ -23,16 +23,14 @@ cd $(dirname $0)/../../..
 
 source tools/internal_ci/helper_scripts/prepare_build_linux_rc
 
-# some distribtests use a pre-registered binfmt_misc hook
-# to automatically execute foreign binaries (such as aarch64)
-# under qemu emulator.
-# TASK_RUNNER_EXTRA_FILTERS="${TASK_RUNNER_EXTRA_FILTERS:-""}" # Handle unset variable
-
-# if [[ "$TASK_RUNNER_EXTRA_FILTERS" == *"aarch64"* && ! ("$TASK_RUNNER_EXTRA_FILTERS" == *"x64"* || "$TASK_RUNNER_EXTRA_FILTERS" == *"x86"* || "$TASK_RUNNER_EXTRA_FILTERS" == *"armv7"* ) ]]; then
-#   echo "Skipping prepare_qemu_rc because TASK_RUNNER_EXTRA_FILTERS matches the condition."
-# else
-#   source tools/internal_ci/helper_scripts/prepare_qemu_rc
-# fi
+if [[ "${TASK_RUNNER_EXTRA_FILTERS}" == "aarch64 musllinux_1_1" ]]; then
+  echo "Skipping prepare_qemu_rc'"
+else
+  # some distribtests use a pre-registered binfmt_misc hook
+  # to automatically execute foreign binaries (such as aarch64)
+  # under qemu emulator.
+  source tools/internal_ci/helper_scripts/prepare_qemu_rc
+fi
 
 # configure ccache
 source tools/internal_ci/helper_scripts/prepare_ccache_rc

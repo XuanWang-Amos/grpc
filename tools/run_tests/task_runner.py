@@ -114,8 +114,8 @@ for label in args.build:
 # Among targets selected by -b, filter out those that don't match the filter
 targets = [t for t in targets if all(f in t.labels for f in args.filter)]
 
-# Exclude target if it has ANY of the specified exclude labels.
-targets = [t for t in targets if not any(l in args.exclude for l in t.labels)]
+# Exclude target if it has ALL of the specified exclude labels.
+targets = [t for t in targets if not all(l in args.exclude for l in t.labels)]
 
 print("Will build %d targets:" % len(targets))
 for target in targets:
