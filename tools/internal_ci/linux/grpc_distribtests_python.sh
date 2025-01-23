@@ -60,7 +60,12 @@ cp -r artifacts/* input_artifacts/ || true
 # Run all python linux distribtests
 # We run the distribtests even if some of the artifacts have failed to build, since that gives
 # a better signal about which distribtest are affected by the currently broken artifact builds.
-tools/run_tests/task_runner.py -f distribtest linux python ${TASK_RUNNER_EXTRA_FILTERS} -j 12 -x distribtests/sponge_log.xml || FAILED="true"
+if [[ "${TASK_RUNNER_EXTRA_FILTERS}" == "aarch64 musllinux_1_1" ]]; then
+  # We're using alpine as tag in distribtest targets.
+  tools/run_tests/task_runner.py -f distribtest linux python aarch64 alpine -j 12 -x distribtests/sponge_log.xml || FAILED="true"
+else
+  tools/run_tests/task_runner.py -f distribtest linux python ${TASK_RUNNER_EXTRA_FILTERS} -j 12 -x distribtests/sponge_log.xml || FAILED="true"
+fi
 
 # This step checks if any of the artifacts exceeds a per-file size limit.
 tools/internal_ci/helper_scripts/check_python_artifacts_size.sh
