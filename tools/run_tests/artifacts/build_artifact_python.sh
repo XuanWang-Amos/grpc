@@ -304,8 +304,6 @@ then
       preprocess sdist bdist_wheel
   cp -r src/python/grpcio_status/dist/* "$ARTIFACT_DIR"
 
-  exit 1
-
   # Install xds-protos as a dependency of grpcio-csds
   "${PYTHON}" -m pip install xds-protos --no-index --find-links "file://$ARTIFACT_DIR/"
 

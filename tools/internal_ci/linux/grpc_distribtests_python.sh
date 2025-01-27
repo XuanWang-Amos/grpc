@@ -23,7 +23,7 @@ cd $(dirname $0)/../../..
 
 source tools/internal_ci/helper_scripts/prepare_build_linux_rc
 
-if [[ "${TASK_RUNNER_EXTRA_FILTERS}" == "aarch64 musllinux_1_1" ]]; then
+if [[ "${AUDITWHEEL_PLAT}" == "musllinux_1_1_aarch64" ]]; then
   echo "Skipping prepare_qemu_rc'"
 else
   # some distribtests use a pre-registered binfmt_misc hook
@@ -36,7 +36,12 @@ fi
 source tools/internal_ci/helper_scripts/prepare_ccache_rc
 
 # Build all python linux artifacts (this step actually builds all the binary wheels and source archives)
-tools/run_tests/task_runner.py -f artifact linux python ${TASK_RUNNER_EXTRA_FILTERS} -j 12 -x build_artifacts/sponge_log.xml || FAILED="true"
+if [[ "${AUDITWHEEL_PLAT}" == "musllinux_1_1_aarch64" ]]; then
+  tools/run_tests/task_runner.py -f artifact linux python ${TASK_RUNNER_EXTRA_FILTERS} -j 12 -x build_artifacts/sponge_log.xml || FAILED="true"
+else
+  tools/run_tests/task_runner.py -f package linux python -x build_packages/sponge_log.xml || FAILED="true"
+fi
+
 
 # the next step expects to find the artifacts from the previous step in the "input_artifacts" folder.
 rm -rf input_artifacts
@@ -44,7 +49,7 @@ mkdir -p input_artifacts
 cp -r artifacts/* input_artifacts/ || true
 
 # This step simply collects python artifacts from subdirectories of input_artifacts/ and copies them to artifacts/
-if [[ "${TASK_RUNNER_EXTRA_FILTERS}" == "aarch64 musllinux_1_1" ]]; then
+if [[ "${AUDITWHEEL_PLAT}" == "musllinux_1_1_aarch64" ]]; then
   tools/run_tests/task_runner.py -f package linux python ${TASK_RUNNER_EXTRA_FILTERS} -x build_packages/sponge_log.xml || FAILED="true"
 else
   tools/run_tests/task_runner.py -f package linux python -x build_packages/sponge_log.xml || FAILED="true"
@@ -60,7 +65,7 @@ cp -r artifacts/* input_artifacts/ || true
 # Run all python linux distribtests
 # We run the distribtests even if some of the artifacts have failed to build, since that gives
 # a better signal about which distribtest are affected by the currently broken artifact builds.
-if [[ "${TASK_RUNNER_EXTRA_FILTERS}" == "aarch64 musllinux_1_1" ]]; then
+if [[ "${AUDITWHEEL_PLAT}" == "musllinux_1_1_aarch64" ]]; then
   # We're using alpine as tag in distribtest targets.
   tools/run_tests/task_runner.py -f distribtest linux python aarch64 alpine -j 12 -x distribtests/sponge_log.xml || FAILED="true"
 else
