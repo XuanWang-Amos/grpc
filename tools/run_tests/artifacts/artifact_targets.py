@@ -200,6 +200,7 @@ class PythonArtifact:
             )
             environ["PIP"] = "/opt/python/{}/bin/pip".format(self.py_version)
             environ["GRPC_SKIP_PIP_CYTHON_UPGRADE"] = "TRUE"
+            environ["GRPC_PYTHON_BUILD_WITH_STATIC_LIBSTDCXX"] = "TRUE"
 
             if self.arch in ("x86", "aarch64"):
                 environ["GRPC_SKIP_TWINE_CHECK"] = "TRUE"
@@ -212,7 +213,6 @@ class PythonArtifact:
                 environ["GRPC_BUILD_GRPCIO_TOOLS_DEPENDENTS"] = "TRUE"
             else:
                 environ["GRPC_RUN_AUDITWHEEL_REPAIR"] = "TRUE"
-                environ["GRPC_PYTHON_BUILD_WITH_STATIC_LIBSTDCXX"] = "TRUE"
 
             return create_docker_jobspec(
                 self.name,
