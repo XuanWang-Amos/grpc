@@ -170,7 +170,9 @@ if EXTRA_ENV_COMPILE_ARGS is None:
         # available dynamically
         EXTRA_ENV_COMPILE_ARGS += " /MT"
     elif "linux" in sys.platform or "darwin" in sys.platform:
-        EXTRA_ENV_COMPILE_ARGS += " -std=c++17 -fno-wrapv -frtti -fvisibility=hidden"
+        EXTRA_ENV_COMPILE_ARGS += (
+            " -std=c++17 -fno-wrapv -frtti -fvisibility=hidden"
+        )
 
 if EXTRA_ENV_LINK_ARGS is None:
     EXTRA_ENV_LINK_ARGS = ""
