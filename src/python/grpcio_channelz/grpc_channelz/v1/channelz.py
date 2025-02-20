@@ -16,9 +16,8 @@
 import sys
 
 import grpc
-from grpc_channelz.v1._servicer import ChannelzServicer
-
 from grpc_channelz.v1 import channelz_pb2_grpc as _channelz_pb2_grpc
+from grpc_channelz.v1._servicer import ChannelzServicer
 
 _add_channelz_servicer_doc = """Add Channelz servicer to a server.
 
